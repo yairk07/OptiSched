@@ -19,7 +19,7 @@
 
         <div>
             <asp:Button ID="btnLogin" runat="server" Text="היכנס" OnClick="btnLogin_Click" CssClass="button" />
-        </div>
+        </div> 
 
         <asp:Label ID="lblError" runat="server" ForeColor="Red" />
     </asp:Panel>
