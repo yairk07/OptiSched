@@ -61,7 +61,12 @@ public partial class tasks : System.Web.UI.Page
 
         foreach (DataRow row in allEvents.Tables[0].Rows)
         {
-            DateTime eventDate = Convert.ToDateTime(row["date"]);
+            if (row.IsNull("date"))
+                continue;
+
+            DateTime eventDate;
+            if (!DateTime.TryParse(row["date"].ToString(), out eventDate))
+                continue;
             if (eventDate.Date == date.Date)
             {
                 string title = row["title"].ToString();
@@ -96,7 +101,12 @@ public partial class tasks : System.Web.UI.Page
 
         foreach (DataRow row in allEvents.Tables[0].Rows)
         {
-            DateTime eventDate = Convert.ToDateTime(row["date"]);
+            if (row.IsNull("date"))
+                continue;
+
+            DateTime eventDate;
+            if (!DateTime.TryParse(row["date"].ToString(), out eventDate))
+                continue;
             if (eventDate.Date == currentDay.Date)
             {
                 dayCount++;
