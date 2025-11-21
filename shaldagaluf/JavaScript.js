@@ -1,5 +1,4 @@
 ﻿document.addEventListener("DOMContentLoaded", function () {
-    // גלריית תמונות
     let images = ["pics/gun1.jpg", "pics/gun2.jpg", "pics/knife3.jpg", "pics/knife 4.jpg"];
     let currentIndex = 0;
     let imgElement = document.getElementById("galleryImage");
@@ -10,19 +9,26 @@
         }
     }
 
-    document.getElementById("prevBtn").addEventListener("click", function (event) {
-        event.preventDefault();
-        currentIndex = (currentIndex - 1 + images.length) % images.length;
-        showImage(currentIndex);
-    });
+    const prevButton = document.getElementById("prevBtn");
+    if (prevButton) {
+        prevButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            currentIndex = (currentIndex - 1 + images.length) % images.length;
+            showImage(currentIndex);
+        });
+    }
 
-    document.getElementById("nextBtn").addEventListener("click", function (event) {
-        event.preventDefault();
-        currentIndex = (currentIndex + 1) % images.length;
-        showImage(currentIndex);
-    });
+    const nextButton = document.getElementById("nextBtn");
+    if (nextButton) {
+        nextButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            currentIndex = (currentIndex + 1) % images.length;
+            showImage(currentIndex);
+        });
+    }
 
     showImage(currentIndex);
+    initializeCalendarData();
 });
 
 // ווידג'ט מזג אוויר
@@ -61,41 +67,95 @@ function playRoulette() {
     const word1 = document.getElementById("word1").value.trim();
     const word2 = document.getElementById("word2").value.trim();
     const resultDiv = document.getElementById("rouletteResult");
-    const lossSection = document.getElementById("lossSection");
-    const loserNameDiv = document.getElementById("loserName");
+    const highlightSection = document.getElementById("lossSection");
+    const highlightLabel = document.getElementById("loserName");
 
     if (!word1 || !word2) {
-        resultDiv.textContent = "אנא הזן שתי מילים.";
-        lossSection.style.display = "none";
+        resultDiv.textContent = "אנא הזן שתי משימות.";
+        highlightSection.style.display = "none";
         return;
     }
 
-    // תוף עם 3 תאים, כדור באחד מהם
-    const bulletChamber = Math.floor(Math.random() * 3) + 1;
-    const shot1 = Math.floor(Math.random() * 3) + 1;
-    const shot2 = Math.floor(Math.random() * 3) + 1;
+    const winningSlot = Math.floor(Math.random() * 3) + 1;
+    const pick1 = Math.floor(Math.random() * 3) + 1;
+    const pick2 = Math.floor(Math.random() * 3) + 1;
 
-    const word1Dead = shot1 === bulletChamber;
-    const word2Dead = shot2 === bulletChamber;
+    const word1Selected = pick1 === winningSlot;
+    const word2Selected = pick2 === winningSlot;
 
     let result = "";
 
-    if (word1Dead && word2Dead) {
-        result = "שתי המילים נפגעו! תיקו עקוב מדם.";
-        lossSection.style.display = "block";
-        loserNameDiv.textContent = "שניהם הפסידו";
-    } else if (word1Dead) {
-        result = `💀 ${word1} נפגעה. המנצחת היא: ${word2}`;
-        lossSection.style.display = "block";
-        loserNameDiv.textContent = `${word1} הפסיד`;
-    } else if (word2Dead) {
-        result = `💀 ${word2} נפגעה. המנצחת היא: ${word1}`;
-        lossSection.style.display = "block";
-        loserNameDiv.textContent = `${word2} הפסיד`;
+    if (word1Selected && word2Selected) {
+        result = "שתי האפשרויות נראות מצוינות – בחר את זו שהכי מתאימה למהלך היום.";
+        highlightSection.style.display = "none";
+    } else if (word1Selected) {
+        result = `${word1} קיבלה עדיפות להמשך היום.`;
+        highlightSection.style.display = "block";
+        highlightLabel.textContent = `${word1} היא הבחירה`;
+    } else if (word2Selected) {
+        result = `${word2} קיבלה עדיפות להמשך היום.`;
+        highlightSection.style.display = "block";
+        highlightLabel.textContent = `${word2} היא הבחירה`;
     } else {
-        result = "שתי המילים שרדו את הירי! נס.";
-        lossSection.style.display = "none";
+        result = "אין בחירה חד-משמעית, נסה שוב או החליט אינטואיטיבית.";
+        highlightSection.style.display = "none";
     }
 
     resultDiv.textContent = result;
+}
+
+function initializeCalendarData() {
+    const dateField = document.getElementById("hfSelectedDate");
+    if (!dateField) {
+        return;
+    }
+    const dateValue = dateField.value || new Date().toISOString().split("T")[0];
+    fetchZmanimData(dateValue);
+}
+
+function fetchZmanimData(dateValue) {
+    const params = new URLSearchParams({ date: dateValue });
+    fetch(`zmanimProxy.ashx?${params.toString()}`, { method: "GET", credentials: "same-origin" })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Failed");
+            }
+            return response.json();
+        })
+        .then(data => applyZmanimData(data, dateValue))
+        .catch(() => { });
+}
+
+function applyZmanimData(data, dateValue) {
+    if (data && data.parasha) {
+        setElementText("lblParsha", data.parasha);
+    }
+    const targetDate = new Date(dateValue);
+    if (isNaN(targetDate)) {
+        return;
+    }
+    const day = targetDate.getDay();
+    const candleValue = day === 5 ? formatTimeValue(data ? data.kenisatShabbat22 : null) : "—";
+    const havdalahValue = day === 6 ? formatTimeValue(data ? data.yetziatShabbat : null) : "—";
+    setElementText("lblCandleLighting", candleValue || "—");
+    setElementText("lblHavdalah", havdalahValue || "—");
+}
+
+function setElementText(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = value || "—";
+    }
+}
+
+function formatTimeValue(value) {
+    if (!value) {
+        return "";
+    }
+    const parsed = new Date(value);
+    if (isNaN(parsed)) {
+        return "";
+    }
+    const adjusted = new Date(parsed.getTime() - 2 * 60 * 60 * 1000);
+    return adjusted.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
 }

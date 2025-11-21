@@ -4,6 +4,15 @@ using System.Web.UI;
 
 public partial class login : System.Web.UI.Page
 {
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if (Session["username"] != null)
+        {
+            Response.Redirect("home.aspx");
+            return;
+        }
+    }
+
     protected void btnLogin_Click(object sender, EventArgs e)
     {
         string username = txtUserName.Text.Trim();

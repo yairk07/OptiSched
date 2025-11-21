@@ -7,25 +7,25 @@
     <section class="auth-section">
         <div class="auth-card">
             <div class="auth-info">
-                <span class="hero-eyebrow">Secure Access</span>
-                <h2>ברוך הבא למרכז השליטה</h2>
+                <span class="hero-eyebrow">Productivity Hub</span>
+                <h2>ברוך הבא למרכז הניהול</h2>
                 <p>
-                    התחבר כדי לצפות ביומן היחידה, לעדכן משימות ולהגיב בזמן אמת.
-                    המערכת מותאמת לכל מכשיר ומאובטחת ברמה צבאית.
+                    התחבר כדי לצפות בלוחות הזמנים, לעדכן משימות ולהגיב בזמן אמת.
+                    המערכת מותאמת לכל מכשיר ומאפשרת מקסום יעילות יומיומי.
                 </p>
 
                 <div class="auth-highlights">
                     <div class="auth-highlight">
                         <span>01</span>
-                        עדכוני אירועים חיים
+                        עדכוני אירועים בזמן אמת
                     </div>
                     <div class="auth-highlight">
                         <span>02</span>
-                        ניהול משימות אדום-שחור
+                        תכנון משימות חכם
                     </div>
                     <div class="auth-highlight">
                         <span>03</span>
-                        גישה בהתאם להרשאות
+                        התאמה לצוותים שונים
                     </div>
                 </div>
             </div>

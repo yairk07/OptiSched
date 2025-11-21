@@ -18,109 +18,137 @@
 
 <asp:Label ID="lblResult" runat="server" CssClass="search-result"></asp:Label>
 
-    <asp:DataList ID="dlEvents" runat="server" 
-              RepeatDirection="Vertical"
-              RepeatLayout="Table" 
-              CssClass="events-table">
-
-    <HeaderTemplate>
-        <div class="row header">
-            <div class="cell">קוד משתמש</div>
-            <div class="cell">שם משתמש</div>
-            <div class="cell">כותרת</div>
-            <div class="cell">תאריך</div>
-            <div class="cell">שעה</div>
-            <div class="cell">הערות</div>
-            <div class="cell">עריכה</div>
-        </div>
-    </HeaderTemplate>
-
-    <ItemTemplate>
-        <div class="row">
-            <div class="cell"><%# Eval("UserId") %></div>
-            <div class="cell"><%# Eval("UserName") %></div>
-            <div class="cell"><%# Eval("Title") %></div>
-            <div class="cell"><%# Eval("EventDate", "{0:dd/MM/yyyy}") %></div>
-            <div class="cell"><%# Eval("EventTime") %></div>
-            <div class="cell"><%# Eval("Notes") %></div>
-            <div class="cell">
-                <a href='editEvent.aspx?uid=<%# Eval("UserId") %>' class="edit-link">ערוך</a>
-            </div>
-        </div>
-    </ItemTemplate>
-
-</asp:DataList>
-
+    <div class="events-table-container">
+        <asp:DataList ID="dlEvents" runat="server" 
+                  RepeatLayout="Table" 
+                  RepeatDirection="Vertical"
+                  CssClass="events-table">
+            <HeaderTemplate>
+                <table class="events-table">
+                    <thead>
+                        <tr>
+                            <th>כותרת</th>
+                            <th>משתמש</th>
+                            <th>תאריך</th>
+                            <th>שעה</th>
+                            <th>הערות</th>
+                            <th>פעולות</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            </HeaderTemplate>
+            <ItemTemplate>
+                        <tr>
+                            <td><%# Eval("Title") %></td>
+                            <td><%# Eval("UserName") %> (#<%# Eval("UserId") %>)</td>
+                            <td><%# Eval("EventDate", "{0:dd/MM/yyyy}") %></td>
+                            <td><%# Eval("EventTime") %></td>
+                            <td><%# Eval("Notes") %></td>
+                            <td><a href='editEvent.aspx?id=<%# Eval("Id") %>' class="edit-link">ערוך</a></td>
+                        </tr>
+            </ItemTemplate>
+            <FooterTemplate>
+                    </tbody>
+                </table>
+            </FooterTemplate>
+        </asp:DataList>
+    </div>
 
     <style>
-      .events-table {
-    width: 70%;
-    margin: 30px auto;
-    font-family: Arial;
-    direction: rtl;
-}
+        .events-table-container {
+            width: min(1500px, 95%);
+            margin: 30px auto 60px;
+            overflow-x: auto;
+        }
 
-.row {
-    display: flex;
-    border-bottom: 1px solid #ddd;
-    padding: 6px 0;
-    font-size: 15px;
-}
+        .events-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
 
-.header {
-    background: #2b3f5c;
-    color: white;
-    font-weight: bold;
-    border-bottom: 2px solid #1f2d44;
-}
+        .events-table thead {
+            background: var(--brand);
+            color: #fff;
+        }
 
-.cell {
-    flex: 1;
-    padding: 4px 8px;
-}
+        .events-table th {
+            padding: 16px;
+            text-align: right;
+            font-weight: 600;
+            font-size: 15px;
+            border-bottom: 2px solid rgba(255,255,255,.2);
+        }
 
-.edit-link {
-    color: #1f3c88;
-    text-decoration: none;
-    font-weight: bold;
-}
+        .events-table td {
+            padding: 14px 16px;
+            text-align: right;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+        }
 
-.edit-link:hover {
-    text-decoration: underline;
-}
-.search-box {
-    width: 40%;
-    padding: 8px;
-    border: 1px solid #aaa;
-    border-radius: 5px;
-    font-size: 14px;
-    direction: rtl;
-}
+        .events-table tbody tr:hover {
+            background: rgba(229, 9, 20, 0.05);
+        }
 
-.search-btn {
-    padding: 8px 15px;
-    background: #2b3f5c;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-right: 8px;
-}
+        .events-table tbody tr:last-child td {
+            border-bottom: none;
+        }
 
-.search-btn:hover {
-    background: #1f2d44;
-}
+        .edit-link {
+            background: var(--brand);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background .2s ease;
+            display: inline-block;
+        }
 
-.search-result {
-    display: block;
-    margin: 10px auto;
-    width: 70%;
-    text-align: center;
-    color: #333;
-    font-size: 15px;
-}
+        .edit-link:hover {
+            background: var(--brand-dark);
+            text-decoration: none;
+        }
 
+        .search-box {
+            width: 40%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            direction: rtl;
+            background: var(--surface);
+            color: var(--text);
+        }
 
+        .search-btn {
+            padding: 10px 20px;
+            background: var(--brand);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-right: 8px;
+            font-weight: 600;
+            transition: background .2s ease;
+        }
+
+        .search-btn:hover {
+            background: var(--brand-dark);
+        }
+
+        .search-result {
+            display: block;
+            margin: 15px auto;
+            width: 70%;
+            text-align: center;
+            color: var(--text);
+            font-size: 15px;
+        }
     </style>
 
 </asp:Content>

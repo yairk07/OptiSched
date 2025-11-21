@@ -5,7 +5,7 @@
 <head runat="server">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>האתר שלי</title>
+    <title>OptiSched</title>
     
     <!-- External Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,18 +24,23 @@
         <!-- Header with Logo + Navigation -->
         <header id="headerMenu">
             <div class="header-inner">
-                <img src="pics/sigma.png" alt="לוגו האתר" class="logo"/>
+                <div class="logo-block">
+                    <img src="pics/optisched-logo.png" alt="OptiSched" class="logo"/>
+                    <div class="logo-text">
+                        <span class="logo-name">OptiSched</span>
+                        <span class="logo-tagline">Smart Scheduling</span>
+                    </div>
+                </div>
 
                 <nav class="nav-bar">
                     <a href="home.aspx">בית</a>
-                    <a href="register.aspx">הרשמה</a>
-                    <a href="tasks.aspx">טופס משימות</a>
+                    <a href="register.aspx" runat="server" id="linkRegister">הרשמה</a>
+                    <a href="tasks.aspx" runat="server" id="linkTasks">טופס משימות</a>
                     <a href="contactus.aspx">צור קשר</a>
-                    <a href="contant.aspx">תוכן</a>
-                    <a href="login.aspx">כניסה</a>
-                    <a href="termofservice.aspx">תנאי שירות</a>
+                    <a href="contant.aspx" runat="server" id="linkContent">תוכן</a>
+                    <a href="login.aspx" runat="server" id="linkLogin">כניסה</a>
+                    <a href="termofservice.aspx" runat="server" id="linkTerms">תנאי שירות</a>
 
-                    <!-- דפים לבעלים בלבד -->
                     <a href="exusers.aspx" id="linkUsers" runat="server">משתמשים</a>
                     <a href="allEvents.aspx" id="linkAllEvents" runat="server">כל האירועים</a>
                     <a href="editEvent.aspx" id="linkEditEvent" runat="server">עריכת אירוע</a>

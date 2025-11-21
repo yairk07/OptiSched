@@ -6,26 +6,39 @@ public partial class danimaster : System.Web.UI.MasterPage
 {
     protected void Page_Load(object sender, EventArgs e)
     {
-        if (!IsPostBack)
-        {
-            // שמירה על הקלאס של ה-body (הקוד שהיה אצלך)
-            string pageName = System.IO.Path.GetFileNameWithoutExtension(Request.Url.AbsolutePath);
-            Body.Attributes["class"] = "page-" + pageName.ToLower();
+        string pageName = System.IO.Path.GetFileNameWithoutExtension(Request.Url.AbsolutePath);
+        Body.Attributes["class"] = "page-" + pageName.ToLower();
 
-            // בדיקת רמת גישה
-            string role = Convert.ToString(Session["Role"]);
-            bool isOwner = role.Equals("owner", StringComparison.OrdinalIgnoreCase);
+        bool isLoggedIn = Session["username"] != null;
+        string role = Convert.ToString(Session["Role"]);
+        bool isOwner = isLoggedIn && string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase);
 
-            // הסתרת דפים לבעלים בלבד
-            if (linkUsers != null)
-                linkUsers.Visible = isOwner;
+        if (linkRegister != null)
+            linkRegister.Visible = !isLoggedIn;
 
-            if (linkAllEvents != null)
-                linkAllEvents.Visible = isOwner;
+        if (linkLogin != null)
+            linkLogin.Visible = !isLoggedIn;
 
-            if (linkEditEvent != null)
-                linkEditEvent.Visible = isOwner;
-        }
+        if (linkTasks != null)
+            linkTasks.Visible = isLoggedIn;
+
+        if (linkContent != null)
+            linkContent.Visible = isLoggedIn;
+
+        if (linkTerms != null)
+            linkTerms.Visible = true;
+
+        if (linkUsers != null)
+            linkUsers.Visible = isOwner;
+
+        if (linkAllEvents != null)
+            linkAllEvents.Visible = isOwner;
+
+        if (linkEditEvent != null)
+            linkEditEvent.Visible = isOwner;
+
+        if (lnkUserName != null)
+            lnkUserName.Visible = isLoggedIn;
     }
 
     protected void lnkUserName_Click(object sender, EventArgs e)

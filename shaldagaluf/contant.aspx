@@ -7,51 +7,85 @@
 
     <style>
         .contant-wrapper {
-            max-width: 900px;
-            margin: 140px auto 50px;
-            padding: 30px;
-            border-radius: 16px;
-            background: #fff;
-            box-shadow: 0 6px 20px rgba(0,0,0,.08);
+            width: min(1500px, 95%);
+            margin: 40px auto 60px;
+            padding: 40px;
+            border-radius: 20px;
+            background: var(--surface);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
             text-align: center;
+        }
+
+        .legacy-logo {
+            margin-bottom: 30px;
+        }
+
+        .legacy-logo img {
+            max-width: 220px;
+            border-radius: 16px;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+        }
+
+        .contant-wrapper h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--heading);
+            margin-bottom: 16px;
+        }
+
+        .contant-wrapper > p {
+            font-size: 16px;
+            color: var(--text);
+            opacity: 0.8;
+            margin-bottom: 30px;
         }
 
         .contant-main-img {
-            width: 300px;
-            border-radius: 12px;
-            box-shadow: 2px 2px 12px rgba(0,0,0,.2);
-            margin: 20px 0;
+            max-width: 400px;
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            margin: 30px 0;
         }
 
         .cards-container {
-            display: flex !important;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 25px;
-            margin-top: 30px;
+            display: grid !important;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 40px;
+            width: 100%;
         }
 
         .info-card {
-            width: 260px;
-            background: #ffffff;
-            padding: 15px;
-            border-radius: 12px;
-            border: 1px solid #ccc;
-            box-shadow: 0 4px 14px rgba(0,0,0,.12);
+            background: var(--surface);
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
             text-align: center;
             cursor: pointer;
-            transition: 0.25s;
+            transition: transform .2s ease, box-shadow .2s ease;
         }
 
         .info-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 18px rgba(0,0,0,.18);
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-lg);
         }
 
         .info-card img {
             width: 100%;
-            border-radius: 10px;
-            margin-bottom: 12px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+        }
+
+        .info-card p {
+            color: var(--text);
+            font-size: 15px;
+            margin: 0;
+            font-weight: 500;
         }
     </style>
 
@@ -60,6 +94,10 @@
 <asp:Content ID="Content2" ContentPlaceHolderID="ContentPlaceHolder1" runat="server">
 
     <div class="contant-wrapper">
+
+        <div class="legacy-logo">
+            <img src="pics/sigma.png" alt="הלוגו הקודם של OptiSched" />
+        </div>
 
         <h2>ברוכים הבאים</h2>
         <p>כאן תוכלו למצוא מידע נוסף, תמונות וקישורים שימושיים.</p>

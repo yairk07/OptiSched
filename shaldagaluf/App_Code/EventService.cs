@@ -15,6 +15,7 @@ public class EventService
 
             string sql = @"
 SELECT
+    C.Id            AS Id,
     C.Userid        AS UserId,
     U.username      AS UserName,
     C.title         AS Title,

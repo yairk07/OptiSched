@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Data;
+using System.Text;
+using System.Web;
 using System.Web.UI.WebControls;
 
 public partial class tasks : System.Web.UI.Page
@@ -15,7 +17,7 @@ public partial class tasks : System.Web.UI.Page
             ViewState["AllEvents"] = allEvents;
 
             calendar.SelectedDate = DateTime.Today;
-            lblSelectedDate.Text = "בחר תאריך להוסיף לו אירוע";
+            lblSelectedDate.Text = DateTime.Today.ToString("dd/MM/yyyy");
             ShowEvents(calendar.SelectedDate);
         }
         else
@@ -27,7 +29,7 @@ public partial class tasks : System.Web.UI.Page
     protected void calendar_SelectionChanged(object sender, EventArgs e)
     {
         DateTime selectedDate = calendar.SelectedDate;
-        lblSelectedDate.Text = $"תאריך נבחר: {selectedDate.ToShortDateString()}";
+        lblSelectedDate.Text = selectedDate.ToString("dd/MM/yyyy");
         ShowEvents(selectedDate);
     }
 
@@ -56,7 +58,7 @@ public partial class tasks : System.Web.UI.Page
 
     private void ShowEvents(DateTime date)
     {
-        lblEvents.Text = "";
+        var builder = new StringBuilder();
         int count = 0;
 
         foreach (DataRow row in allEvents.Tables[0].Rows)
@@ -69,29 +71,30 @@ public partial class tasks : System.Web.UI.Page
                 continue;
             if (eventDate.Date == date.Date)
             {
-                string title = row["title"].ToString();
-                string time = row["time"].ToString();
-                string note = row["notes"].ToString();
+                string title = HttpUtility.HtmlEncode(row["title"].ToString());
+                string time = HttpUtility.HtmlEncode(row["time"].ToString());
+                string note = HttpUtility.HtmlEncode(row["notes"].ToString());
 
-                lblEvents.Text += $@"
-                    <div style='margin-bottom:10px; padding:10px; border:1px solid #ccc; border-radius:5px; background-color:#f9f9f9;'>
-                        <strong style='color:#333;'>📌 {title}</strong><br/>";
+                builder.Append("<article class='task-event-card'>");
+                builder.Append("<div class='task-event-title'>📌 ").Append(title).Append("</div>");
 
                 if (!string.IsNullOrEmpty(time))
-                    lblEvents.Text += $"<span style='color:#555;'>⏰ בשעה: {time}</span><br/>";
+                    builder.Append("<div class='task-event-meta'>⏰ ").Append(time).Append("</div>");
 
                 if (!string.IsNullOrEmpty(note))
-                    lblEvents.Text += $"<span style='color:#777;'>📝 {note}</span><br/>";
+                    builder.Append("<div class='task-event-note'>📝 ").Append(note).Append("</div>");
 
-                lblEvents.Text += "</div>";
+                builder.Append("</article>");
                 count++;
             }
         }
 
         if (count == 0)
         {
-            lblEvents.Text = "<div style='color:gray;'>אין אירועים לתאריך הזה.</div>";
+            builder.Append("<div class='task-empty'>אין אירועים לתאריך הזה.</div>");
         }
+
+        lblEvents.Text = builder.ToString();
     }
 
     protected void calendar_DayRender(object sender, DayRenderEventArgs e)
@@ -117,7 +120,7 @@ public partial class tasks : System.Web.UI.Page
         {
             e.Cell.Controls.Add(new Literal
             {
-                Text = $"<br /><span style='color:blue; font-size:10px;'>({dayCount} אירועים)</span>"
+                Text = $"<span class='task-day-count'>{dayCount} אירועים</span>"
             });
         }
     }

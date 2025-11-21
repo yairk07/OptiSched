@@ -57,15 +57,20 @@ public partial class exuserdetails : System.Web.UI.Page
         pnlContent.Visible = true;
         pnlNotFound.Visible = false;
 
-        lblUserName.Text = SafeGet(row, "userName");
+        string userName = SafeGet(row, "userName");
+        lblUserName.Text = userName;
         lblFirstName.Text = SafeGet(row, "firstName");
         lblLastName.Text = SafeGet(row, "lastName");
         lblEmail.Text = SafeGet(row, "email");
         lblPhone.Text = SafeGet(row, "phonenum");
         lblCity.Text = GetCity(row);
 
-        // ⚡ מציג ROLE אמיתי מה־DB
         lblAccessLevel.Text = SafeGet(row, "Role");
+
+        if (!string.IsNullOrEmpty(userName) && avatarLetter != null)
+        {
+            avatarLetter.InnerText = userName.Substring(0, 1).ToUpper();
+        }
     }
 
     private void ShowNotFound()
