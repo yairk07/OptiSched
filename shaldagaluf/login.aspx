@@ -4,24 +4,55 @@
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="ContentPlaceHolder1" Runat="Server">
-    <h2>דף התחברות</h2>
+    <section class="auth-section">
+        <div class="auth-card">
+            <div class="auth-info">
+                <span class="hero-eyebrow">Secure Access</span>
+                <h2>ברוך הבא למרכז השליטה</h2>
+                <p>
+                    התחבר כדי לצפות ביומן היחידה, לעדכן משימות ולהגיב בזמן אמת.
+                    המערכת מותאמת לכל מכשיר ומאובטחת ברמה צבאית.
+                </p>
 
-    <asp:Panel runat="server">
-        <div>
-            <label for="txtUserName">שם משתמש:</label>
-            <asp:TextBox ID="txtUserName" runat="server" CssClass="textbox" />
+                <div class="auth-highlights">
+                    <div class="auth-highlight">
+                        <span>01</span>
+                        עדכוני אירועים חיים
+                    </div>
+                    <div class="auth-highlight">
+                        <span>02</span>
+                        ניהול משימות אדום-שחור
+                    </div>
+                    <div class="auth-highlight">
+                        <span>03</span>
+                        גישה בהתאם להרשאות
+                    </div>
+                </div>
+            </div>
+
+            <div class="auth-form">
+                <h3>התחברות למערכת</h3>
+                <p class="auth-support">הזן את פרטי המשתמש שסופקו לך על ידי מנהל המערכת</p>
+
+                <div class="form-field">
+                    <label for="txtUserName">שם משתמש</label>
+                    <asp:TextBox ID="txtUserName" runat="server" CssClass="textbox" placeholder="לדוגמה: yair.k" />
+                </div>
+
+                <div class="form-field">
+                    <label for="txtPassword">סיסמה</label>
+                    <asp:TextBox ID="txtPassword" runat="server" TextMode="Password" CssClass="textbox" placeholder="••••••••" />
+                </div>
+
+                <asp:Button ID="btnLogin" runat="server" Text="כניסה למערכת" OnClick="btnLogin_Click" CssClass="button" />
+
+                <asp:Label ID="lblError" runat="server" CssClass="auth-error" />
+
+                <div class="auth-support">
+                    לא רשומים עדיין? <a href="register.aspx">צרו משתמש חדש</a>
+                </div>
+            </div>
         </div>
-
-        <div>
-            <label for="txtPassword">סיסמה:</label>
-            <asp:TextBox ID="txtPassword" runat="server" TextMode="Password" CssClass="textbox" />
-        </div>
-
-        <div>
-            <asp:Button ID="btnLogin" runat="server" Text="היכנס" OnClick="btnLogin_Click" CssClass="button" />
-        </div> 
-
-        <asp:Label ID="lblError" runat="server" ForeColor="Red" />
-    </asp:Panel>
+    </section>
 </asp:Content>
 
