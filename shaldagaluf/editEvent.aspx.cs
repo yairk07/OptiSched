@@ -30,42 +30,46 @@ public partial class editEvent : System.Web.UI.Page
 
         using (OleDbConnection con = new OleDbConnection(conStr))
         {
+            con.Open();
+
             string sql = "SELECT * FROM calnder WHERE Id = ?";
 
-            OleDbCommand cmd = new OleDbCommand(sql, con);
-            cmd.Parameters.AddWithValue("?", eventId);
-
-            con.Open();
-            OleDbDataReader dr = cmd.ExecuteReader();
-
-            if (!dr.Read())
+            using (OleDbCommand cmd = new OleDbCommand(sql, con))
             {
-                Response.Redirect("allEvents.aspx");
-                return;
-            }
+                cmd.Parameters.AddWithValue("?", eventId);
 
-            int rowUserId = Convert.ToInt32(dr["Userid"]);
-            int currentUserId = Convert.ToInt32(Session["userId"]);
-            string role = Session["Role"]?.ToString() ?? "user";
-
-            // בדיקת הרשאות
-            if (role != "owner" && rowUserId != currentUserId)
-            {
-                Response.Write("אין לך הרשאה לערוך את האירוע הזה.");
-                Response.End();
-            }
-
-            txtTitle.Text = dr["title"].ToString();
-            txtDate.Text = Convert.ToDateTime(dr["date"]).ToString("yyyy-MM-dd");
-            txtTime.Text = dr["time"].ToString();
-            txtNotes.Text = dr["notes"].ToString();
-            
-            if (dr["category"] != DBNull.Value && dr["category"] != null)
-            {
-                string category = dr["category"].ToString();
-                if (ddlCategory.Items.FindByValue(category) != null)
+                using (OleDbDataReader dr = cmd.ExecuteReader())
                 {
-                    ddlCategory.SelectedValue = category;
+                    if (!dr.Read())
+                    {
+                        Response.Redirect("allEvents.aspx");
+                        return;
+                    }
+
+                    int rowUserId = Convert.ToInt32(dr["Userid"]);
+                    int currentUserId = Convert.ToInt32(Session["userId"]);
+                    string role = Session["Role"]?.ToString() ?? "user";
+
+                    if (role != "owner" && rowUserId != currentUserId)
+                    {
+                        Response.Write("אין לך הרשאה לערוך את האירוע הזה.");
+                        Response.End();
+                        return;
+                    }
+
+                    txtTitle.Text = dr["title"].ToString();
+                    txtDate.Text = Convert.ToDateTime(dr["date"]).ToString("yyyy-MM-dd");
+                    txtTime.Text = dr["time"].ToString();
+                    txtNotes.Text = dr["notes"].ToString();
+                    
+                    if (dr["category"] != DBNull.Value && dr["category"] != null)
+                    {
+                        string category = dr["category"].ToString();
+                        if (ddlCategory.Items.FindByValue(category) != null)
+                        {
+                            ddlCategory.SelectedValue = category;
+                        }
+                    }
                 }
             }
         }
@@ -77,6 +81,8 @@ public partial class editEvent : System.Web.UI.Page
 
         using (OleDbConnection con = new OleDbConnection(conStr))
         {
+            con.Open();
+
             string sql = @"
                 UPDATE calnder
                 SET title = ?,
@@ -86,17 +92,17 @@ public partial class editEvent : System.Web.UI.Page
                     category = ?
                 WHERE Id = ?";
 
-            OleDbCommand cmd = new OleDbCommand(sql, con);
+            using (OleDbCommand cmd = new OleDbCommand(sql, con))
+            {
+                cmd.Parameters.AddWithValue("?", txtTitle.Text);
+                cmd.Parameters.AddWithValue("?", DateTime.Parse(txtDate.Text));
+                cmd.Parameters.AddWithValue("?", txtTime.Text);
+                cmd.Parameters.AddWithValue("?", txtNotes.Text);
+                cmd.Parameters.AddWithValue("?", ddlCategory.SelectedValue);
+                cmd.Parameters.AddWithValue("?", eventId);
 
-            cmd.Parameters.AddWithValue("?", txtTitle.Text);
-            cmd.Parameters.AddWithValue("?", DateTime.Parse(txtDate.Text));
-            cmd.Parameters.AddWithValue("?", txtTime.Text);
-            cmd.Parameters.AddWithValue("?", txtNotes.Text);
-            cmd.Parameters.AddWithValue("?", ddlCategory.SelectedValue);
-            cmd.Parameters.AddWithValue("?", eventId);
-
-            con.Open();
-            cmd.ExecuteNonQuery();
+                cmd.ExecuteNonQuery();
+            }
 
             Response.Redirect("allEvents.aspx");
         }

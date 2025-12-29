@@ -88,4 +88,35 @@ public partial class exusers : System.Web.UI.Page
         }
         return string.Empty;
     }
+
+    protected bool IsOwner()
+    {
+        string role = Session["Role"]?.ToString() ?? "";
+        return role.ToLower() == "owner";
+    }
+
+    protected void btnDeleteUser_Click(object sender, EventArgs e)
+    {
+        if (!IsOwner())
+        {
+            return;
+        }
+
+        System.Web.UI.WebControls.Button btn = sender as System.Web.UI.WebControls.Button;
+        if (btn == null) return;
+
+        string userIdStr = btn.CommandArgument;
+        if (!int.TryParse(userIdStr, out int userId))
+        {
+            return;
+        }
+
+        UsersService us = new UsersService();
+        bool deleted = us.DeleteUser(userId);
+
+        if (deleted)
+        {
+            BindUsers(txtSearchemail.Text);
+        }
+    }
 }

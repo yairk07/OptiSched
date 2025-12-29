@@ -75,6 +75,10 @@ public partial class home : System.Web.UI.Page
 
     protected void Page_Load(object sender, EventArgs e)
     {
+        Response.ContentType = "text/html; charset=utf-8";
+        Response.Charset = "utf-8";
+        Response.ContentEncoding = System.Text.Encoding.UTF8;
+        
         if (!IsPostBack)
         {
             // בדיקת התחברות
@@ -82,6 +86,21 @@ public partial class home : System.Web.UI.Page
             {
                 string name = Session["username"].ToString();
                 lblWelcome.Text = $"<h3>ברוך הבא, {name}!</h3>";
+                
+                string googleEmail = Session["GoogleEmailToStore"]?.ToString();
+                if (!string.IsNullOrEmpty(googleEmail))
+                {
+                    Session.Remove("GoogleEmailToStore");
+                    string script = $@"
+                        <script type='text/javascript'>
+                            try {{
+                                localStorage.setItem('googleLoginEmail', '{googleEmail.Replace("'", "\\'")}');
+                            }} catch(e) {{
+                                console.error('Failed to store email:', e);
+                            }}
+                        </script>";
+                    ClientScript.RegisterStartupScript(this.GetType(), "StoreGoogleEmail", script);
+                }
             }
             else
             {
@@ -238,9 +257,9 @@ public partial class home : System.Web.UI.Page
 
                 if (eventDate.Date == date.Date)
                 {
-                    string title = HttpUtility.HtmlEncode(row["title"].ToString());
-                    string time = HttpUtility.HtmlEncode(row["time"]?.ToString() ?? "");
-                    string note = HttpUtility.HtmlEncode(row["notes"]?.ToString() ?? "");
+                    string title = HttpUtility.HtmlEncode(Connect.FixEncoding(row["title"].ToString()));
+                    string time = HttpUtility.HtmlEncode(Connect.FixEncoding(row["time"]?.ToString() ?? ""));
+                    string note = HttpUtility.HtmlEncode(Connect.FixEncoding(row["notes"]?.ToString() ?? ""));
                     string eventType = table.TableName == "SharedEvents" ? " (טבלה משותפת)" : "";
 
                     sb.Append("<div class='calendar-event'>");
@@ -283,7 +302,7 @@ public partial class home : System.Web.UI.Page
 
                 if (eventDate.Date == currentDay)
                 {
-                    string title = row["title"].ToString();
+                    string title = Connect.FixEncoding(row["title"].ToString());
                     if (title.Length > 18)
                         title = title.Substring(0, 18) + "...";
 

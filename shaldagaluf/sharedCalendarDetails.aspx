@@ -1,4 +1,4 @@
-﻿<%@ Page Title="טבלה משותפת" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="sharedCalendarDetails.aspx.cs" Inherits="sharedCalendarDetails" %>
+﻿<%@ Page Title="טבלה משותפת" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="sharedCalendarDetails.aspx.cs" Inherits="sharedCalendarDetails" Debug="true" ResponseEncoding="utf-8" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" Runat="Server">
 </asp:Content>
@@ -77,6 +77,7 @@
                             <asp:Button ID="btnAddEvent" runat="server" Text="הוסף אירוע" OnClick="btnAddEvent_Click" CssClass="btn-add-event" />
                         </div>
 
+                        <div class="events-table-container">
                         <asp:DataList ID="dlEvents" runat="server" RepeatLayout="Table" CssClass="events-table">
                             <HeaderTemplate>
                                 <table class="events-table">
@@ -95,12 +96,12 @@
                             </HeaderTemplate>
                             <ItemTemplate>
                                         <tr>
-                                            <td><%# Eval("Title") %></td>
-                                            <td><%# Convert.ToDateTime(Eval("EventDate")).ToString("dd/MM/yyyy") %></td>
-                                            <td><%# Eval("EventTime") %></td>
-                                            <td><%# Eval("Category") ?? "אחר" %></td>
-                                            <td><%# Eval("Notes") %></td>
-                                            <td><%# Eval("CreatedByName") %></td>
+                                            <td><%# GetSafeString(Eval("Title"), "ללא כותרת") %></td>
+                                            <td><%# GetSafeDate(Eval("EventDate")) %></td>
+                                            <td><%# GetSafeString(Eval("EventTime"), "—") %></td>
+                                            <td><%# GetSafeString(Eval("Category"), "אחר") %></td>
+                                            <td><%# GetSafeString(Eval("Notes"), "—") %></td>
+                                            <td><%# GetSafeString(Eval("CreatedByName"), "ללא שם") %></td>
                                             <td>
                                                 <asp:LinkButton ID="lnkEdit" runat="server" CommandArgument='<%# Eval("Id") %>' OnClick="lnkEdit_Click" CssClass="edit-link">ערוך</asp:LinkButton>
                                                 <asp:LinkButton ID="lnkDelete" runat="server" CommandArgument='<%# Eval("Id") %>' OnClick="lnkDelete_Click" CssClass="delete-link" OnClientClick="return confirm('האם אתה בטוח שברצונך למחוק את האירוע?');">מחק</asp:LinkButton>
@@ -112,6 +113,7 @@
                                 </table>
                             </FooterTemplate>
                         </asp:DataList>
+                        </div>
                     </asp:Panel>
 
                     <asp:Panel ID="pnlRequests" runat="server" Visible="false">
@@ -246,41 +248,6 @@
             cursor: pointer;
         }
 
-        .events-table {
-            width: 100%;
-            background: var(--surface);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: var(--shadow-md);
-        }
-
-        .events-table th {
-            background: var(--brand);
-            color: #fff;
-            padding: 12px;
-            text-align: right;
-            font-weight: 600;
-        }
-
-        .events-table td {
-            padding: 12px;
-            border-bottom: 1px solid var(--border);
-            color: var(--text);
-        }
-
-        .events-table tr:hover {
-            background: var(--surface-alt);
-        }
-
-        .edit-link, .delete-link {
-            margin: 0 8px;
-            color: var(--brand);
-            text-decoration: none;
-        }
-
-        .delete-link {
-            color: #ff6b6b;
-        }
 
         .requests-list {
             display: flex;

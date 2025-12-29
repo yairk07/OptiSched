@@ -64,8 +64,20 @@ FROM calnder AS C";
             foreach (DataRow userRow in usersTable.Rows)
             {
                 int uid = Convert.ToInt32(userRow["id"]);
-                string uname = userRow["username"]?.ToString() ?? "";
+                string uname = Connect.FixEncoding(userRow["username"]?.ToString() ?? "");
                 usersDict[uid] = uname;
+            }
+
+            foreach (DataRow row in dt.Rows)
+            {
+                if (row.Table.Columns.Contains("Title"))
+                    row["Title"] = Connect.FixEncoding(Convert.ToString(row["Title"]));
+                if (row.Table.Columns.Contains("EventTime"))
+                    row["EventTime"] = Connect.FixEncoding(Convert.ToString(row["EventTime"]));
+                if (row.Table.Columns.Contains("Notes"))
+                    row["Notes"] = Connect.FixEncoding(Convert.ToString(row["Notes"]));
+                if (row.Table.Columns.Contains("Category"))
+                    row["Category"] = Connect.FixEncoding(Convert.ToString(row["Category"]));
             }
 
             foreach (DataRow row in dt.Rows)
@@ -121,16 +133,29 @@ INNER JOIN SharedCalendarMembers SCM ON SCE.CalendarId = SCM.CalendarId
 WHERE SCM.UserId = ?";
 
                 DataTable sharedDt = new DataTable();
-                OleDbCommand sharedCmd = new OleDbCommand(sharedSql, con);
-                sharedCmd.Parameters.AddWithValue("?", userId.Value);
-                OleDbDataAdapter sharedDa = new OleDbDataAdapter(sharedCmd);
-                sharedDa.Fill(sharedDt);
+                using (OleDbCommand sharedCmd = new OleDbCommand(sharedSql, con))
+                {
+                    sharedCmd.Parameters.AddWithValue("?", userId.Value);
+                    using (OleDbDataAdapter sharedDa = new OleDbDataAdapter(sharedCmd))
+                    {
+                        sharedDa.Fill(sharedDt);
+                    }
+                }
 
                 sharedDt.Columns.Add("UserName", typeof(string));
                 sharedDt.Columns.Add("EventType", typeof(string));
 
                 foreach (DataRow row in sharedDt.Rows)
                 {
+                    if (row.Table.Columns.Contains("Title"))
+                        row["Title"] = Connect.FixEncoding(Convert.ToString(row["Title"]));
+                    if (row.Table.Columns.Contains("EventTime"))
+                        row["EventTime"] = Connect.FixEncoding(Convert.ToString(row["EventTime"]));
+                    if (row.Table.Columns.Contains("Notes"))
+                        row["Notes"] = Connect.FixEncoding(Convert.ToString(row["Notes"]));
+                    if (row.Table.Columns.Contains("Category"))
+                        row["Category"] = Connect.FixEncoding(Convert.ToString(row["Category"]));
+
                     if (row["UserId"] != DBNull.Value)
                     {
                         int uid = Convert.ToInt32(row["UserId"]);

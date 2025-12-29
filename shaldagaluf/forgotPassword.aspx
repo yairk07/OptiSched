@@ -1,4 +1,4 @@
-<%@ Page Title="שחזור סיסמה" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="forgotPassword.aspx.cs" Inherits="forgotPassword" %>
+<%@ Page Title="שחזור סיסמה" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="forgotPassword.aspx.cs" Inherits="forgotPassword" ResponseEncoding="utf-8" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" Runat="Server">
 </asp:Content>
@@ -7,44 +7,58 @@
     <section class="forgot-password-shell">
         <div class="forgot-password-container">
             <div class="forgot-password-header">
-                <h2 class="forgot-password-title">שכחת סיסמה?</h2>
-                <p class="forgot-password-subtitle">הזן את כתובת האימייל שלך ונשלח לך קישור לאיפוס הסיסמה</p>
+                <h2 class="forgot-password-title" runat="server" id="h2Title"></h2>
+                <p class="forgot-password-subtitle" runat="server" id="pSubtitle"></p>
             </div>
 
             <div class="forgot-password-form-container">
                 <asp:Panel ID="pnlRequest" runat="server">
                     <div class="form-group">
-                        <label class="form-label">כתובת אימייל <span class="required">*</span></label>
-                        <asp:TextBox ID="txtEmail" runat="server" TextMode="Email" CssClass="form-input" placeholder="הזן את כתובת האימייל שלך"></asp:TextBox>
+                        <label class="form-label" runat="server" id="lblEmail"></label>
+                        <asp:TextBox ID="txtEmail" runat="server" TextMode="Email" CssClass="form-input" placeholder="your.email@example.com"></asp:TextBox>
                     </div>
 
                     <asp:Label ID="lblMessage" runat="server" CssClass="form-message"></asp:Label>
 
                     <div class="form-actions">
-                        <asp:Button ID="btnSendReset" runat="server" Text="שלח קישור לאיפוס סיסמה" OnClick="btnSendReset_Click" CssClass="btn-submit" />
+                        <asp:Button ID="btnSendReset" runat="server" OnClick="btnSendReset_Click" CssClass="btn-submit" />
+                    </div>
+                </asp:Panel>
+
+                <asp:Panel ID="pnlCode" runat="server" Visible="false">
+                    <div class="form-group">
+                        <label class="form-label" runat="server" id="lblCode"></label>
+                        <asp:TextBox ID="txtVerificationCode" runat="server" CssClass="form-input verification-code-input" placeholder="000000" MaxLength="6" style="text-align: center; font-size: 24px; letter-spacing: 8px;"></asp:TextBox>
+                        <p style="font-size: 13px; color: var(--muted); margin-top: 8px; text-align: center;" runat="server" id="pCodeInfo"></p>
+                    </div>
+
+                    <asp:Label ID="lblCodeMessage" runat="server" CssClass="form-message"></asp:Label>
+
+                    <div class="form-actions">
+                        <asp:Button ID="btnVerifyCode" runat="server" OnClick="btnVerifyCode_Click" CssClass="btn-submit" />
                     </div>
                 </asp:Panel>
 
                 <asp:Panel ID="pnlReset" runat="server" Visible="false">
                     <div class="form-group">
-                        <label class="form-label">סיסמה חדשה <span class="required">*</span></label>
-                        <asp:TextBox ID="txtNewPassword" runat="server" TextMode="Password" CssClass="form-input" placeholder="הזן סיסמה חדשה"></asp:TextBox>
+                        <label class="form-label" runat="server" id="lblNewPassword"></label>
+                        <asp:TextBox ID="txtNewPassword" runat="server" TextMode="Password" CssClass="form-input" placeholder="Enter new password"></asp:TextBox>
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">אימות סיסמה <span class="required">*</span></label>
-                        <asp:TextBox ID="txtConfirmPassword" runat="server" TextMode="Password" CssClass="form-input" placeholder="הזן סיסמה שוב"></asp:TextBox>
+                        <label class="form-label" runat="server" id="lblConfirmPassword"></label>
+                        <asp:TextBox ID="txtConfirmPassword" runat="server" TextMode="Password" CssClass="form-input" placeholder="Confirm password"></asp:TextBox>
                     </div>
 
                     <asp:Label ID="lblResetMessage" runat="server" CssClass="form-message"></asp:Label>
 
                     <div class="form-actions">
-                        <asp:Button ID="btnResetPassword" runat="server" Text="איפוס סיסמה" OnClick="btnResetPassword_Click" CssClass="btn-submit" />
+                        <asp:Button ID="btnResetPassword" runat="server" OnClick="btnResetPassword_Click" CssClass="btn-submit" />
                     </div>
                 </asp:Panel>
 
                 <div class="forgot-password-footer">
-                    <p>זכרת את הסיסמה? <a href="login.aspx">חזור לדף ההתחברות</a></p>
+                    <p runat="server" id="pFooter"></p>
                 </div>
             </div>
         </div>
@@ -183,6 +197,11 @@
 
         .forgot-password-footer a:hover {
             text-decoration: underline;
+        }
+
+        .verification-code-input {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
         }
     </style>
 </asp:Content>

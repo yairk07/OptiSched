@@ -33,9 +33,7 @@ public partial class sharedCalendars : System.Web.UI.Page
         try
         {
             if (IsValidUtf8(text))
-            {
                 return text;
-            }
             
             byte[] bytes = Encoding.GetEncoding("Windows-1255").GetBytes(text);
             return Encoding.UTF8.GetString(bytes);
@@ -65,39 +63,16 @@ public partial class sharedCalendars : System.Web.UI.Page
         try
         {
             int userId = Convert.ToInt32(Session["userId"]);
-            System.Diagnostics.Debug.WriteLine($"BindCalendars: Loading calendars for userId: {userId}");
-            
             DataTable dt = service.GetAllSharedCalendars(userId);
-            
-            System.Diagnostics.Debug.WriteLine($"BindCalendars: Loaded {dt.Rows.Count} calendars");
-            
-            if (dt.Rows.Count > 0)
-            {
-                System.Diagnostics.Debug.WriteLine("BindCalendars: Columns:");
-                foreach (System.Data.DataColumn col in dt.Columns)
-                {
-                    System.Diagnostics.Debug.WriteLine($"  - {col.ColumnName} ({col.DataType.Name})");
-                }
-            }
             
             foreach (DataRow row in dt.Rows)
             {
                 if (dt.Columns.Contains("CalendarName") && row["CalendarName"] != DBNull.Value)
-                {
-                    string original = row["CalendarName"].ToString();
-                    row["CalendarName"] = FixEncoding(original);
-                    System.Diagnostics.Debug.WriteLine($"BindCalendars: Fixed CalendarName: '{original}' -> '{row["CalendarName"]}'");
-                }
+                    row["CalendarName"] = FixEncoding(row["CalendarName"].ToString());
                 if (dt.Columns.Contains("Description") && row["Description"] != DBNull.Value)
-                {
-                    string original = row["Description"].ToString();
-                    row["Description"] = FixEncoding(original);
-                }
+                    row["Description"] = FixEncoding(row["Description"].ToString());
                 if (dt.Columns.Contains("CreatorName") && row["CreatorName"] != DBNull.Value)
-                {
-                    string original = row["CreatorName"].ToString();
-                    row["CreatorName"] = FixEncoding(original);
-                }
+                    row["CreatorName"] = FixEncoding(row["CreatorName"].ToString());
             }
             
             if (dt != null && dt.Rows.Count > 0)
@@ -106,22 +81,16 @@ public partial class sharedCalendars : System.Web.UI.Page
                 dlCalendars.DataBind();
                 dlCalendars.Visible = true;
                 lblNoCalendars.Visible = false;
-                
-                System.Diagnostics.Debug.WriteLine($"BindCalendars: Successfully bound {dt.Rows.Count} calendars to DataList");
             }
             else
             {
                 dlCalendars.Visible = false;
                 lblNoCalendars.Visible = true;
-                System.Diagnostics.Debug.WriteLine("BindCalendars: No calendars found, showing empty message");
             }
-            
-            System.Diagnostics.Debug.WriteLine($"BindCalendars: DataList bound with {dt.Rows.Count} items");
         }
-        catch (Exception ex)
+        catch
         {
-            System.Diagnostics.Debug.WriteLine($"BindCalendars: Error: {ex.Message}\n{ex.StackTrace}");
-            lblMessage.Text = "׳©׳’׳™׳׳” ׳‘׳˜׳¢׳™׳ ׳× ׳”׳˜׳‘׳׳׳•׳×. ׳׳ ׳ ׳ ׳¡׳” ׳©׳•׳‘.";
+            lblMessage.Text = "שגיאה בטעינת הלוחות. אנא נסה.";
             lblMessage.ForeColor = System.Drawing.Color.Red;
         }
     }
@@ -149,21 +118,17 @@ public partial class sharedCalendars : System.Web.UI.Page
 
             if (string.IsNullOrEmpty(name))
             {
-                lblMessage.Text = "׳׳ ׳ ׳”׳–׳ ׳©׳ ׳׳˜׳‘׳׳”.";
+                lblMessage.Text = "אנא הזן שם ללוח.";
                 lblMessage.ForeColor = System.Drawing.Color.Red;
                 return;
             }
 
-            System.Diagnostics.Debug.WriteLine($"btnSaveCalendar: Creating calendar - Name: '{name}', Description: '{description}'");
-
             int userId = Convert.ToInt32(Session["userId"]);
             int calendarId = service.CreateSharedCalendar(name, description, userId);
 
-            System.Diagnostics.Debug.WriteLine($"btnSaveCalendar: Created calendar with ID: {calendarId}");
-
             if (calendarId > 0)
             {
-                lblMessage.Text = "׳”׳˜׳‘׳׳” ׳ ׳•׳¦׳¨׳” ׳‘׳”׳¦׳׳—׳”!";
+                lblMessage.Text = "הלוח נוצר בהצלחה!";
                 lblMessage.ForeColor = System.Drawing.Color.Green;
                 pnlCreateForm.Visible = false;
                 btnCreateNew.Visible = true;
@@ -173,16 +138,14 @@ public partial class sharedCalendars : System.Web.UI.Page
             }
             else
             {
-                lblMessage.Text = "׳©׳’׳™׳׳” ׳‘׳™׳¦׳™׳¨׳× ׳”׳˜׳‘׳׳”. ׳׳ ׳ ׳ ׳¡׳” ׳©׳•׳‘.";
+                lblMessage.Text = "שגיאה ביצירת הלוח. אנא נסה.";
                 lblMessage.ForeColor = System.Drawing.Color.Red;
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"btnSaveCalendar: Error: {ex.Message}\n{ex.StackTrace}");
-            lblMessage.Text = $"׳©׳’׳™׳׳” ׳‘׳™׳¦׳™׳¨׳× ׳”׳˜׳‘׳׳”: {ex.Message}";
+            lblMessage.Text = $"שגיאה ביצירת הלוח: {ex.Message}";
             lblMessage.ForeColor = System.Drawing.Color.Red;
         }
     }
 }
-

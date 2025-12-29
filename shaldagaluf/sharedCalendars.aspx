@@ -1,4 +1,4 @@
-﻿<%@ Page Title="טבלאות משותפות" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="sharedCalendars.aspx.cs" Inherits="sharedCalendars" %>
+﻿<%@ Page Title="טבלאות משותפות" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="sharedCalendars.aspx.cs" Inherits="sharedCalendars" ResponseEncoding="utf-8" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" Runat="Server">
 </asp:Content>

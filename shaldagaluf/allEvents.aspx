@@ -2,7 +2,8 @@
     MasterPageFile="~/danimaster.master"
     AutoEventWireup="true" 
     CodeFile="allEvents.aspx.cs" 
-    Inherits="allEvents" %>
+    Inherits="allEvents" 
+    ResponseEncoding="utf-8" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server"></asp:Content>
 
@@ -104,65 +105,6 @@
     </asp:Panel>
 
     <style>
-        .events-table-container {
-            width: min(1500px, 95%);
-            margin: 30px auto 60px;
-            overflow-x: auto;
-        }
-
-        .events-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: var(--surface);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: var(--shadow-md);
-        }
-
-        .events-table thead {
-            background: var(--brand);
-            color: #fff;
-        }
-
-        .events-table th {
-            padding: 16px;
-            text-align: right;
-            font-weight: 600;
-            font-size: 15px;
-            border-bottom: 2px solid rgba(255,255,255,.2);
-        }
-
-        .events-table td {
-            padding: 14px 16px;
-            text-align: right;
-            border-bottom: 1px solid var(--border);
-            color: var(--text);
-        }
-
-        .events-table tbody tr:hover {
-            background: rgba(229, 9, 20, 0.05);
-        }
-
-        .events-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        .edit-link {
-            background: var(--brand);
-            color: #fff;
-            padding: 6px 14px;
-            border-radius: 6px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: background .2s ease;
-            display: inline-block;
-        }
-
-        .edit-link:hover {
-            background: var(--brand-dark);
-            text-decoration: none;
-        }
-
         .search-box {
             width: 40%;
             padding: 10px 14px;

@@ -13,74 +13,38 @@ public partial class allEvents : System.Web.UI.Page
         
         DataTable cachedData = Session[cacheKey] as DataTable;
         if (cachedData != null && cachedData.Rows.Count > 0)
-        {
-            System.Diagnostics.Debug.WriteLine($"LoadEventsData: Using cached data, {cachedData.Rows.Count} rows");
             return cachedData;
-        }
 
         int? userId = null;
         string role = Session["Role"]?.ToString();
         
         if (role != "owner" && Session["userId"] != null)
-        {
             userId = Convert.ToInt32(Session["userId"]);
-        }
-
-        System.Diagnostics.Debug.WriteLine($"LoadEventsData: Loading events for userId={userId}, role={role}");
         
         DataTable dt = es.GetAllEvents(userId);
         
         if (dt != null && dt.Rows.Count > 0)
         {
-            System.Diagnostics.Debug.WriteLine($"LoadEventsData: Loaded {dt.Rows.Count} events");
-            System.Diagnostics.Debug.WriteLine("LoadEventsData: Columns:");
-            foreach (DataColumn col in dt.Columns)
-            {
-                System.Diagnostics.Debug.WriteLine($"  - {col.ColumnName} ({col.DataType.Name})");
-            }
-            
             if (!dt.Columns.Contains("EventDate") && dt.Columns.Contains("date"))
-            {
                 dt.Columns["date"].ColumnName = "EventDate";
-                System.Diagnostics.Debug.WriteLine("LoadEventsData: Renamed 'date' to 'EventDate'");
-            }
             if (!dt.Columns.Contains("Title") && dt.Columns.Contains("title"))
-            {
                 dt.Columns["title"].ColumnName = "Title";
-                System.Diagnostics.Debug.WriteLine("LoadEventsData: Renamed 'title' to 'Title'");
-            }
             if (!dt.Columns.Contains("EventTime") && dt.Columns.Contains("time"))
-            {
                 dt.Columns["time"].ColumnName = "EventTime";
-                System.Diagnostics.Debug.WriteLine("LoadEventsData: Renamed 'time' to 'EventTime'");
-            }
             
             if (!dt.Columns.Contains("Category"))
-            {
                 dt.Columns.Add("Category", typeof(string));
-                System.Diagnostics.Debug.WriteLine("LoadEventsData: Added Category column");
-            }
             
             foreach (DataRow row in dt.Rows)
             {
                 if (row["Category"] == DBNull.Value || row["Category"] == null || string.IsNullOrWhiteSpace(row["Category"].ToString()))
-                {
                     row["Category"] = "אחר";
-                }
-            }
-            
-            if (dt.Rows.Count > 0)
-            {
-                DataRow firstRow = dt.Rows[0];
-                object firstDate = firstRow["EventDate"] ?? firstRow["date"];
-                System.Diagnostics.Debug.WriteLine($"LoadEventsData: First event date: {firstDate} (Type: {firstDate?.GetType().Name ?? "null"})");
             }
             
             Session[cacheKey] = dt;
         }
         else
         {
-            System.Diagnostics.Debug.WriteLine("LoadEventsData: No events found or dt is null");
             dt = new DataTable();
         }
         
@@ -95,6 +59,10 @@ public partial class allEvents : System.Web.UI.Page
 
     protected void Page_Load(object sender, EventArgs e)
     {
+        Response.ContentType = "text/html; charset=utf-8";
+        Response.Charset = "utf-8";
+        Response.ContentEncoding = System.Text.Encoding.UTF8;
+        
         if (Session["username"] == null)
         {
             Response.Redirect("login.aspx");
@@ -126,21 +94,15 @@ public partial class allEvents : System.Web.UI.Page
             btnTableView.CssClass = "view-btn";
             btnCalendarView.CssClass = "view-btn active";
             
-            System.Diagnostics.Debug.WriteLine($"SetViewMode: Setting calendar view, calEvents.Visible: {calEvents.Visible}");
-            
             try
             {
                 if (calEvents.VisibleDate == DateTime.MinValue || calEvents.VisibleDate == DateTime.MaxValue)
-                {
                     calEvents.VisibleDate = DateTime.Now;
-                }
             }
             catch
             {
                 calEvents.VisibleDate = DateTime.Now;
             }
-            
-            System.Diagnostics.Debug.WriteLine($"SetViewMode: calEvents.VisibleDate = {calEvents.VisibleDate:yyyy-MM-dd}");
         }
         else
         {
@@ -215,15 +177,12 @@ public partial class allEvents : System.Web.UI.Page
             calEvents.VisibleDate = currentDate;
         }
         
-        System.Diagnostics.Debug.WriteLine($"BindCalendar: VisibleDate = {currentDate:yyyy-MM-dd}");
-        
         lblCurrentMonth.Text = currentDate.ToString("MMMM yyyy", new System.Globalization.CultureInfo("he-IL"));
         
         DataTable eventsData = LoadEventsData();
         
         if (eventsData == null || eventsData.Rows.Count == 0)
         {
-            System.Diagnostics.Debug.WriteLine("BindCalendar: No events data");
             lblCalendarMessage.Text = "אין אירועים להצגה";
             lblCalendarMessage.ForeColor = System.Drawing.Color.Gray;
         }
@@ -232,40 +191,24 @@ public partial class allEvents : System.Web.UI.Page
             int eventsInMonth = 0;
             string dateColumn = eventsData.Columns.Contains("EventDate") ? "EventDate" : "date";
             
-            System.Diagnostics.Debug.WriteLine($"BindCalendar: Checking {eventsData.Rows.Count} events for month {currentDate:yyyy-MM}");
-            
             foreach (DataRow row in eventsData.Rows)
             {
                 if (row[dateColumn] != DBNull.Value && row[dateColumn] != null)
                 {
                     try
                     {
-                        DateTime eventDate;
-                        if (row[dateColumn] is DateTime)
-                        {
-                            eventDate = ((DateTime)row[dateColumn]).Date;
-                        }
-                        else
-                        {
-                            eventDate = Convert.ToDateTime(row[dateColumn]).Date;
-                        }
-                        
-                        System.Diagnostics.Debug.WriteLine($"BindCalendar: Event date: {eventDate:yyyy-MM-dd}, Current month: {currentDate:yyyy-MM}");
+                        DateTime eventDate = row[dateColumn] is DateTime 
+                            ? ((DateTime)row[dateColumn]).Date 
+                            : Convert.ToDateTime(row[dateColumn]).Date;
                         
                         if (eventDate.Year == currentDate.Year && eventDate.Month == currentDate.Month)
-                        {
                             eventsInMonth++;
-                            System.Diagnostics.Debug.WriteLine($"BindCalendar: Match! Event on {eventDate:yyyy-MM-dd} is in month {currentDate:yyyy-MM}");
-                        }
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                        System.Diagnostics.Debug.WriteLine($"BindCalendar: Error processing date: {ex.Message}");
                     }
                 }
             }
-            
-            System.Diagnostics.Debug.WriteLine($"BindCalendar: Found {eventsInMonth} events in month {currentDate:yyyy-MM}");
             
             lblCalendarMessage.Text = $"נמצאו {eventsData.Rows.Count} אירועים בסך הכל ({eventsInMonth} בחודש זה)";
             lblCalendarMessage.ForeColor = System.Drawing.Color.Green;
@@ -369,8 +312,6 @@ public partial class allEvents : System.Web.UI.Page
 
     protected void calEvents_DayRender(object sender, DayRenderEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"DayRender: START - Date: {e.Day.Date:yyyy-MM-dd}, IsOtherMonth: {e.Day.IsOtherMonth}");
-        
         e.Cell.CssClass = "day-cell";
         e.Cell.Controls.Clear();
 
@@ -383,28 +324,15 @@ public partial class allEvents : System.Web.UI.Page
             {
                 DataTable eventsData = LoadEventsData();
                 
-                System.Diagnostics.Debug.WriteLine($"DayRender: {e.Day.Date:yyyy-MM-dd}, EventsData: {(eventsData != null ? eventsData.Rows.Count.ToString() : "null")}");
-                
                 if (eventsData != null && eventsData.Rows.Count > 0)
                 {
                     DateTime targetDate = e.Day.Date.Date;
                     Panel eventsPanel = new Panel();
                     eventsPanel.CssClass = "day-events";
                     
-                    string dateColumn = "EventDate";
-                    if (!eventsData.Columns.Contains("EventDate"))
-                    {
-                        if (eventsData.Columns.Contains("date"))
-                            dateColumn = "date";
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine($"DayRender: No date column found for {e.Day.Date:yyyy-MM-dd}");
-                            return;
-                        }
-                    }
-                    
-                    int eventsFound = 0;
-                    int eventsMatched = 0;
+                    string dateColumn = eventsData.Columns.Contains("EventDate") ? "EventDate" : "date";
+                    if (!eventsData.Columns.Contains(dateColumn))
+                        return;
                     
                     foreach (DataRow row in eventsData.Rows)
                     {
@@ -414,55 +342,33 @@ public partial class allEvents : System.Web.UI.Page
                             if (dateObj == DBNull.Value || dateObj == null)
                                 continue;
 
-                            eventsFound++;
                             DateTime eventDate;
                             
                             if (dateObj is DateTime)
-                            {
                                 eventDate = ((DateTime)dateObj).Date;
-                            }
                             else
                             {
-                                try
-                                {
-                                    eventDate = Convert.ToDateTime(dateObj).Date;
-                                }
-                                catch
-                                {
-                                    string dateStr = dateObj.ToString().Trim();
-                                    if (string.IsNullOrEmpty(dateStr) || !DateTime.TryParse(dateStr, out eventDate))
-                                    {
-                                        System.Diagnostics.Debug.WriteLine($"DayRender: Failed to parse date: {dateObj} (Type: {dateObj.GetType().Name})");
-                                        continue;
-                                    }
-                                    eventDate = eventDate.Date;
-                                }
+                                if (!DateTime.TryParse(dateObj.ToString().Trim(), out eventDate))
+                                    continue;
+                                eventDate = eventDate.Date;
                             }
-                            
-                            System.Diagnostics.Debug.WriteLine($"DayRender: Comparing {targetDate:yyyy-MM-dd} with {eventDate:yyyy-MM-dd}");
                             
                             if (eventDate.Year == targetDate.Year && 
                                 eventDate.Month == targetDate.Month && 
                                 eventDate.Day == targetDate.Day)
                             {
-                                eventsMatched++;
                                 string eventType = row["EventType"]?.ToString() ?? "personal";
-                                string title = row["Title"]?.ToString() ?? row["title"]?.ToString() ?? "";
-                                string userName = row["UserName"]?.ToString() ?? "";
+                                string title = Connect.FixEncoding(row["Title"]?.ToString() ?? row["title"]?.ToString() ?? "");
+                                string userName = Connect.FixEncoding(row["UserName"]?.ToString() ?? "");
                                 string eventId = row["Id"]?.ToString() ?? "";
-                                string eventTime = row["EventTime"]?.ToString() ?? row["time"]?.ToString() ?? "";
+                                string eventTime = Connect.FixEncoding(row["EventTime"]?.ToString() ?? row["time"]?.ToString() ?? "");
                                 
-                                if (string.IsNullOrEmpty(title)) 
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"DayRender: Empty title for event {eventId}");
+                                if (string.IsNullOrEmpty(title))
                                     continue;
-                                }
                                 
                                 string displayText = title;
                                 if (!string.IsNullOrEmpty(userName) && userName.Trim() != "" && userName != "ללא שם")
-                                {
                                     displayText = $"{title} - {userName}";
-                                }
                                 
                                 if (displayText.Length > 18)
                                     displayText = displayText.Substring(0, 18) + "...";
@@ -473,37 +379,21 @@ public partial class allEvents : System.Web.UI.Page
                                 eventLink.NavigateUrl = $"editEvent.aspx?id={eventId}";
                                 eventLink.ToolTip = $"{title}\nמשתמש: {userName}\n{eventTime}";
                                 
-                                System.Diagnostics.Debug.WriteLine($"DayRender: Adding event '{displayText}' to {targetDate:yyyy-MM-dd}");
-                                
                                 eventsPanel.Controls.Add(eventLink);
                             }
                         }
-                        catch (Exception ex)
+                        catch
                         {
-                            System.Diagnostics.Debug.WriteLine($"DayRender: Error processing row: {ex.Message}");
                             continue;
                         }
                     }
 
-                    System.Diagnostics.Debug.WriteLine($"DayRender: {e.Day.Date:yyyy-MM-dd} - Found: {eventsFound}, Matched: {eventsMatched}, Added to panel: {eventsPanel.Controls.Count}");
-
                     if (eventsPanel.Controls.Count > 0)
-                    {
                         e.Cell.Controls.Add(eventsPanel);
-                        System.Diagnostics.Debug.WriteLine($"DayRender: Panel added to cell for {e.Day.Date:yyyy-MM-dd} with {eventsPanel.Controls.Count} events");
-                        
-                        LiteralControl debugInfo = new LiteralControl($"<div style='font-size:9px;color:green;'>{eventsPanel.Controls.Count}</div>");
-                        e.Cell.Controls.Add(debugInfo);
-                    }
-                    else if (eventsFound > 0)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"DayRender: {e.Day.Date:yyyy-MM-dd} - Found {eventsFound} events but none matched the date");
-                    }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                System.Diagnostics.Debug.WriteLine($"DayRender: Exception: {ex.Message}\n{ex.StackTrace}");
             }
         }
     }

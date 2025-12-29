@@ -11,11 +11,24 @@ public class calnderservice
         using (OleDbConnection conn = new OleDbConnection(Connect.GetConnectionString()))
         using (OleDbCommand cmd = new OleDbCommand(sql, conn))
         {
-            cmd.Parameters.AddWithValue("?", title);
+            OleDbParameter titleParam = new OleDbParameter("?", OleDbType.WChar);
+            titleParam.Value = title?.Trim() ?? "";
+            cmd.Parameters.Add(titleParam);
+            
             cmd.Parameters.AddWithValue("?", date);
-            cmd.Parameters.AddWithValue("?", time);
-            cmd.Parameters.AddWithValue("?", notes);
-            cmd.Parameters.AddWithValue("?", category ?? "אחר");
+            
+            OleDbParameter timeParam = new OleDbParameter("?", OleDbType.WChar);
+            timeParam.Value = time?.Trim() ?? "";
+            cmd.Parameters.Add(timeParam);
+            
+            OleDbParameter notesParam = new OleDbParameter("?", OleDbType.WChar);
+            notesParam.Value = notes?.Trim() ?? "";
+            cmd.Parameters.Add(notesParam);
+            
+            OleDbParameter categoryParam = new OleDbParameter("?", OleDbType.WChar);
+            categoryParam.Value = (category ?? "אחר").Trim();
+            cmd.Parameters.Add(categoryParam);
+            
             cmd.Parameters.AddWithValue("?", userId.HasValue ? (object)userId.Value : DBNull.Value);
 
             conn.Open();
@@ -50,12 +63,29 @@ public class calnderservice
                 }
             }
 
+            if (data.Tables.Contains("PersonalEvents"))
+            {
+                foreach (DataRow row in data.Tables["PersonalEvents"].Rows)
+                {
+                    if (row.Table.Columns.Contains("title"))
+                        row["title"] = Connect.FixEncoding(Convert.ToString(row["title"]));
+                    if (row.Table.Columns.Contains("time"))
+                        row["time"] = Connect.FixEncoding(Convert.ToString(row["time"]));
+                    if (row.Table.Columns.Contains("notes"))
+                        row["notes"] = Connect.FixEncoding(Convert.ToString(row["notes"]));
+                    if (row.Table.Columns.Contains("category"))
+                        row["category"] = Connect.FixEncoding(Convert.ToString(row["category"]));
+                }
+            }
+
             if (userId.HasValue)
             {
                 try
                 {
-                    OleDbCommand testCmd = new OleDbCommand("SELECT TOP 1 * FROM SharedCalendarEvents", conn);
-                    testCmd.ExecuteScalar();
+                    using (OleDbCommand testCmd = new OleDbCommand("SELECT TOP 1 * FROM SharedCalendarEvents", conn))
+                    {
+                        testCmd.ExecuteScalar();
+                    }
 
                     string sharedSql = @"
 SELECT 
@@ -78,6 +108,21 @@ WHERE SCM.UserId = ?";
                             sharedAdapter.Fill(data, "SharedEvents");
                         }
                     }
+
+                    if (data.Tables.Contains("SharedEvents"))
+                    {
+                        foreach (DataRow row in data.Tables["SharedEvents"].Rows)
+                        {
+                            if (row.Table.Columns.Contains("title"))
+                                row["title"] = Connect.FixEncoding(Convert.ToString(row["title"]));
+                            if (row.Table.Columns.Contains("time"))
+                                row["time"] = Connect.FixEncoding(Convert.ToString(row["time"]));
+                            if (row.Table.Columns.Contains("notes"))
+                                row["notes"] = Connect.FixEncoding(Convert.ToString(row["notes"]));
+                            if (row.Table.Columns.Contains("category"))
+                                row["category"] = Connect.FixEncoding(Convert.ToString(row["category"]));
+                        }
+                    }
                 }
                 catch
                 {
@@ -86,6 +131,28 @@ WHERE SCM.UserId = ?";
         }
 
         return data;
+    }
+
+    public void DeleteEvent(int eventId, int? userId = null)
+    {
+        string sql = "DELETE FROM calnder WHERE Id = ?";
+        if (userId.HasValue)
+        {
+            sql += " AND Userid = ?";
+        }
+
+        using (OleDbConnection conn = new OleDbConnection(Connect.GetConnectionString()))
+        using (OleDbCommand cmd = new OleDbCommand(sql, conn))
+        {
+            cmd.Parameters.AddWithValue("?", eventId);
+            if (userId.HasValue)
+            {
+                cmd.Parameters.AddWithValue("?", userId.Value);
+            }
+
+            conn.Open();
+            cmd.ExecuteNonQuery();
+        }
     }
 }
 

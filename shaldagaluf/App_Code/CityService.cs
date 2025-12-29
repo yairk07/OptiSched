@@ -13,9 +13,13 @@ public class CityService
         {
             con.Open();
             string sql = "SELECT id, cityname FROM Citys WHERE id Is Not Null ORDER BY cityname";
-            OleDbCommand cmd = new OleDbCommand(sql, con);
-            OleDbDataAdapter da = new OleDbDataAdapter(cmd);
-            da.Fill(dt);
+            using (OleDbCommand cmd = new OleDbCommand(sql, con))
+            {
+                using (OleDbDataAdapter da = new OleDbDataAdapter(cmd))
+                {
+                    da.Fill(dt);
+                }
+            }
         }
 
         return dt;
@@ -30,10 +34,16 @@ public class CityService
         {
             con.Open();
             string sql = "SELECT id, cityname FROM Citys WHERE id Is Not Null AND cityname LIKE ? ORDER BY cityname";
-            OleDbCommand cmd = new OleDbCommand(sql, con);
-            cmd.Parameters.AddWithValue("?", "%" + searchTerm + "%");
-            OleDbDataAdapter da = new OleDbDataAdapter(cmd);
-            da.Fill(dt);
+            using (OleDbCommand cmd = new OleDbCommand(sql, con))
+            {
+                OleDbParameter searchParam = new OleDbParameter("?", OleDbType.WChar);
+                searchParam.Value = "%" + (searchTerm ?? "").Trim() + "%";
+                cmd.Parameters.Add(searchParam);
+                using (OleDbDataAdapter da = new OleDbDataAdapter(cmd))
+                {
+                    da.Fill(dt);
+                }
+            }
         }
 
         return dt;

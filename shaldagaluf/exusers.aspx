@@ -1,5 +1,5 @@
 ﻿<%@ Page Title="רשימת משתמשים" Language="C#" MasterPageFile="~/danimaster.master"
-    AutoEventWireup="true" CodeFile="exusers.aspx.cs" Inherits="exusers" %>
+    AutoEventWireup="true" CodeFile="exusers.aspx.cs" Inherits="exusers" ResponseEncoding="utf-8" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
 </asp:Content>
@@ -52,10 +52,19 @@
                         </div>
 
                         <div class="user-card-footer">
-                            <asp:HyperLink ID="lnkMoreInfo" runat="server"
-                                Text="פרטים נוספים"
-                                NavigateUrl='<%# "exuserdetails.aspx?id=" + Eval("id") %>'
-                                CssClass="user-link-btn" />
+                            <div style="display: flex; gap: 10px; justify-content: center;">
+                                <asp:HyperLink ID="lnkMoreInfo" runat="server"
+                                    Text="פרטים נוספים"
+                                    NavigateUrl='<%# "exuserdetails.aspx?id=" + Eval("id") %>'
+                                    CssClass="user-link-btn" />
+                                <asp:Button ID="btnDeleteUser" runat="server"
+                                    Text="מחק משתמש"
+                                    CommandArgument='<%# Eval("id") %>'
+                                    OnClick="btnDeleteUser_Click"
+                                    OnClientClick="return confirm('האם אתה בטוח שברצונך למחוק את המשתמש הזה? פעולה זו לא ניתנת לביטול.');"
+                                    CssClass="user-delete-btn"
+                                    Visible='<%# IsOwner() %>' />
+                            </div>
                         </div>
                     </div>
                 </ItemTemplate>
@@ -240,6 +249,23 @@
         .user-link-btn:hover {
             background: var(--brand-dark);
             text-decoration: none;
+        }
+
+        .user-delete-btn {
+            padding: 10px 20px;
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .2s ease;
+            font-size: 14px;
+        }
+
+        .user-delete-btn:hover {
+            background: #c82333;
         }
 
         @media (max-width: 768px) {
