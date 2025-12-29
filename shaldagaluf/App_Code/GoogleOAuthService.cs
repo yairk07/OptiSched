@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Specialized;
 using System.Net;
 using System.Text;
 using System.Web;
 using System.Data;
 using System.Data.OleDb;
-using System.Web.Script.Serialization;
+
 using System.Configuration;
 
 public class GoogleOAuthService
@@ -82,25 +82,7 @@ public class GoogleOAuthService
 
     public static GoogleUserInfo GetUserInfo(string code)
     {
-        // #region agent log
-        try {
-            var logData = new {
-                sessionId = "debug-session",
-                runId = "run7",
-                hypothesisId = "K",
-                location = "GoogleOAuthService.cs:GetUserInfo:entry",
-                message = "GetUserInfo entry",
-                data = new {
-                    codeLength = code?.Length ?? 0,
-                    hasCode = !string.IsNullOrEmpty(code)
-                },
-                timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-            };
-            var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                serializer.Serialize(logData) + "\n");
-        } catch {}
-        // #endregion agent log
+        
 
         string clientId = GetClientId();
         string clientSecret = GetClientSecret();
@@ -110,27 +92,7 @@ public class GoogleOAuthService
         
         try
         {
-            // #region agent log
-            try {
-                var logData2 = new {
-                    sessionId = "debug-session",
-                    runId = "run7",
-                    hypothesisId = "K",
-                    location = "GoogleOAuthService.cs:GetUserInfo:before_token_request",
-                    message = "Before token request",
-                    data = new {
-                        tokenUrl = tokenUrl,
-                        hasClientId = !string.IsNullOrEmpty(clientId),
-                        hasClientSecret = !string.IsNullOrEmpty(clientSecret),
-                        redirectUri = redirectUri
-                    },
-                    timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                };
-                var serializer2 = new System.Web.Script.Serialization.JavaScriptSerializer();
-                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                    serializer2.Serialize(logData2) + "\n");
-            } catch {}
-            // #endregion agent log
+            
 
             using (WebClient client = new WebClient())
             {
@@ -148,94 +110,21 @@ public class GoogleOAuthService
                 byte[] responseBytes = null;
                 try
                 {
-                    // #region agent log
-                    try {
-                        var logData3 = new {
-                            sessionId = "debug-session",
-                            runId = "run7",
-                            hypothesisId = "K",
-                            location = "GoogleOAuthService.cs:GetUserInfo:before_upload",
-                            message = "Before UploadValues",
-                            data = new {
-                                tokenUrl = tokenUrl
-                            },
-                            timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                        };
-                        var serializer3 = new System.Web.Script.Serialization.JavaScriptSerializer();
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                            serializer3.Serialize(logData3) + "\n");
-                    } catch {}
-                    // #endregion agent log
+                    
 
                     System.Threading.Thread.Sleep(100);
                     responseBytes = client.UploadValues(tokenUrl, "POST", postData);
 
-                    // #region agent log
-                    try {
-                        var logData4 = new {
-                            sessionId = "debug-session",
-                            runId = "run7",
-                            hypothesisId = "K",
-                            location = "GoogleOAuthService.cs:GetUserInfo:after_upload",
-                            message = "After UploadValues",
-                            data = new {
-                                responseBytesLength = responseBytes?.Length ?? 0
-                            },
-                            timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                        };
-                        var serializer4 = new System.Web.Script.Serialization.JavaScriptSerializer();
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                            serializer4.Serialize(logData4) + "\n");
-                    } catch {}
-                    // #endregion agent log
+                    
                 }
                 catch (WebException webEx)
                 {
-                    // #region agent log
-                    try {
-                        var logData5 = new {
-                            sessionId = "debug-session",
-                            runId = "run7",
-                            hypothesisId = "K",
-                            location = "GoogleOAuthService.cs:GetUserInfo:webexception",
-                            message = "WebException in UploadValues",
-                            data = new {
-                                error = webEx.Message,
-                                errorType = webEx.GetType().Name,
-                                status = webEx.Status.ToString(),
-                                stackTrace = webEx.StackTrace != null ? webEx.StackTrace.Substring(0, Math.Min(500, webEx.StackTrace.Length)) : null
-                            },
-                            timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                        };
-                        var serializer5 = new System.Web.Script.Serialization.JavaScriptSerializer();
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                            serializer5.Serialize(logData5) + "\n");
-                    } catch {}
-                    // #endregion agent log
+                    
                     throw new Exception("שגיאה בתקשורת עם Google: " + webEx.Message);
                 }
                 catch (Exception ex)
                 {
-                    // #region agent log
-                    try {
-                        var logData6 = new {
-                            sessionId = "debug-session",
-                            runId = "run7",
-                            hypothesisId = "K",
-                            location = "GoogleOAuthService.cs:GetUserInfo:exception",
-                            message = "Exception in UploadValues",
-                            data = new {
-                                error = ex.Message,
-                                errorType = ex.GetType().Name,
-                                stackTrace = ex.StackTrace != null ? ex.StackTrace.Substring(0, Math.Min(500, ex.StackTrace.Length)) : null
-                            },
-                            timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                        };
-                        var serializer6 = new System.Web.Script.Serialization.JavaScriptSerializer();
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                            serializer6.Serialize(logData6) + "\n");
-                    } catch {}
-                    // #endregion agent log
+                    
                     throw new Exception("שגיאה בקבלת token: " + ex.Message);
                 }
 
@@ -303,26 +192,7 @@ public class GoogleOAuthService
         }
         catch (Exception ex)
         {
-            // #region agent log
-            try {
-                var logData7 = new {
-                    sessionId = "debug-session",
-                    runId = "run7",
-                    hypothesisId = "K",
-                    location = "GoogleOAuthService.cs:GetUserInfo:outer_exception",
-                    message = "Outer exception in GetUserInfo",
-                    data = new {
-                        error = ex.Message,
-                        errorType = ex.GetType().Name,
-                        stackTrace = ex.StackTrace != null ? ex.StackTrace.Substring(0, Math.Min(500, ex.StackTrace.Length)) : null
-                    },
-                    timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                };
-                var serializer7 = new System.Web.Script.Serialization.JavaScriptSerializer();
-                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                    serializer7.Serialize(logData7) + "\n");
-            } catch {}
-            // #endregion agent log
+            
             throw new Exception("שגיאה ב-GetUserInfo: " + ex.Message);
         }
     }
@@ -351,25 +221,7 @@ public class GoogleOAuthService
 
     public static int? GetUserIdByEmail(string email)
     {
-        // #region agent log
-        try {
-            var logData = new {
-                sessionId = "debug-session",
-                runId = "run3",
-                hypothesisId = "G",
-                location = "GoogleOAuthService.cs:GetUserIdByEmail:entry",
-                message = "GetUserIdByEmail entry",
-                data = new {
-                    email = email,
-                    emailLength = email?.Length ?? 0
-                },
-                timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-            };
-            var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                serializer.Serialize(logData) + "\n");
-        } catch {}
-        // #endregion agent log
+        
 
         string connectionString = Connect.GetConnectionString();
         using (OleDbConnection conn = new OleDbConnection(connectionString))
@@ -392,26 +244,7 @@ public class GoogleOAuthService
             }
             catch (Exception ex)
             {
-                // #region agent log
-                try {
-                    var logData = new {
-                        sessionId = "debug-session",
-                        runId = "run3",
-                        hypothesisId = "G",
-                        location = "GoogleOAuthService.cs:GetUserIdByEmail:exception",
-                        message = "Exception in GetUserIdByEmail query",
-                        data = new {
-                            error = ex.Message,
-                            sql = sql,
-                            email = email
-                        },
-                        timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                    };
-                    var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                        serializer.Serialize(logData) + "\n");
-                } catch {}
-                // #endregion agent log
+                
                 throw;
             }
         }
@@ -540,28 +373,7 @@ public class GoogleOAuthService
                         lastName = "";
                     }
                     
-                    // #region agent log
-                    try {
-                        var logData8 = new {
-                            sessionId = "debug-session",
-                            runId = "run7",
-                            hypothesisId = "K",
-                            location = "GoogleOAuthService.cs:CreateOrUpdateUser:before_insert",
-                            message = "Before INSERT new user",
-                            data = new {
-                                userName = userName,
-                                firstName = firstName,
-                                lastName = lastName,
-                                email = userInfo.Email,
-                                googleId = userInfo.Id
-                            },
-                            timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                        };
-                        var serializer8 = new System.Web.Script.Serialization.JavaScriptSerializer();
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                            serializer8.Serialize(logData8) + "\n");
-                    } catch {}
-                    // #endregion agent log
+                    
 
                     string sql = "INSERT INTO Users (userName, firstName, lastName, email, [password], gender, yearOfBirth, userId, phonenum, city, GoogleId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     try
@@ -612,52 +424,14 @@ public class GoogleOAuthService
                             googleIdParam.Value = userInfo.Id?.Trim() ?? "";
                             cmd.Parameters.Add(googleIdParam);
                             
-                            // #region agent log
-                            try {
-                                var logData9 = new {
-                                    sessionId = "debug-session",
-                                    runId = "run7",
-                                    hypothesisId = "K",
-                                    location = "GoogleOAuthService.cs:CreateOrUpdateUser:before_execute",
-                                    message = "Before ExecuteNonQuery",
-                                    data = new {
-                                        sql = sql,
-                                        paramCount = cmd.Parameters.Count
-                                    },
-                                    timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                                };
-                                var serializer9 = new System.Web.Script.Serialization.JavaScriptSerializer();
-                                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                                    serializer9.Serialize(logData9) + "\n");
-                            } catch {}
-                            // #endregion agent log
+                            
                             
                             cmd.ExecuteNonQuery();
                         }
                     }
                     catch (Exception insertEx)
                     {
-                        // #region agent log
-                        try {
-                            var logData10 = new {
-                                sessionId = "debug-session",
-                                runId = "run7",
-                                hypothesisId = "K",
-                                location = "GoogleOAuthService.cs:CreateOrUpdateUser:insert_exception",
-                                message = "Exception in INSERT",
-                                data = new {
-                                    error = insertEx.Message,
-                                    errorType = insertEx.GetType().Name,
-                                    sql = sql,
-                                    stackTrace = insertEx.StackTrace != null ? insertEx.StackTrace.Substring(0, Math.Min(500, insertEx.StackTrace.Length)) : null
-                                },
-                                timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                            };
-                            var serializer10 = new System.Web.Script.Serialization.JavaScriptSerializer();
-                            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                                serializer10.Serialize(logData10) + "\n");
-                        } catch {}
-                        // #endregion agent log
+                        
                         throw;
                     }
                 }

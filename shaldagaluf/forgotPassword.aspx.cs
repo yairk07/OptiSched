@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Data;
 using System.Net;
 using System.Net.Mail;
@@ -107,26 +107,6 @@ public partial class forgotPassword : System.Web.UI.Page
 
     protected void btnVerifyCode_Click(object sender, EventArgs e)
     {
-        // #region agent log
-        try {
-            var logData = new {
-                sessionId = "debug-session",
-                runId = "run6",
-                hypothesisId = "J",
-                location = "forgotPassword.aspx.cs:btnVerifyCode_Click:entry",
-                message = "btnVerifyCode_Click entry",
-                data = new {
-                    emailFromViewState = ViewState["ResetEmail"]?.ToString() ?? "null",
-                    codeFromTextBox = txtVerificationCode.Text?.Trim() ?? "null"
-                },
-                timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-            };
-            var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                serializer.Serialize(logData) + "\n");
-        } catch {}
-        // #endregion agent log
-
         string email = ViewState["ResetEmail"]?.ToString();
         string code = txtVerificationCode.Text.Trim();
 
@@ -144,50 +124,13 @@ public partial class forgotPassword : System.Web.UI.Page
             return;
         }
 
-        // #region agent log
-        try {
-            var logData2 = new {
-                sessionId = "debug-session",
-                runId = "run6",
-                hypothesisId = "J",
-                location = "forgotPassword.aspx.cs:btnVerifyCode_Click:before_ValidateCode",
-                message = "Before calling ValidateCode",
-                data = new {
-                    email = email,
-                    code = code,
-                    emailLength = email?.Length ?? 0,
-                    codeLength = code?.Length ?? 0
-                },
-                timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-            };
-            var serializer2 = new System.Web.Script.Serialization.JavaScriptSerializer();
-            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                serializer2.Serialize(logData2) + "\n");
-        } catch {}
-        // #endregion agent log
+        
 
         try
         {
             bool isValid = VerificationCodeService.ValidateCode(email, code);
 
-            // #region agent log
-            try {
-                var logData3 = new {
-                    sessionId = "debug-session",
-                    runId = "run6",
-                    hypothesisId = "J",
-                    location = "forgotPassword.aspx.cs:btnVerifyCode_Click:after_ValidateCode",
-                    message = "After calling ValidateCode",
-                    data = new {
-                        isValid = isValid
-                    },
-                    timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                };
-                var serializer3 = new System.Web.Script.Serialization.JavaScriptSerializer();
-                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                    serializer3.Serialize(logData3) + "\n");
-            } catch {}
-            // #endregion agent log
+            
         
             if (isValid)
             {
@@ -204,26 +147,7 @@ public partial class forgotPassword : System.Web.UI.Page
         }
         catch (Exception ex)
         {
-            // #region agent log
-            try {
-                var logData4 = new {
-                    sessionId = "debug-session",
-                    runId = "run6",
-                    hypothesisId = "J",
-                    location = "forgotPassword.aspx.cs:btnVerifyCode_Click:exception",
-                    message = "Exception in btnVerifyCode_Click",
-                    data = new {
-                        error = ex.Message,
-                        errorType = ex.GetType().Name,
-                        stackTrace = ex.StackTrace != null ? ex.StackTrace.Substring(0, Math.Min(500, ex.StackTrace.Length)) : null
-                    },
-                    timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                };
-                var serializer4 = new System.Web.Script.Serialization.JavaScriptSerializer();
-                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                    serializer4.Serialize(logData4) + "\n");
-            } catch {}
-            // #endregion agent log
+            
             
             lblCodeMessage.Text = "שגיאה באימות הקוד: " + ex.Message;
             lblCodeMessage.ForeColor = System.Drawing.Color.Red;

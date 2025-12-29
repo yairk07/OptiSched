@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Data;
 using System.Data.OleDb;
 
@@ -40,25 +40,7 @@ public class OTPLoginService
 
     public static string GenerateLoginCode(string email)
     {
-        // #region agent log
-        try {
-            var logData = new {
-                sessionId = "debug-session",
-                runId = "run3",
-                hypothesisId = "G",
-                location = "OTPLoginService.cs:GenerateLoginCode:entry",
-                message = "GenerateLoginCode entry",
-                data = new {
-                    email = email,
-                    emailLength = email?.Length ?? 0
-                },
-                timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-            };
-            var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                serializer.Serialize(logData) + "\n");
-        } catch {}
-        // #endregion agent log
+        
 
         EnsureOTPLoginCodesTable();
 
@@ -86,26 +68,7 @@ public class OTPLoginService
             }
             catch (Exception ex)
             {
-                // #region agent log
-                try {
-                    var logData = new {
-                        sessionId = "debug-session",
-                        runId = "run3",
-                        hypothesisId = "G",
-                        location = "OTPLoginService.cs:GenerateLoginCode:delete_exception",
-                        message = "Exception in DELETE query",
-                        data = new {
-                            error = ex.Message,
-                            sql = deleteOldSql,
-                            email = email
-                        },
-                        timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                    };
-                    var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                        serializer.Serialize(logData) + "\n");
-                } catch {}
-                // #endregion agent log
+                
                 throw;
             }
 
@@ -133,26 +96,7 @@ public class OTPLoginService
             }
             catch (Exception ex)
             {
-                // #region agent log
-                try {
-                    var logData = new {
-                        sessionId = "debug-session",
-                        runId = "run3",
-                        hypothesisId = "G",
-                        location = "OTPLoginService.cs:GenerateLoginCode:count_exception",
-                        message = "Exception in COUNT query",
-                        data = new {
-                            error = ex.Message,
-                            sql = countSql,
-                            email = email
-                        },
-                        timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                    };
-                    var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                        serializer.Serialize(logData) + "\n");
-                } catch {}
-                // #endregion agent log
+                
                 throw;
             }
 
@@ -200,26 +144,7 @@ public class OTPLoginService
             }
             catch (Exception ex)
             {
-                // #region agent log
-                try {
-                    var logData = new {
-                        sessionId = "debug-session",
-                        runId = "run3",
-                        hypothesisId = "G",
-                        location = "OTPLoginService.cs:GenerateLoginCode:insert_exception",
-                        message = "Exception in INSERT query",
-                        data = new {
-                            error = ex.Message,
-                            sql = insertSql,
-                            email = email
-                        },
-                        timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                    };
-                    var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                        serializer.Serialize(logData) + "\n");
-                } catch {}
-                // #endregion agent log
+                
                 throw;
             }
 
@@ -240,27 +165,7 @@ public class OTPLoginService
         using (OleDbConnection conn = new OleDbConnection(connectionString))
         {
             conn.Open();
-            // #region agent log
-            try {
-                var logData = new {
-                    sessionId = "debug-session",
-                    runId = "run3",
-                    hypothesisId = "G",
-                    location = "OTPLoginService.cs:ValidateLoginCode:before_query",
-                    message = "Before executing ValidateLoginCode query",
-                    data = new {
-                        email = email,
-                        code = code,
-                        emailLength = email?.Length ?? 0,
-                        codeLength = code?.Length ?? 0
-                    },
-                    timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                };
-                var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                    serializer.Serialize(logData) + "\n");
-            } catch {}
-            // #endregion agent log
+            
 
             string sql = "SELECT Id, ExpiryDate, Used, AttemptCount FROM OTPLoginCodes WHERE CStr(Email)=? AND CStr(Code)=?";
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
@@ -273,28 +178,7 @@ public class OTPLoginService
                 codeParam.Value = code?.Trim() ?? "";
                 cmd.Parameters.Add(codeParam);
 
-                // #region agent log
-                try {
-                    var logData = new {
-                        sessionId = "debug-session",
-                        runId = "run3",
-                        hypothesisId = "G",
-                        location = "OTPLoginService.cs:ValidateLoginCode:before_execute",
-                        message = "Before ExecuteReader",
-                        data = new {
-                            sql = sql,
-                            emailParamType = emailParam.OleDbType.ToString(),
-                            emailParamValue = emailParam.Value?.ToString() ?? "null",
-                            codeParamType = codeParam.OleDbType.ToString(),
-                            codeParamValue = codeParam.Value?.ToString() ?? "null"
-                        },
-                        timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                    };
-                    var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                        serializer.Serialize(logData) + "\n");
-                } catch {}
-                // #endregion agent log
+                
 
                 try
                 {
@@ -349,26 +233,7 @@ public class OTPLoginService
                 }
                 catch (Exception ex)
                 {
-                    // #region agent log
-                    try {
-                        var logData = new {
-                            sessionId = "debug-session",
-                            runId = "run3",
-                            hypothesisId = "G",
-                            location = "OTPLoginService.cs:ValidateLoginCode:exception",
-                            message = "Exception during ExecuteReader",
-                            data = new {
-                                error = ex.Message,
-                                stackTrace = ex.StackTrace,
-                                sql = sql
-                            },
-                            timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                        };
-                        var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                            serializer.Serialize(logData) + "\n");
-                    } catch {}
-                    // #endregion agent log
+                    
                     throw;
                 }
             }

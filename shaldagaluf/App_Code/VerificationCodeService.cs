@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Data;
 using System.Data.OleDb;
 using System.Linq;
@@ -134,27 +134,7 @@ public class VerificationCodeService
         using (OleDbConnection conn = new OleDbConnection(connectionString))
         {
             conn.Open();
-            // #region agent log
-            try {
-                var logData = new {
-                    sessionId = "debug-session",
-                    runId = "run4",
-                    hypothesisId = "H",
-                    location = "VerificationCodeService.cs:ValidateCode:entry",
-                    message = "ValidateCode entry",
-                    data = new {
-                        email = email,
-                        code = code,
-                        emailLength = email?.Length ?? 0,
-                        codeLength = code?.Length ?? 0
-                    },
-                    timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                };
-                var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                    serializer.Serialize(logData) + "\n");
-            } catch {}
-            // #endregion agent log
+            
 
             DateTime now = DateTime.Now;
             string sql = "SELECT Id, ExpiryDate, Used FROM VerificationCodes WHERE CStr(Email)=? AND CStr(Code)=? AND Used=0 AND ExpiryDate > ?";
@@ -172,31 +152,7 @@ public class VerificationCodeService
                 nowParam.Value = now;
                 cmd.Parameters.Add(nowParam);
 
-                // #region agent log
-                try {
-                    var logData = new {
-                        sessionId = "debug-session",
-                        runId = "run4",
-                        hypothesisId = "H",
-                        location = "VerificationCodeService.cs:ValidateCode:before_execute",
-                        message = "Before ExecuteReader",
-                        data = new {
-                            sql = sql,
-                            emailParamType = emailParam.OleDbType.ToString(),
-                            emailParamValue = emailParam.Value?.ToString() ?? "null",
-                            codeParamType = codeParam.OleDbType.ToString(),
-                            codeParamValue = codeParam.Value?.ToString() ?? "null",
-                            nowParamType = nowParam.OleDbType.ToString(),
-                            nowParamValue = nowParam.Value?.ToString() ?? "null",
-                            nowValue = now.ToString("yyyy-MM-dd HH:mm:ss")
-                        },
-                        timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                    };
-                    var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                        serializer.Serialize(logData) + "\n");
-                } catch {}
-                // #endregion agent log
+                
 
                 try
                 {
@@ -220,33 +176,7 @@ public class VerificationCodeService
                 }
                 catch (Exception ex)
                 {
-                    // #region agent log
-                    try {
-                        var logData = new {
-                            sessionId = "debug-session",
-                            runId = "run4",
-                            hypothesisId = "H",
-                            location = "VerificationCodeService.cs:ValidateCode:exception",
-                            message = "Exception during ExecuteReader",
-                            data = new {
-                                error = ex.Message,
-                                errorType = ex.GetType().Name,
-                                stackTrace = ex.StackTrace != null ? ex.StackTrace.Substring(0, Math.Min(500, ex.StackTrace.Length)) : null,
-                                sql = sql,
-                                emailParamType = emailParam.OleDbType.ToString(),
-                                emailParamValue = emailParam.Value?.ToString() ?? "null",
-                                codeParamType = codeParam.OleDbType.ToString(),
-                                codeParamValue = codeParam.Value?.ToString() ?? "null",
-                                nowParamType = nowParam.OleDbType.ToString(),
-                                nowParamValue = nowParam.Value?.ToString() ?? "null"
-                            },
-                            timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                        };
-                        var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                            serializer.Serialize(logData) + "\n");
-                    } catch {}
-                    // #endregion agent log
+                    
                     throw;
                 }
             }

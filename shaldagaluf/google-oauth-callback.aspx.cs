@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Web;
 using System.Web.UI;
 
@@ -40,26 +40,6 @@ public partial class google_oauth_callback : System.Web.UI.Page
 
         try
         {
-            // #region agent log
-            try {
-                var logData = new {
-                    sessionId = "debug-session",
-                    runId = "run7",
-                    hypothesisId = "K",
-                    location = "google-oauth-callback.aspx.cs:Page_Load:before_GetUserInfo",
-                    message = "Before calling GetUserInfo",
-                    data = new {
-                        codeLength = code?.Length ?? 0,
-                        hasCode = !string.IsNullOrEmpty(code)
-                    },
-                    timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                };
-                var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                    serializer.Serialize(logData) + "\n");
-            } catch {}
-            // #endregion agent log
-
             GoogleUserInfo userInfo = null;
             try
             {
@@ -67,26 +47,7 @@ public partial class google_oauth_callback : System.Web.UI.Page
             }
             catch (Exception getUserInfoEx)
             {
-                // #region agent log
-                try {
-                    var logData2 = new {
-                        sessionId = "debug-session",
-                        runId = "run7",
-                        hypothesisId = "K",
-                        location = "google-oauth-callback.aspx.cs:Page_Load:GetUserInfo_exception",
-                        message = "Exception in GetUserInfo",
-                        data = new {
-                            error = getUserInfoEx.Message,
-                            errorType = getUserInfoEx.GetType().Name,
-                            stackTrace = getUserInfoEx.StackTrace != null ? getUserInfoEx.StackTrace.Substring(0, Math.Min(500, getUserInfoEx.StackTrace.Length)) : null
-                        },
-                        timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                    };
-                    var serializer2 = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                        serializer2.Serialize(logData2) + "\n");
-                } catch {}
-                // #endregion agent log
+                
                 Response.Redirect("login.aspx?error=" + HttpUtility.UrlEncode("שגיאה בקבלת פרטי משתמש מ-Google: " + getUserInfoEx.Message));
                 return;
             }
@@ -104,26 +65,7 @@ public partial class google_oauth_callback : System.Web.UI.Page
             }
             catch (Exception createEx)
             {
-                // #region agent log
-                try {
-                    var logData3 = new {
-                        sessionId = "debug-session",
-                        runId = "run7",
-                        hypothesisId = "K",
-                        location = "google-oauth-callback.aspx.cs:Page_Load:CreateOrUpdateUser_exception",
-                        message = "Exception in CreateOrUpdateUser",
-                        data = new {
-                            error = createEx.Message,
-                            errorType = createEx.GetType().Name,
-                            stackTrace = createEx.StackTrace != null ? createEx.StackTrace.Substring(0, Math.Min(500, createEx.StackTrace.Length)) : null
-                        },
-                        timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                    };
-                    var serializer3 = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                        serializer3.Serialize(logData3) + "\n");
-                } catch {}
-                // #endregion agent log
+                
                 Response.Redirect("login.aspx?error=" + HttpUtility.UrlEncode("שגיאה ביצירת משתמש: " + createEx.Message));
                 return;
             }

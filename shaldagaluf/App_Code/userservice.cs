@@ -178,25 +178,7 @@ public class UsersService
 
     public DataRow GetUserByEmail(string email)
     {
-        // #region agent log
-        try {
-            var logData = new {
-                sessionId = "debug-session",
-                runId = "run3",
-                hypothesisId = "G",
-                location = "userservice.cs:GetUserByEmail:entry",
-                message = "GetUserByEmail entry",
-                data = new {
-                    email = email,
-                    emailLength = email?.Length ?? 0
-                },
-                timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-            };
-            var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                serializer.Serialize(logData) + "\n");
-        } catch {}
-        // #endregion agent log
+        
 
         DataSet ds = new DataSet();
         string connectionString = Connect.GetConnectionString();
@@ -221,26 +203,7 @@ public class UsersService
             }
             catch (Exception ex)
             {
-                // #region agent log
-                try {
-                    var logData = new {
-                        sessionId = "debug-session",
-                        runId = "run3",
-                        hypothesisId = "G",
-                        location = "userservice.cs:GetUserByEmail:exception",
-                        message = "Exception in GetUserByEmail query",
-                        data = new {
-                            error = ex.Message,
-                            sql = sql,
-                            email = email
-                        },
-                        timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds
-                    };
-                    var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                        serializer.Serialize(logData) + "\n");
-                } catch {}
-                // #endregion agent log
+                
                 throw;
             }
         }
