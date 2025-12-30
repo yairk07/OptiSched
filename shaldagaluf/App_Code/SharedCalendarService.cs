@@ -2,96 +2,17 @@ using System;
 using System.Data;
 using System.Data.OleDb;
 
+/// <summary>
+/// SharedCalendarService - DSD Schema: Static tables, INTEGER types, EventDate/EventTime columns
+/// No dynamic table creation - tables must exist in database
+/// </summary>
 public class SharedCalendarService
 {
+    // DSD Schema: No dynamic table creation - tables are predefined
+    // Constructor no longer creates tables
     public SharedCalendarService()
     {
-        EnsureTablesExist();
-    }
-
-    private void EnsureTablesExist()
-    {
-        string conStr = Connect.GetConnectionString();
-        using (OleDbConnection con = new OleDbConnection(conStr))
-        {
-            con.Open();
-
-            try
-            {
-                using (OleDbCommand testCmd = new OleDbCommand("SELECT TOP 1 * FROM SharedCalendars", con))
-                {
-                    testCmd.ExecuteScalar();
-                }
-            }
-            catch
-            {
-                CreateTables(con);
-            }
-        }
-    }
-
-    private void CreateTables(OleDbConnection con)
-    {
-        try
-        {
-            string createSharedCalendars = @"
-CREATE TABLE SharedCalendars (
-    Id AUTOINCREMENT PRIMARY KEY,
-    Name TEXT(255),
-    Description MEMO,
-    CreatedBy LONG,
-    CreatedDate DATETIME
-)";
-
-            string createSharedCalendarMembers = @"
-CREATE TABLE SharedCalendarMembers (
-    Id AUTOINCREMENT PRIMARY KEY,
-    CalendarId LONG,
-    UserId LONG,
-    Role TEXT(50),
-    JoinedDate DATETIME
-)";
-
-            string createJoinRequests = @"
-CREATE TABLE JoinRequests (
-    Id AUTOINCREMENT PRIMARY KEY,
-    CalendarId LONG,
-    UserId LONG,
-    Status TEXT(50),
-    RequestDate DATETIME,
-    Message MEMO
-)";
-
-            string createSharedCalendarEvents = @"
-CREATE TABLE SharedCalendarEvents (
-    Id AUTOINCREMENT PRIMARY KEY,
-    CalendarId LONG,
-    Title TEXT(255),
-    [Date] DATETIME,
-    [Time] TEXT(50),
-    Notes MEMO,
-    Category TEXT(50),
-    CreatedBy LONG,
-    CreatedDate DATETIME
-)";
-
-            using (OleDbCommand cmd = new OleDbCommand(createSharedCalendars, con))
-            {
-                cmd.ExecuteNonQuery();
-
-                cmd.CommandText = createSharedCalendarMembers;
-                cmd.ExecuteNonQuery();
-
-                cmd.CommandText = createJoinRequests;
-                cmd.ExecuteNonQuery();
-
-                cmd.CommandText = createSharedCalendarEvents;
-                cmd.ExecuteNonQuery();
-            }
-        }
-        catch
-        {
-        }
+        // Tables must exist in database - no dynamic creation
     }
     public DataTable GetAllSharedCalendars(int? userId = null)
     {
@@ -222,8 +143,7 @@ ORDER BY SC.CreatedDate DESC";
             {
                 con.Open();
 
-                EnsureTablesExist();
-
+                // DSD Schema: INTEGER types, creator must be inserted as admin in SharedCalendarMembers
                 string sql = "INSERT INTO SharedCalendars (Name, Description, CreatedBy, CreatedDate) VALUES (?, ?, ?, ?)";
                 using (OleDbCommand cmd = new OleDbCommand(sql, con))
                 {
@@ -234,9 +154,12 @@ ORDER BY SC.CreatedDate DESC";
                     OleDbParameter descriptionParam = new OleDbParameter("?", OleDbType.WChar);
                     descriptionParam.Value = (description ?? "").Trim();
                     cmd.Parameters.Add(descriptionParam);
-                    OleDbParameter createdByParam = new OleDbParameter("?", OleDbType.BigInt);
-                    createdByParam.Value = (long)createdBy;
+                    
+                    // DSD Schema: INTEGER type (not LONG)
+                    OleDbParameter createdByParam = new OleDbParameter("?", OleDbType.Integer);
+                    createdByParam.Value = createdBy;
                     cmd.Parameters.Add(createdByParam);
+                    
                     OleDbParameter dateParam = new OleDbParameter("?", OleDbType.Date);
                     dateParam.Value = DateTime.Now;
                     cmd.Parameters.Add(dateParam);
@@ -249,19 +172,24 @@ ORDER BY SC.CreatedDate DESC";
                     {
                         calendarId = Convert.ToInt32(result);
 
+                        // DSD Schema: Creator MUST be inserted as admin in SharedCalendarMembers
                         sql = "INSERT INTO SharedCalendarMembers (CalendarId, UserId, Role, JoinedDate) VALUES (?, ?, ?, ?)";
                         cmd.CommandText = sql;
                         cmd.Parameters.Clear();
-                        OleDbParameter calendarIdParam = new OleDbParameter("?", OleDbType.BigInt);
-                        calendarIdParam.Value = (long)calendarId;
+                        
+                        // DSD Schema: INTEGER types
+                        OleDbParameter calendarIdParam = new OleDbParameter("?", OleDbType.Integer);
+                        calendarIdParam.Value = calendarId;
                         cmd.Parameters.Add(calendarIdParam);
-                        OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.BigInt);
-                        userIdParam.Value = (long)createdBy;
+                        
+                        OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.Integer);
+                        userIdParam.Value = createdBy;
                         cmd.Parameters.Add(userIdParam);
                         
                         OleDbParameter roleParam = new OleDbParameter("?", OleDbType.WChar);
                         roleParam.Value = "admin";
                         cmd.Parameters.Add(roleParam);
+                        
                         OleDbParameter joinedDateParam = new OleDbParameter("?", OleDbType.Date);
                         joinedDateParam.Value = DateTime.Now;
                         cmd.Parameters.Add(joinedDateParam);
@@ -288,11 +216,17 @@ ORDER BY SC.CreatedDate DESC";
             {
                 con.Open();
 
+                // DSD Schema: INTEGER types
                 string sql = "INSERT INTO SharedCalendarMembers (CalendarId, UserId, Role, JoinedDate) VALUES (?, ?, ?, ?)";
                 using (OleDbCommand cmd = new OleDbCommand(sql, con))
                 {
-                    cmd.Parameters.AddWithValue("?", calendarId);
-                    cmd.Parameters.AddWithValue("?", userId);
+                    OleDbParameter calendarIdParam = new OleDbParameter("?", OleDbType.Integer);
+                    calendarIdParam.Value = calendarId;
+                    cmd.Parameters.Add(calendarIdParam);
+                    
+                    OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.Integer);
+                    userIdParam.Value = userId;
+                    cmd.Parameters.Add(userIdParam);
                     
                     OleDbParameter roleParam = new OleDbParameter("?", OleDbType.WChar);
                     roleParam.Value = role?.Trim() ?? "member";
@@ -466,8 +400,8 @@ SELECT
     SCE.Id AS Id,
     SCE.CalendarId,
     SCE.Title,
-    SCE.[Date] AS EventDate,
-    SCE.[Time] AS EventTime,
+    SCE.EventDate AS EventDate,
+    SCE.EventTime AS EventTime,
     SCE.Notes,
     SCE.Category,
     SCE.CreatedBy,
@@ -482,7 +416,7 @@ WHERE SCE.CalendarId = ?";
                     sql += " AND EXISTS (SELECT 1 FROM SharedCalendarMembers SCM WHERE SCM.CalendarId = ? AND CLng(SCM.UserId) = ?)";
                 }
 
-                sql += " ORDER BY SCE.[Date] DESC, SCE.[Time] DESC";
+                sql += " ORDER BY SCE.EventDate DESC, SCE.EventTime DESC";
 
                 using (OleDbCommand cmd = new OleDbCommand(sql, con))
                 {
@@ -613,11 +547,12 @@ WHERE SCE.CalendarId = ?";
             {
                 con.Open();
 
-                string sql = "INSERT INTO SharedCalendarEvents (CalendarId, Title, [Date], [Time], Notes, Category, CreatedBy, CreatedDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                // DSD Schema: EventDate, EventTime columns, INTEGER types
+                string sql = "INSERT INTO SharedCalendarEvents (CalendarId, Title, EventDate, EventTime, Notes, Category, CreatedBy, CreatedDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
                 using (OleDbCommand cmd = new OleDbCommand(sql, con))
                 {
-                    OleDbParameter calendarIdParam = new OleDbParameter("?", OleDbType.BigInt);
-                    calendarIdParam.Value = (long)calendarId;
+                    OleDbParameter calendarIdParam = new OleDbParameter("?", OleDbType.Integer);
+                    calendarIdParam.Value = calendarId;
                     cmd.Parameters.Add(calendarIdParam);
                     
                     OleDbParameter titleParam = new OleDbParameter("?", OleDbType.WChar);
@@ -639,9 +574,11 @@ WHERE SCE.CalendarId = ?";
                     OleDbParameter categoryParam = new OleDbParameter("?", OleDbType.WChar);
                     categoryParam.Value = cleanCategory;
                     cmd.Parameters.Add(categoryParam);
-                    OleDbParameter createdByParam = new OleDbParameter("?", OleDbType.BigInt);
-                    createdByParam.Value = (long)createdBy;
+                    
+                    OleDbParameter createdByParam = new OleDbParameter("?", OleDbType.Integer);
+                    createdByParam.Value = createdBy;
                     cmd.Parameters.Add(createdByParam);
+                    
                     OleDbParameter createdDateParam = new OleDbParameter("?", OleDbType.Date);
                     createdDateParam.Value = DateTime.Now;
                     cmd.Parameters.Add(createdDateParam);
@@ -682,7 +619,8 @@ WHERE SCE.CalendarId = ?";
             {
                 con.Open();
 
-                string sql = "UPDATE SharedCalendarEvents SET Title = ?, [Date] = ?, [Time] = ?, Notes = ?, Category = ? WHERE Id = ?";
+                // DSD Schema: EventDate, EventTime columns, INTEGER types
+                string sql = "UPDATE SharedCalendarEvents SET Title = ?, EventDate = ?, EventTime = ?, Notes = ?, Category = ? WHERE Id = ?";
                 using (OleDbCommand cmd = new OleDbCommand(sql, con))
                 {
                     OleDbParameter titleParam = new OleDbParameter("?", OleDbType.WChar);
@@ -704,8 +642,9 @@ WHERE SCE.CalendarId = ?";
                     OleDbParameter categoryParam = new OleDbParameter("?", OleDbType.WChar);
                     categoryParam.Value = cleanCategory;
                     cmd.Parameters.Add(categoryParam);
-                    OleDbParameter eventIdParam = new OleDbParameter("?", OleDbType.BigInt);
-                    eventIdParam.Value = (long)eventId;
+                    
+                    OleDbParameter eventIdParam = new OleDbParameter("?", OleDbType.Integer);
+                    eventIdParam.Value = eventId;
                     cmd.Parameters.Add(eventIdParam);
 
                     cmd.ExecuteNonQuery();

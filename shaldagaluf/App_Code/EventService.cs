@@ -27,26 +27,29 @@ public class EventService
         {
             con.Open();
 
+            // DSD Schema: CalendarEvents table with UserId, EventDate, EventTime columns
             string sql = @"
 SELECT 
     C.Id AS Id,
-    C.Userid AS UserId,
-    C.title AS Title,
-    C.[date] AS EventDate,
-    C.[time] AS EventTime,
-    C.notes AS Notes,
-    C.category AS Category
-FROM calnder AS C";
+    C.UserId AS UserId,
+    C.Title AS Title,
+    C.EventDate AS EventDate,
+    C.EventTime AS EventTime,
+    C.Notes AS Notes,
+    C.Category AS Category
+FROM CalendarEvents AS C";
             
             if (userId.HasValue)
             {
-                sql += " WHERE C.Userid = ?";
+                sql += " WHERE C.UserId = ?";
             }
 
             OleDbCommand cmd = new OleDbCommand(sql, con);
             if (userId.HasValue)
             {
-                cmd.Parameters.AddWithValue("?", userId.Value);
+                OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.Integer);
+                userIdParam.Value = userId.Value;
+                cmd.Parameters.Add(userIdParam);
             }
 
             OleDbDataAdapter da = new OleDbDataAdapter(cmd);
@@ -55,16 +58,19 @@ FROM calnder AS C";
             dt.Columns.Add("UserName", typeof(string));
             dt.Columns.Add("EventType", typeof(string));
 
+            // DSD Schema: Use Id and UserName columns
             DataTable usersTable = new DataTable();
-            OleDbCommand usersCmd = new OleDbCommand("SELECT id, username FROM Users", con);
+            OleDbCommand usersCmd = new OleDbCommand("SELECT Id, UserName FROM Users", con);
             OleDbDataAdapter usersDa = new OleDbDataAdapter(usersCmd);
             usersDa.Fill(usersTable);
 
             System.Collections.Generic.Dictionary<int, string> usersDict = new System.Collections.Generic.Dictionary<int, string>();
             foreach (DataRow userRow in usersTable.Rows)
             {
-                int uid = Convert.ToInt32(userRow["id"]);
-                string uname = Connect.FixEncoding(userRow["username"]?.ToString() ?? "");
+                string idCol = userRow.Table.Columns.Contains("Id") ? "Id" : "id";
+                string nameCol = userRow.Table.Columns.Contains("UserName") ? "UserName" : "username";
+                int uid = Convert.ToInt32(userRow[idCol]);
+                string uname = Connect.FixEncoding(userRow[nameCol]?.ToString() ?? "");
                 usersDict[uid] = uname;
             }
 
@@ -119,13 +125,14 @@ FROM calnder AS C";
 
             if (hasSharedTables && userId.HasValue)
             {
+                // DSD Schema: SharedCalendarEvents with EventDate, EventTime columns
                 string sharedSql = @"
 SELECT
     SCE.Id          AS Id,
     SCE.CreatedBy   AS UserId,
     SCE.Title       AS Title,
-    SCE.[Date]      AS EventDate,
-    SCE.[Time]      AS EventTime,
+    SCE.EventDate   AS EventDate,
+    SCE.EventTime   AS EventTime,
     SCE.Notes       AS Notes,
     SCE.Category    AS Category
 FROM SharedCalendarEvents SCE
@@ -135,7 +142,9 @@ WHERE SCM.UserId = ?";
                 DataTable sharedDt = new DataTable();
                 using (OleDbCommand sharedCmd = new OleDbCommand(sharedSql, con))
                 {
-                    sharedCmd.Parameters.AddWithValue("?", userId.Value);
+                    OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.Integer);
+                    userIdParam.Value = userId.Value;
+                    sharedCmd.Parameters.Add(userIdParam);
                     using (OleDbDataAdapter sharedDa = new OleDbDataAdapter(sharedCmd))
                     {
                         sharedDa.Fill(sharedDt);

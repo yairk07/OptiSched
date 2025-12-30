@@ -10,6 +10,7 @@ public class UsersService
 
     // ------------------------------
     // INSERT USER
+    // DSD Schema: Uses PasswordHash, UserIdNumber, PhoneNumber, CityId, CreatedDate
     // ------------------------------
     public void insertIntoDB(string userName, string firstName, string lastName, string email, string password,
                 int gender, int yearOfBirth, string userId, string phonenum, int city)
@@ -19,10 +20,13 @@ public class UsersService
         {
             myConnection.Open();
 
+            // DSD Schema: PasswordHash, UserIdNumber, PhoneNumber, CityId, CreatedDate
             string sSql =
-                "INSERT INTO Users (userName, firstName, lastName, email, [password], gender, yearOfBirth, userId, phonenum, city) " +
-                "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
+                "INSERT INTO Users (UserName, FirstName, LastName, Email, PasswordHash, Gender, YearOfBirth, UserIdNumber, PhoneNumber, CityId, Role, CreatedDate) " +
+                "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            // #region agent log
+            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"UsersService.insertIntoDB:24\",\"message\":\"INSERT SQL\",\"data\":{\"sql\":\"" + sSql.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"placeholderCount\":12,\"userName\":\"" + (userName ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+            // #endregion
             using (OleDbCommand cmd = new OleDbCommand(sSql, myConnection))
             {
                 string hashedPassword = PasswordHelper.HashPassword(password);
@@ -47,8 +51,13 @@ public class UsersService
                 passwordParam.Value = hashedPassword ?? "";
                 cmd.Parameters.Add(passwordParam);
                 
-                cmd.Parameters.AddWithValue("?", gender);
-                cmd.Parameters.AddWithValue("?", yearOfBirth);
+                OleDbParameter genderParam = new OleDbParameter("?", OleDbType.Integer);
+                genderParam.Value = gender;
+                cmd.Parameters.Add(genderParam);
+                
+                OleDbParameter yearOfBirthParam = new OleDbParameter("?", OleDbType.Integer);
+                yearOfBirthParam.Value = yearOfBirth;
+                cmd.Parameters.Add(yearOfBirthParam);
                 
                 OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.WChar);
                 userIdParam.Value = userId?.Trim() ?? "";
@@ -58,9 +67,35 @@ public class UsersService
                 phonenumParam.Value = phonenum?.Trim() ?? "";
                 cmd.Parameters.Add(phonenumParam);
                 
-                cmd.Parameters.AddWithValue("?", city);
+                OleDbParameter cityParam = new OleDbParameter("?", OleDbType.Integer);
+                cityParam.Value = city;
+                cmd.Parameters.Add(cityParam);
+                
+                OleDbParameter roleParam = new OleDbParameter("?", OleDbType.WChar);
+                roleParam.Value = "user";
+                cmd.Parameters.Add(roleParam);
+                
+                OleDbParameter createdDateParam = new OleDbParameter("?", OleDbType.Date);
+                createdDateParam.Value = DateTime.Now;
+                cmd.Parameters.Add(createdDateParam);
 
-                cmd.ExecuteNonQuery();
+                // #region agent log
+                try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"UsersService.insertIntoDB:78\",\"message\":\"Before ExecuteNonQuery\",\"data\":{\"paramCount\":12},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+                // #endregion
+                try
+                {
+                    cmd.ExecuteNonQuery();
+                    // #region agent log
+                    try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"UsersService.insertIntoDB:81\",\"message\":\"ExecuteNonQuery success\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+                    // #endregion
+                }
+                catch (Exception ex)
+                {
+                    // #region agent log
+                    try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"UsersService.insertIntoDB:85\",\"message\":\"ExecuteNonQuery error\",\"data\":{\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + ex.GetType().Name + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+                    // #endregion
+                    throw;
+                }
             }
         }
     }
@@ -77,6 +112,7 @@ public class UsersService
         {
             myConnection.Open();
 
+                // DSD Schema: Use new column names (UserName, FirstName, LastName, Email, PhoneNumber, UserIdNumber, CityId, Role)
                 using (var usersCmd = new OleDbCommand("SELECT * FROM [Users]", myConnection))
                 {
                     var usersAdp = new OleDbDataAdapter(usersCmd);
@@ -85,32 +121,50 @@ public class UsersService
 
                     foreach (DataRow row in usersTable.Rows)
                     {
-                        if (row.Table.Columns.Contains("userName"))
-                            row["userName"] = Connect.FixEncoding(Convert.ToString(row["userName"]));
-                        if (row.Table.Columns.Contains("firstName"))
-                            row["firstName"] = Connect.FixEncoding(Convert.ToString(row["firstName"]));
-                        if (row.Table.Columns.Contains("lastName"))
-                            row["lastName"] = Connect.FixEncoding(Convert.ToString(row["lastName"]));
-                        if (row.Table.Columns.Contains("email"))
-                            row["email"] = Connect.FixEncoding(Convert.ToString(row["email"]));
-                        if (row.Table.Columns.Contains("phonenum"))
-                            row["phonenum"] = Connect.FixEncoding(Convert.ToString(row["phonenum"]));
-                        if (row.Table.Columns.Contains("userId"))
-                            row["userId"] = Connect.FixEncoding(Convert.ToString(row["userId"]));
+                        // Handle both old and new column names for backward compatibility during migration
+                        if (row.Table.Columns.Contains("UserName") || row.Table.Columns.Contains("userName"))
+                        {
+                            string colName = row.Table.Columns.Contains("UserName") ? "UserName" : "userName";
+                            row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                        }
+                        if (row.Table.Columns.Contains("FirstName") || row.Table.Columns.Contains("firstName"))
+                        {
+                            string colName = row.Table.Columns.Contains("FirstName") ? "FirstName" : "firstName";
+                            row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                        }
+                        if (row.Table.Columns.Contains("LastName") || row.Table.Columns.Contains("lastName"))
+                        {
+                            string colName = row.Table.Columns.Contains("LastName") ? "LastName" : "lastName";
+                            row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                        }
+                        if (row.Table.Columns.Contains("Email") || row.Table.Columns.Contains("email"))
+                        {
+                            string colName = row.Table.Columns.Contains("Email") ? "Email" : "email";
+                            row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                        }
+                        if (row.Table.Columns.Contains("PhoneNumber") || row.Table.Columns.Contains("phonenum"))
+                        {
+                            string colName = row.Table.Columns.Contains("PhoneNumber") ? "PhoneNumber" : "phonenum";
+                            row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                        }
+                        if (row.Table.Columns.Contains("UserIdNumber") || row.Table.Columns.Contains("userId"))
+                        {
+                            string colName = row.Table.Columns.Contains("UserIdNumber") ? "UserIdNumber" : "userId";
+                            row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                        }
                     }
 
-                    string roleCol = usersTable.Columns
-                        .Cast<DataColumn>()
-                        .Select(c => c.ColumnName)
-                        .FirstOrDefault(name => name.Trim().ToLower() == "role");
-
-                    if (roleCol == null)
+                    // Ensure Role column exists (DSD schema requires it)
+                    if (!usersTable.Columns.Contains("Role"))
+                    {
                         usersTable.Columns.Add("Role", typeof(string));
-                    else if (roleCol != "Role")
-                        usersTable.Columns[roleCol].ColumnName = "Role";
+                        foreach (DataRow row in usersTable.Rows)
+                        {
+                            row["Role"] = "user";
+                        }
+                    }
 
-
-                    using (var citiesCmd = new OleDbCommand("SELECT id, cityname FROM [Citys]", myConnection))
+                    using (var citiesCmd = new OleDbCommand("SELECT Id, CityName FROM [Citys]", myConnection))
                     {
                         var citiesAdp = new OleDbDataAdapter(citiesCmd);
                         var citiesTable = new DataTable("Citys");
@@ -119,8 +173,10 @@ public class UsersService
                         var dict = new Dictionary<int, string>();
                         foreach (DataRow r in citiesTable.Rows)
                         {
-                            if (int.TryParse(Convert.ToString(r["id"]).Trim(), out int id))
-                                dict[id] = Connect.FixEncoding(Convert.ToString(r["cityname"]));
+                            string idCol = r.Table.Columns.Contains("Id") ? "Id" : "id";
+                            string nameCol = r.Table.Columns.Contains("CityName") ? "CityName" : "cityname";
+                            if (int.TryParse(Convert.ToString(r[idCol]).Trim(), out int id))
+                                dict[id] = Connect.FixEncoding(Convert.ToString(r[nameCol]));
                         }
 
                     if (!usersTable.Columns.Contains("CityName"))
@@ -128,11 +184,20 @@ public class UsersService
 
                     foreach (DataRow u in usersTable.Rows)
                     {
-                        string raw = Convert.ToString(u["city"]).Trim();
-                        if (int.TryParse(raw, out int code) && dict.ContainsKey(code))
-                            u["CityName"] = dict[code];
+                        // Handle both CityId (DSD) and city (old) column names
+                        string cityCol = u.Table.Columns.Contains("CityId") ? "CityId" : "city";
+                        if (u.Table.Columns.Contains(cityCol))
+                        {
+                            string raw = Convert.ToString(u[cityCol]).Trim();
+                            if (int.TryParse(raw, out int code) && dict.ContainsKey(code))
+                                u["CityName"] = dict[code];
+                            else
+                                u["CityName"] = "";
+                        }
                         else
+                        {
                             u["CityName"] = "";
+                        }
                     }
                 }
 
@@ -156,17 +221,27 @@ public class UsersService
             myConnection.Open();
 
             string hashedPassword = PasswordHelper.HashPassword(password);
-            string sql = "SELECT * FROM Users WHERE userName=? AND [password]=?";
+            // DSD Schema: Use UserName and PasswordHash columns
+            // Support both old and new column names during migration
+            string sql = "SELECT * FROM Users WHERE (UserName=? OR userName=?) AND (PasswordHash=? OR [password]=?)";
             
             using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
             {
-                OleDbParameter userNameParam = new OleDbParameter("?", OleDbType.WChar);
-                userNameParam.Value = userName?.Trim() ?? "";
-                cmd.Parameters.Add(userNameParam);
+                OleDbParameter userNameParam1 = new OleDbParameter("?", OleDbType.WChar);
+                userNameParam1.Value = userName?.Trim() ?? "";
+                cmd.Parameters.Add(userNameParam1);
                 
-                OleDbParameter passwordParam = new OleDbParameter("?", OleDbType.WChar);
-                passwordParam.Value = hashedPassword ?? "";
-                cmd.Parameters.Add(passwordParam);
+                OleDbParameter userNameParam2 = new OleDbParameter("?", OleDbType.WChar);
+                userNameParam2.Value = userName?.Trim() ?? "";
+                cmd.Parameters.Add(userNameParam2);
+                
+                OleDbParameter passwordParam1 = new OleDbParameter("?", OleDbType.WChar);
+                passwordParam1.Value = hashedPassword ?? "";
+                cmd.Parameters.Add(passwordParam1);
+                
+                OleDbParameter passwordParam2 = new OleDbParameter("?", OleDbType.WChar);
+                passwordParam2.Value = hashedPassword ?? "";
+                cmd.Parameters.Add(passwordParam2);
 
                 var adp = new OleDbDataAdapter(cmd);
                 adp.Fill(ds, "Users");
@@ -178,8 +253,6 @@ public class UsersService
 
     public DataRow GetUserByEmail(string email)
     {
-        
-
         DataSet ds = new DataSet();
         string connectionString = Connect.GetConnectionString();
 
@@ -187,7 +260,9 @@ public class UsersService
         {
             myConnection.Open();
 
-            string sql = "SELECT * FROM Users WHERE CStr(email)=?";
+            // DSD Schema: Use Email column (try new first, fallback to old during migration)
+            string sql = "SELECT * FROM Users WHERE CStr(Email)=?";
+            bool useOldColumn = false;
             
             try
             {
@@ -201,14 +276,24 @@ public class UsersService
                     adp.Fill(ds, "Users");
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                
-                throw;
+                // Fallback to old column name during migration
+                useOldColumn = true;
+                sql = "SELECT * FROM Users WHERE CStr(email)=?";
+                using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
+                {
+                    OleDbParameter emailParam = new OleDbParameter("?", OleDbType.WChar);
+                    emailParam.Value = email?.Trim() ?? "";
+                    cmd.Parameters.Add(emailParam);
+
+                    var adp = new OleDbDataAdapter(cmd);
+                    adp.Fill(ds, "Users");
+                }
             }
         }
 
-        if (ds.Tables[0].Rows.Count > 0)
+        if (ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
             return ds.Tables[0].Rows[0];
         return null;
     }
@@ -222,15 +307,22 @@ public class UsersService
             myConnection.Open();
 
             string hashedPassword = PasswordHelper.HashPassword(newPassword);
-            string sql = "UPDATE Users SET [password]=? WHERE id=?";
+            // DSD Schema: Use PasswordHash column (update both during migration)
+            string sql = "UPDATE Users SET PasswordHash=?, [password]=? WHERE Id=?";
             
             using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
             {
+                OleDbParameter passwordHashParam = new OleDbParameter("?", OleDbType.WChar);
+                passwordHashParam.Value = hashedPassword ?? "";
+                cmd.Parameters.Add(passwordHashParam);
+                
                 OleDbParameter passwordParam = new OleDbParameter("?", OleDbType.WChar);
                 passwordParam.Value = hashedPassword ?? "";
                 cmd.Parameters.Add(passwordParam);
                 
-                cmd.Parameters.AddWithValue("?", userId);
+                OleDbParameter idParam = new OleDbParameter("?", OleDbType.Integer);
+                idParam.Value = userId;
+                cmd.Parameters.Add(idParam);
 
                 cmd.ExecuteNonQuery();
             }
@@ -246,48 +338,52 @@ public class UsersService
         {
             myConnection.Open();
 
-            try
+            // DSD Schema: GoogleId is a standard column, no dynamic creation needed
+            string sql = "SELECT * FROM Users WHERE GoogleId=?";
+            using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
             {
-                string sql = "SELECT * FROM Users WHERE GoogleId=?";
-                using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
-                {
-                    OleDbParameter googleIdParam = new OleDbParameter("?", OleDbType.WChar);
-                    googleIdParam.Value = googleId?.Trim() ?? "";
-                    cmd.Parameters.Add(googleIdParam);
-                    var adp = new OleDbDataAdapter(cmd);
-                    adp.Fill(ds, "Users");
-                }
-            }
-            catch
-            {
-                GoogleOAuthService.EnsureGoogleIdColumn();
-                string sql = "SELECT * FROM Users WHERE GoogleId=?";
-                using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
-                {
-                    OleDbParameter googleIdParam2 = new OleDbParameter("?", OleDbType.WChar);
-                    googleIdParam2.Value = googleId?.Trim() ?? "";
-                    cmd.Parameters.Add(googleIdParam2);
-                    var adp = new OleDbDataAdapter(cmd);
-                    adp.Fill(ds, "Users");
-                }
+                OleDbParameter googleIdParam = new OleDbParameter("?", OleDbType.WChar);
+                googleIdParam.Value = googleId?.Trim() ?? "";
+                cmd.Parameters.Add(googleIdParam);
+                var adp = new OleDbDataAdapter(cmd);
+                adp.Fill(ds, "Users");
             }
         }
 
         if (ds.Tables[0].Rows.Count > 0)
         {
             DataRow row = ds.Tables[0].Rows[0];
-            if (row.Table.Columns.Contains("userName"))
-                row["userName"] = Connect.FixEncoding(Convert.ToString(row["userName"]));
-            if (row.Table.Columns.Contains("firstName"))
-                row["firstName"] = Connect.FixEncoding(Convert.ToString(row["firstName"]));
-            if (row.Table.Columns.Contains("lastName"))
-                row["lastName"] = Connect.FixEncoding(Convert.ToString(row["lastName"]));
-            if (row.Table.Columns.Contains("email"))
-                row["email"] = Connect.FixEncoding(Convert.ToString(row["email"]));
-            if (row.Table.Columns.Contains("phonenum"))
-                row["phonenum"] = Connect.FixEncoding(Convert.ToString(row["phonenum"]));
-            if (row.Table.Columns.Contains("userId"))
-                row["userId"] = Connect.FixEncoding(Convert.ToString(row["userId"]));
+            // DSD Schema: Handle both old and new column names
+            if (row.Table.Columns.Contains("UserName") || row.Table.Columns.Contains("userName"))
+            {
+                string colName = row.Table.Columns.Contains("UserName") ? "UserName" : "userName";
+                row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+            }
+            if (row.Table.Columns.Contains("FirstName") || row.Table.Columns.Contains("firstName"))
+            {
+                string colName = row.Table.Columns.Contains("FirstName") ? "FirstName" : "firstName";
+                row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+            }
+            if (row.Table.Columns.Contains("LastName") || row.Table.Columns.Contains("lastName"))
+            {
+                string colName = row.Table.Columns.Contains("LastName") ? "LastName" : "lastName";
+                row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+            }
+            if (row.Table.Columns.Contains("Email") || row.Table.Columns.Contains("email"))
+            {
+                string colName = row.Table.Columns.Contains("Email") ? "Email" : "email";
+                row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+            }
+            if (row.Table.Columns.Contains("PhoneNumber") || row.Table.Columns.Contains("phonenum"))
+            {
+                string colName = row.Table.Columns.Contains("PhoneNumber") ? "PhoneNumber" : "phonenum";
+                row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+            }
+            if (row.Table.Columns.Contains("UserIdNumber") || row.Table.Columns.Contains("userId"))
+            {
+                string colName = row.Table.Columns.Contains("UserIdNumber") ? "UserIdNumber" : "userId";
+                row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+            }
             if (row.Table.Columns.Contains("GoogleId"))
                 row["GoogleId"] = Connect.FixEncoding(Convert.ToString(row["GoogleId"]));
             return row;
@@ -302,10 +398,13 @@ public class UsersService
         {
             myConnection.Open();
 
-            string sql = "DELETE FROM Users WHERE id=?";
+            // DSD Schema: Use Id column (standard)
+            string sql = "DELETE FROM Users WHERE Id=?";
             using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
             {
-                cmd.Parameters.AddWithValue("?", userId);
+                OleDbParameter idParam = new OleDbParameter("?", OleDbType.Integer);
+                idParam.Value = userId;
+                cmd.Parameters.Add(idParam);
                 int rowsAffected = cmd.ExecuteNonQuery();
                 return rowsAffected > 0;
             }

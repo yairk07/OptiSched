@@ -46,14 +46,14 @@ public class GoogleOAuthService
         string state = Guid.NewGuid().ToString();
         HttpContext.Current.Session["OAuthState"] = state;
 
-        string authUrl = $"https://accounts.google.com/o/oauth2/v2/auth?" +
-            $"client_id={Uri.EscapeDataString(clientId)}&" +
-            $"redirect_uri={Uri.EscapeDataString(redirectUri)}&" +
-            $"response_type=code&" +
-            $"scope={Uri.EscapeDataString(scope)}&" +
-            $"state={Uri.EscapeDataString(state)}&" +
-            $"access_type=online&" +
-            $"prompt=consent";
+        string authUrl = "https://accounts.google.com/o/oauth2/v2/auth?" +
+            "client_id=" + Uri.EscapeDataString(clientId) + "&" +
+            "redirect_uri=" + Uri.EscapeDataString(redirectUri) + "&" +
+            "response_type=code&" +
+            "scope=" + Uri.EscapeDataString(scope) + "&" +
+            "state=" + Uri.EscapeDataString(state) + "&" +
+            "access_type=online&" +
+            "prompt=select_account";
 
         return authUrl;
     }
@@ -68,15 +68,15 @@ public class GoogleOAuthService
         HttpContext.Current.Session["OAuthState"] = state;
         HttpContext.Current.Session["QuickLoginEmail"] = email;
 
-        string authUrl = $"https://accounts.google.com/o/oauth2/v2/auth?" +
-            $"client_id={Uri.EscapeDataString(clientId)}&" +
-            $"redirect_uri={Uri.EscapeDataString(redirectUri)}&" +
-            $"response_type=code&" +
-            $"scope={Uri.EscapeDataString(scope)}&" +
-            $"state={Uri.EscapeDataString(state)}&" +
-            $"access_type=online&" +
-            $"prompt=none&" +
-            $"login_hint={Uri.EscapeDataString(email)}";
+        string authUrl = "https://accounts.google.com/o/oauth2/v2/auth?" +
+            "client_id=" + Uri.EscapeDataString(clientId) + "&" +
+            "redirect_uri=" + Uri.EscapeDataString(redirectUri) + "&" +
+            "response_type=code&" +
+            "scope=" + Uri.EscapeDataString(scope) + "&" +
+            "state=" + Uri.EscapeDataString(state) + "&" +
+            "access_type=online&" +
+            "prompt=select_account&" +
+            "login_hint=" + Uri.EscapeDataString(email);
 
         return authUrl;
     }
@@ -204,7 +204,7 @@ public class GoogleOAuthService
         using (OleDbConnection conn = new OleDbConnection(connectionString))
         {
             conn.Open();
-            string sql = "SELECT id FROM Users WHERE GoogleId=?";
+            string sql = "SELECT Id FROM Users WHERE GoogleId=?";
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {
                 OleDbParameter googleIdParam = new OleDbParameter("?", OleDbType.WChar);
@@ -228,7 +228,8 @@ public class GoogleOAuthService
         using (OleDbConnection conn = new OleDbConnection(connectionString))
         {
             conn.Open();
-            string sql = "SELECT id FROM Users WHERE CStr(email)=?";
+            // DSD Schema: Use Id and Email columns
+            string sql = "SELECT Id FROM Users WHERE CStr(Email)=?";
             try
             {
                 using (OleDbCommand cmd = new OleDbCommand(sql, conn))
@@ -252,34 +253,52 @@ public class GoogleOAuthService
         return null;
     }
 
-    public static void EnsureGoogleIdColumn()
+    // DSD Schema: GoogleId is a standard column, no dynamic creation needed
+    // Removed EnsureGoogleIdColumn() - column must exist in database schema
+
+    private static bool ColumnExists(OleDbConnection conn, string tableName, string columnName)
     {
-        string connectionString = Connect.GetConnectionString();
-        using (OleDbConnection conn = new OleDbConnection(connectionString))
+        try
         {
-            conn.Open();
-            try
+            // Try multiple variations of column name (case-insensitive check)
+            string[] variations = { columnName, columnName.ToLower(), columnName.ToUpper(), 
+                                   char.ToUpper(columnName[0]) + columnName.Substring(1).ToLower() };
+            
+            foreach (string variant in variations)
             {
-                string checkSql = "SELECT GoogleId FROM Users WHERE 1=0";
-                using (OleDbCommand checkCmd = new OleDbCommand(checkSql, conn))
+                try
                 {
-                    checkCmd.ExecuteScalar();
+                    using (OleDbCommand cmd = new OleDbCommand("SELECT TOP 1 [" + variant + "] FROM [" + tableName + "]", conn))
+                    {
+                        cmd.ExecuteScalar();
+                        // #region agent log
+                        try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"GoogleOAuthService.ColumnExists\",\"message\":\"Column found\",\"data\":{\"tableName\":\"" + tableName + "\",\"columnName\":\"" + columnName + "\",\"variant\":\"" + variant + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+                        // #endregion
+                        return true;
+                    }
+                }
+                catch
+                {
+                    continue;
                 }
             }
-            catch
-            {
-                string alterSql = "ALTER TABLE Users ADD COLUMN GoogleId TEXT";
-                using (OleDbCommand alterCmd = new OleDbCommand(alterSql, conn))
-                {
-                    alterCmd.ExecuteNonQuery();
-                }
-            }
+            // #region agent log
+            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"GoogleOAuthService.ColumnExists\",\"message\":\"Column not found\",\"data\":{\"tableName\":\"" + tableName + "\",\"columnName\":\"" + columnName + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+            // #endregion
+            return false;
+        }
+        catch (Exception ex)
+        {
+            // #region agent log
+            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"GoogleOAuthService.ColumnExists\",\"message\":\"ColumnExists exception\",\"data\":{\"tableName\":\"" + tableName + "\",\"columnName\":\"" + columnName + "\",\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+            // #endregion
+            return false;
         }
     }
 
     public static bool CreateOrUpdateUser(GoogleUserInfo userInfo)
     {
-        EnsureGoogleIdColumn();
+        // DSD Schema: GoogleId column is predefined, no need to ensure it exists
         
         int? existingUserId = GetUserIdByGoogleId(userInfo.Id);
         bool isNewUser = false;
@@ -290,7 +309,7 @@ public class GoogleOAuthService
             using (OleDbConnection conn = new OleDbConnection(connectionString))
             {
                 conn.Open();
-                string sql = "UPDATE Users SET email=?, firstName=?, lastName=? WHERE GoogleId=?";
+                string sql = "UPDATE Users SET Email=?, FirstName=?, LastName=? WHERE GoogleId=?";
                 using (OleDbCommand cmd = new OleDbCommand(sql, conn))
                 {
                     OleDbParameter emailParam = new OleDbParameter("?", OleDbType.WChar);
@@ -321,7 +340,8 @@ public class GoogleOAuthService
                 using (OleDbConnection conn = new OleDbConnection(connectionString))
                 {
                     conn.Open();
-                    string sql = "UPDATE Users SET GoogleId=?, firstName=?, lastName=? WHERE id=?";
+                    // DSD Schema: Use FirstName, LastName, Id columns
+                    string sql = "UPDATE Users SET GoogleId=?, FirstName=?, LastName=? WHERE Id=?";
                     using (OleDbCommand cmd = new OleDbCommand(sql, conn))
                     {
                         OleDbParameter googleIdParam = new OleDbParameter("?", OleDbType.WChar);
@@ -345,11 +365,7 @@ public class GoogleOAuthService
             }
             else
             {
-                isNewUser = true;
-                string connectionString = Connect.GetConnectionString();
-                using (OleDbConnection conn = new OleDbConnection(connectionString))
-                {
-                    conn.Open();
+                    isNewUser = true;
                     string userName = userInfo.Email.Split('@')[0];
                     string firstName = (userInfo.GivenName ?? "").Trim();
                     string lastName = (userInfo.FamilyName ?? "").Trim();
@@ -374,68 +390,67 @@ public class GoogleOAuthService
                         lastName = "";
                     }
                     
+                    // #region agent log
+                    try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"GoogleOAuthService.CreateOrUpdateUser:USING_USERSERVICE\",\"message\":\"Using UsersService.insertIntoDB instead of manual INSERT\",\"data\":{\"email\":\"" + (userInfo.Email ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+                    // #endregion
                     
-
-                    string sql = "INSERT INTO Users (userName, firstName, lastName, email, [password], gender, yearOfBirth, userId, phonenum, city, GoogleId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     try
                     {
-                        using (OleDbCommand cmd = new OleDbCommand(sql, conn))
+                        UsersService us = new UsersService();
+                        us.insertIntoDB(
+                            userName,
+                            firstName,
+                            lastName,
+                            userInfo.Email,
+                            "", // Empty password for Google users
+                            1, // Default gender
+                            DateTime.Now.Year - 25, // Default year of birth
+                            "000000000", // Default userId
+                            "", // Empty phone
+                            7 // Default city (Tel Aviv)
+                        );
+                        
+                        // #region agent log
+                        try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"GoogleOAuthService.CreateOrUpdateUser:USERSERVICE_SUCCESS\",\"message\":\"UsersService.insertIntoDB success, now updating GoogleId\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+                        // #endregion
+                        
+                        string connectionString = Connect.GetConnectionString();
+                        using (OleDbConnection conn = new OleDbConnection(connectionString))
                         {
-                            OleDbParameter userNameParam = new OleDbParameter("?", OleDbType.WChar);
-                            userNameParam.Value = userName?.Trim() ?? "";
-                            cmd.Parameters.Add(userNameParam);
-                            
-                            OleDbParameter firstNameParam = new OleDbParameter("?", OleDbType.WChar);
-                            firstNameParam.Value = firstName ?? "";
-                            cmd.Parameters.Add(firstNameParam);
-                            
-                            OleDbParameter lastNameParam = new OleDbParameter("?", OleDbType.WChar);
-                            lastNameParam.Value = lastName ?? "";
-                            cmd.Parameters.Add(lastNameParam);
-                            
-                            OleDbParameter emailParam = new OleDbParameter("?", OleDbType.WChar);
-                            emailParam.Value = userInfo.Email?.Trim() ?? "";
-                            cmd.Parameters.Add(emailParam);
-                            
-                            OleDbParameter passwordParam = new OleDbParameter("?", OleDbType.WChar);
-                            passwordParam.Value = "";
-                            cmd.Parameters.Add(passwordParam);
-                            
-                            OleDbParameter genderParam = new OleDbParameter("?", OleDbType.Integer);
-                            genderParam.Value = 1;
-                            cmd.Parameters.Add(genderParam);
-                            
-                            OleDbParameter yearOfBirthParam = new OleDbParameter("?", OleDbType.Integer);
-                            yearOfBirthParam.Value = DateTime.Now.Year - 25;
-                            cmd.Parameters.Add(yearOfBirthParam);
-                            
-                            OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.WChar);
-                            userIdParam.Value = "000000000";
-                            cmd.Parameters.Add(userIdParam);
-                            
-                            OleDbParameter phonenumParam = new OleDbParameter("?", OleDbType.WChar);
-                            phonenumParam.Value = "";
-                            cmd.Parameters.Add(phonenumParam);
-                            
-                            OleDbParameter cityParam = new OleDbParameter("?", OleDbType.Integer);
-                            cityParam.Value = 7;
-                            cmd.Parameters.Add(cityParam);
-                            
-                            OleDbParameter googleIdParam = new OleDbParameter("?", OleDbType.WChar);
-                            googleIdParam.Value = userInfo.Id?.Trim() ?? "";
-                            cmd.Parameters.Add(googleIdParam);
-                            
-                            
-                            
-                            cmd.ExecuteNonQuery();
+                            conn.Open();
+                            bool hasGoogleIdColumn = ColumnExists(conn, "Users", "GoogleId");
+                            if (hasGoogleIdColumn && !string.IsNullOrEmpty(userInfo.Id?.Trim()))
+                            {
+                                int? newUserId = GetUserIdByEmail(userInfo.Email);
+                                if (newUserId.HasValue)
+                                {
+                                    string updateSql = "UPDATE Users SET GoogleId=? WHERE Id=?";
+                                    using (OleDbCommand updateCmd = new OleDbCommand(updateSql, conn))
+                                    {
+                                        OleDbParameter googleIdParam = new OleDbParameter("?", OleDbType.WChar);
+                                        googleIdParam.Value = userInfo.Id.Trim();
+                                        updateCmd.Parameters.Add(googleIdParam);
+                                        
+                                        OleDbParameter idParam = new OleDbParameter("?", OleDbType.Integer);
+                                        idParam.Value = newUserId.Value;
+                                        updateCmd.Parameters.Add(idParam);
+                                        
+                                        updateCmd.ExecuteNonQuery();
+                                        // #region agent log
+                                        try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"GoogleOAuthService.CreateOrUpdateUser:UPDATE_GOOGLEID\",\"message\":\"GoogleId updated successfully\",\"data\":{\"userId\":\"" + newUserId.Value + "\",\"googleId\":\"" + userInfo.Id.Trim() + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+                                        // #endregion
+                                    }
+                                }
+                            }
                         }
                     }
                     catch (Exception insertEx)
                     {
-                        
+                        // #region agent log
+                        try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"GoogleOAuthService.CreateOrUpdateUser:USERSERVICE_EXCEPTION\",\"message\":\"UsersService.insertIntoDB exception\",\"data\":{\"error\":\"" + insertEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + insertEx.GetType().Name + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+                        // #endregion
                         throw;
                     }
-                }
             }
         }
         

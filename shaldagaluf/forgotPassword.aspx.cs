@@ -19,7 +19,8 @@ public partial class forgotPassword : System.Web.UI.Page
             return;
         }
 
-        VerificationCodeService.CleanExpiredCodes();
+        // DSD Schema: Use AuthCodeService instead of VerificationCodeService
+        AuthCodeService.CleanExpiredCodes();
         
         if (!IsPostBack)
         {
@@ -41,17 +42,17 @@ public partial class forgotPassword : System.Web.UI.Page
         string hebrewReset = "\u05d0\u05d9\u05e4\u05d5\u05e1 \u05e1\u05d9\u05e1\u05de\u05d4";
         string hebrewFooter = "\u05d6\u05db\u05e8\u05ea \u05d0\u05ea \u05d4\u05e1\u05d9\u05e1\u05de\u05d4? <a href=\"login.aspx\">\u05d7\u05d6\u05d5\u05e8 \u05dc\u05d3\u05e3 \u05d4\u05d4\u05ea\u05d7\u05d1\u05e8\u05d5\u05ea</a>";
 
-        var contentPlaceHolder = Master.FindControl("ContentPlaceHolder1") as System.Web.UI.WebControls.ContentPlaceHolder;
+        System.Web.UI.WebControls.ContentPlaceHolder contentPlaceHolder = Master.FindControl("ContentPlaceHolder1") as System.Web.UI.WebControls.ContentPlaceHolder;
         if (contentPlaceHolder == null) return;
         
-        var h2Title = contentPlaceHolder.FindControl("h2Title") as System.Web.UI.HtmlControls.HtmlGenericControl;
-        var pSubtitle = contentPlaceHolder.FindControl("pSubtitle") as System.Web.UI.HtmlControls.HtmlGenericControl;
-        var lblEmail = contentPlaceHolder.FindControl("lblEmail") as System.Web.UI.HtmlControls.HtmlGenericControl;
-        var lblCode = contentPlaceHolder.FindControl("lblCode") as System.Web.UI.HtmlControls.HtmlGenericControl;
-        var pCodeInfo = contentPlaceHolder.FindControl("pCodeInfo") as System.Web.UI.HtmlControls.HtmlGenericControl;
-        var lblNewPassword = contentPlaceHolder.FindControl("lblNewPassword") as System.Web.UI.HtmlControls.HtmlGenericControl;
-        var lblConfirmPassword = contentPlaceHolder.FindControl("lblConfirmPassword") as System.Web.UI.HtmlControls.HtmlGenericControl;
-        var pFooter = contentPlaceHolder.FindControl("pFooter") as System.Web.UI.HtmlControls.HtmlGenericControl;
+        System.Web.UI.HtmlControls.HtmlGenericControl h2Title = contentPlaceHolder.FindControl("h2Title") as System.Web.UI.HtmlControls.HtmlGenericControl;
+        System.Web.UI.HtmlControls.HtmlGenericControl pSubtitle = contentPlaceHolder.FindControl("pSubtitle") as System.Web.UI.HtmlControls.HtmlGenericControl;
+        System.Web.UI.HtmlControls.HtmlGenericControl lblEmail = contentPlaceHolder.FindControl("lblEmail") as System.Web.UI.HtmlControls.HtmlGenericControl;
+        System.Web.UI.HtmlControls.HtmlGenericControl lblCode = contentPlaceHolder.FindControl("lblCode") as System.Web.UI.HtmlControls.HtmlGenericControl;
+        System.Web.UI.HtmlControls.HtmlGenericControl pCodeInfo = contentPlaceHolder.FindControl("pCodeInfo") as System.Web.UI.HtmlControls.HtmlGenericControl;
+        System.Web.UI.HtmlControls.HtmlGenericControl lblNewPassword = contentPlaceHolder.FindControl("lblNewPassword") as System.Web.UI.HtmlControls.HtmlGenericControl;
+        System.Web.UI.HtmlControls.HtmlGenericControl lblConfirmPassword = contentPlaceHolder.FindControl("lblConfirmPassword") as System.Web.UI.HtmlControls.HtmlGenericControl;
+        System.Web.UI.HtmlControls.HtmlGenericControl pFooter = contentPlaceHolder.FindControl("pFooter") as System.Web.UI.HtmlControls.HtmlGenericControl;
 
         if (h2Title != null) h2Title.InnerText = hebrewTitle;
         if (pSubtitle != null) pSubtitle.InnerText = hebrewSubtitle;
@@ -72,7 +73,7 @@ public partial class forgotPassword : System.Web.UI.Page
 
         if (string.IsNullOrEmpty(email))
         {
-            lblMessage.Text = "אנא הזן כתובת אימייל.";
+            lblMessage.Text = "\u05d0\u05e0\u05d0 \u05d4\u05d6\u05df \u05db\u05ea\u05d5\u05d1\u05ea \u05d0\u05d9\u05de\u05d9\u05d9\u05dc.";
             lblMessage.ForeColor = System.Drawing.Color.Red;
             return;
         }
@@ -82,17 +83,22 @@ public partial class forgotPassword : System.Web.UI.Page
 
         if (user == null)
         {
-            lblMessage.Text = "כתובת האימייל לא נמצאה במערכת.";
+            lblMessage.Text = "\u05db\u05ea\u05d5\u05d1\u05ea \u05d4\u05d0\u05d9\u05de\u05d9\u05d9\u05dc \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0\u05d4 \u05d1\u05de\u05e2\u05e8\u05db\u05ea.";
             lblMessage.ForeColor = System.Drawing.Color.Red;
             return;
         }
 
         try
         {
-            string code = VerificationCodeService.GenerateCode(email);
+            // DSD Schema: Get UserId and use AuthCodeService.GenerateResetCode
+            string idCol = user.Table.Columns.Contains("Id") ? "Id" : "id";
+            int userId = Convert.ToInt32(user[idCol]);
+            
+            string code = AuthCodeService.GenerateResetCode(userId);
             SendVerificationCodeEmail(email, code);
             
             ViewState["ResetEmail"] = email;
+            ViewState["ResetUserId"] = userId;
             pnlRequest.Visible = false;
             pnlCode.Visible = true;
             lblCodeMessage.Text = "\u05e7\u05d5\u05d3 \u05d0\u05d9\u05de\u05d5\u05ea \u05e0\u05e9\u05dc\u05d7 \u05dc\u05db\u05ea\u05d5\u05d1\u05ea \u05d4\u05d0\u05d9\u05de\u05d9\u05d9\u05dc \u05e9\u05dc\u05da.";
@@ -112,14 +118,14 @@ public partial class forgotPassword : System.Web.UI.Page
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(code))
         {
-            lblCodeMessage.Text = "אנא הזן קוד אימות.";
+            lblCodeMessage.Text = "\u05d0\u05e0\u05d0 \u05d4\u05d6\u05df \u05e7\u05d5\u05d3 \u05d0\u05de\u05ea.";
             lblCodeMessage.ForeColor = System.Drawing.Color.Red;
             return;
         }
 
         if (code.Length != 6 || !System.Text.RegularExpressions.Regex.IsMatch(code, @"^\d{6}$"))
         {
-            lblCodeMessage.Text = "קוד אימות חייב להיות בן 6 ספרות.";
+            lblCodeMessage.Text = "\u05e7\u05d5\u05d3 \u05d0\u05de\u05ea \u05d7\u05d9\u05d9\u05d1 \u05dc\u05d4\u05d9\u05d5\u05ea \u05d1\u05df 6 \u05e1\u05e4\u05e8\u05d5\u05ea.";
             lblCodeMessage.ForeColor = System.Drawing.Color.Red;
             return;
         }
@@ -128,28 +134,46 @@ public partial class forgotPassword : System.Web.UI.Page
 
         try
         {
-            bool isValid = VerificationCodeService.ValidateCode(email, code);
-
+            // DSD Schema: Use UserId for validation with AuthCodeService
+            int userId = 0;
+            if (ViewState["ResetUserId"] != null)
+            {
+                userId = Convert.ToInt32(ViewState["ResetUserId"]);
+            }
+            else
+            {
+                // Fallback: get user by email
+                UsersService us = new UsersService();
+                DataRow user = us.GetUserByEmail(email);
+                if (user == null)
+                {
+                    lblCodeMessage.Text = "\u05e7\u05d5\u05d3 \u05d0\u05de\u05ea \u05dc\u05d0 \u05ea\u05e7\u05d9\u05df \u05d0\u05d5 \u05e9\u05e4\u05d2 \u05ea\u05d5\u05e7\u05e4\u05d5.";
+                    lblCodeMessage.ForeColor = System.Drawing.Color.Red;
+                    return;
+                }
+                string idCol = user.Table.Columns.Contains("Id") ? "Id" : "id";
+                userId = Convert.ToInt32(user[idCol]);
+            }
             
-        
+            bool isValid = AuthCodeService.ValidateResetCode(userId, code);
+
             if (isValid)
             {
                 ViewState["VerifiedEmail"] = email;
+                ViewState["VerifiedUserId"] = userId;
                 pnlCode.Visible = false;
                 pnlReset.Visible = true;
                 lblResetMessage.Text = "";
             }
             else
             {
-                lblCodeMessage.Text = "קוד אימות לא תקין או שפג תוקפו. אנא נסה שוב.";
+                lblCodeMessage.Text = "\u05e7\u05d5\u05d3 \u05d0\u05de\u05ea \u05dc\u05d0 \u05ea\u05e7\u05d9\u05df \u05d0\u05d5 \u05e9\u05e4\u05d2 \u05ea\u05d5\u05e7\u05e4\u05d5. \u05d0\u05e0\u05d0 \u05e0\u05e1\u05d4 \u05e9\u05d5\u05d1.";
                 lblCodeMessage.ForeColor = System.Drawing.Color.Red;
             }
         }
         catch (Exception ex)
         {
-            
-            
-            lblCodeMessage.Text = "שגיאה באימות הקוד: " + ex.Message;
+            lblCodeMessage.Text = "\u05e9\u05d2\u05d9\u05d0\u05d4 \u05d1\u05d0\u05d9\u05de\u05d5\u05ea \u05d4\u05e7\u05d5\u05d3: " + ex.Message;
             lblCodeMessage.ForeColor = System.Drawing.Color.Red;
         }
     }
@@ -159,7 +183,7 @@ public partial class forgotPassword : System.Web.UI.Page
         string email = ViewState["VerifiedEmail"]?.ToString();
         if (string.IsNullOrEmpty(email))
         {
-            lblResetMessage.Text = "שגיאה: לא נמצא אימייל מאומת.";
+            lblResetMessage.Text = "\u05e9\u05d2\u05d9\u05d0\u05d4: \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0 \u05d0\u05d9\u05de\u05d9\u05d9\u05dc \u05de\u05d0\u05d5\u05de\u05ea.";
             lblResetMessage.ForeColor = System.Drawing.Color.Red;
             return;
         }
@@ -169,32 +193,44 @@ public partial class forgotPassword : System.Web.UI.Page
 
         if (string.IsNullOrEmpty(newPassword) || string.IsNullOrEmpty(confirmPassword))
         {
-            lblResetMessage.Text = "אנא מלא את כל השדות.";
+            lblResetMessage.Text = "\u05d0\u05e0\u05d0 \u05de\u05dc\u05d0 \u05d0\u05ea \u05db\u05dc \u05d4\u05e9\u05d3\u05d5\u05ea.";
             lblResetMessage.ForeColor = System.Drawing.Color.Red;
             return;
         }
 
         if (newPassword != confirmPassword)
         {
-            lblResetMessage.Text = "הסיסמאות אינן תואמות.";
+            lblResetMessage.Text = "\u05d4\u05e1\u05d9\u05e1\u05de\u05d0\u05d5\u05ea \u05d0\u05d9\u05e0\u05df \u05ea\u05d0\u05d5\u05de\u05d5\u05ea.";
             lblResetMessage.ForeColor = System.Drawing.Color.Red;
             return;
         }
 
-        UsersService us = new UsersService();
-        DataRow user = us.GetUserByEmail(email);
-        
-        if (user == null)
+        // DSD Schema: Use UserId from ViewState or get from email
+        int userId = 0;
+        if (ViewState["VerifiedUserId"] != null)
         {
-            lblResetMessage.Text = "שגיאה: משתמש לא נמצא.";
-            lblResetMessage.ForeColor = System.Drawing.Color.Red;
-            return;
+            userId = Convert.ToInt32(ViewState["VerifiedUserId"]);
+        }
+        else
+        {
+            UsersService us = new UsersService();
+            DataRow user = us.GetUserByEmail(email);
+            
+            if (user == null)
+            {
+                lblResetMessage.Text = "\u05e9\u05d2\u05d9\u05d0\u05d4: \u05de\u05e9\u05ea\u05de\u05e9 \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0.";
+                lblResetMessage.ForeColor = System.Drawing.Color.Red;
+                return;
+            }
+            
+            string idCol = user.Table.Columns.Contains("Id") ? "Id" : "id";
+            userId = Convert.ToInt32(user[idCol]);
         }
 
-        int userId = Convert.ToInt32(user["id"]);
-        us.UpdatePassword(userId, newPassword);
+        UsersService us2 = new UsersService();
+        us2.UpdatePassword(userId, newPassword);
 
-        lblResetMessage.Text = "הסיסמה עודכנה בהצלחה! אתה יכול להתחבר עכשיו.";
+        lblResetMessage.Text = "\u05d4\u05e1\u05d9\u05e1\u05de\u05d4 \u05e2\u05d5\u05d3\u05db\u05e0\u05d4 \u05d1\u05d4\u05e6\u05dc\u05d7\u05d4! \u05d0\u05ea\u05d4 \u05d9\u05db\u05d5\u05dc \u05dc\u05d4\u05ea\u05d7\u05d1\u05e8 \u05e2\u05db\u05e9\u05d9\u05d5.";
         lblResetMessage.ForeColor = System.Drawing.Color.Green;
         
         ViewState.Remove("VerifiedEmail");
@@ -203,18 +239,8 @@ public partial class forgotPassword : System.Web.UI.Page
 
     private void SendVerificationCodeEmail(string email, string code)
     {
-        string smtpServer = "smtp.gmail.com";
-        int smtpPort = 587;
-        string smtpUsername = "yairk07@gmail.com";
-        string smtpPassword = "wdbf swcf qexu qugl";
-
-        MailMessage mail = new MailMessage();
-        mail.From = new MailAddress(smtpUsername, "OptiSched", System.Text.Encoding.UTF8);
-        mail.To.Add(email);
-        mail.SubjectEncoding = System.Text.Encoding.UTF8;
-        mail.Subject = "Password Reset Code - OptiSched";
-        mail.BodyEncoding = System.Text.Encoding.UTF8;
-        mail.Body = $@"
+        string subject = "Password Reset Code - OptiSched";
+        string body = $@"
 <html dir='ltr'>
 <body style='font-family: Arial, sans-serif; direction: ltr;'>
     <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
@@ -232,13 +258,8 @@ public partial class forgotPassword : System.Web.UI.Page
     </div>
 </body>
 </html>";
-        mail.IsBodyHtml = true;
 
-        SmtpClient smtp = new SmtpClient(smtpServer, smtpPort);
-        smtp.EnableSsl = true;
-        smtp.Credentials = new NetworkCredential(smtpUsername, smtpPassword);
-
-        smtp.Send(mail);
+        EmailService.SendEmail(email, subject, body, true);
     }
 }
 

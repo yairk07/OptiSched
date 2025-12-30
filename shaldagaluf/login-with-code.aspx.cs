@@ -18,7 +18,8 @@ public partial class login_with_code : System.Web.UI.Page
             return;
         }
 
-        OTPLoginService.CleanExpiredCodes();
+        // DSD Schema: Use AuthCodeService instead of OTPLoginService
+        AuthCodeService.CleanExpiredCodes();
         
         if (!IsPostBack)
         {
@@ -46,10 +47,26 @@ public partial class login_with_code : System.Web.UI.Page
 
         try
         {
-            string code = OTPLoginService.GenerateLoginCode(email);
+            // DSD Schema: Get UserId first, then generate code using AuthCodeService
+            UsersService us = new UsersService();
+            DataRow user = us.GetUserByEmail(email);
+            
+            if (user == null)
+            {
+                lblMessage.Text = "כתובת האימייל לא נמצאה במערכת.";
+                lblMessage.ForeColor = System.Drawing.Color.Red;
+                return;
+            }
+            
+            // DSD Schema: Get Id column (handle both old and new column names)
+            string idCol = user.Table.Columns.Contains("Id") ? "Id" : "id";
+            int userId = Convert.ToInt32(user[idCol]);
+            
+            string code = AuthCodeService.GenerateLoginCode(userId);
             EmailService.SendLoginCodeEmail(email, code);
 
             ViewState["LoginEmail"] = email;
+            ViewState["LoginUserId"] = userId;
             pnlRequestCode.Visible = false;
             pnlVerifyCode.Visible = true;
             lblCodeMessage.Text = "\u05e7\u05d5\u05d3 \u05d4\u05ea\u05d7\u05d1\u05e8\u05d5\u05ea \u05e0\u05e9\u05dc\u05d7 \u05dc\u05db\u05ea\u05d5\u05d1\u05ea \u05d4\u05d0\u05d9\u05de\u05d9\u05d9\u05dc \u05e9\u05dc\u05da.";
@@ -84,7 +101,28 @@ public partial class login_with_code : System.Web.UI.Page
 
         try
         {
-            bool isValid = OTPLoginService.ValidateLoginCode(email, code);
+            // DSD Schema: Use UserId for validation with AuthCodeService
+            int userId = 0;
+            if (ViewState["LoginUserId"] != null)
+            {
+                userId = Convert.ToInt32(ViewState["LoginUserId"]);
+            }
+            else
+            {
+                // Fallback: get user by email
+                UsersService us = new UsersService();
+                DataRow user = us.GetUserByEmail(email);
+                if (user == null)
+                {
+                    lblCodeMessage.Text = "קוד התחברות לא תקין או שפג תוקפו.";
+                    lblCodeMessage.ForeColor = System.Drawing.Color.Red;
+                    return;
+                }
+                string idCol = user.Table.Columns.Contains("Id") ? "Id" : "id";
+                userId = Convert.ToInt32(user[idCol]);
+            }
+            
+            bool isValid = AuthCodeService.ValidateLoginCode(userId, code);
 
             if (isValid)
             {
@@ -93,9 +131,14 @@ public partial class login_with_code : System.Web.UI.Page
 
                 if (user != null)
                 {
-                    Session["username"] = Connect.FixEncoding(user["userName"].ToString());
-                    Session["Role"] = Connect.FixEncoding(user["role"]?.ToString() ?? "user");
-                    Session["userId"] = user["id"].ToString();
+                    // DSD Schema: Use UserName and Role columns (handle both old and new)
+                    string userNameCol = user.Table.Columns.Contains("UserName") ? "UserName" : "userName";
+                    string roleCol = user.Table.Columns.Contains("Role") ? "Role" : "role";
+                    string idCol = user.Table.Columns.Contains("Id") ? "Id" : "id";
+                    
+                    Session["username"] = Connect.FixEncoding(user[userNameCol].ToString());
+                    Session["Role"] = Connect.FixEncoding(user[roleCol]?.ToString() ?? "user");
+                    Session["userId"] = user[idCol].ToString();
                     Session["loggedIn"] = true;
 
                     Response.Redirect("home.aspx");
@@ -133,7 +176,27 @@ public partial class login_with_code : System.Web.UI.Page
 
         try
         {
-            string code = OTPLoginService.GenerateLoginCode(email);
+            // DSD Schema: Get UserId and use AuthCodeService
+            int userId = 0;
+            if (ViewState["LoginUserId"] != null)
+            {
+                userId = Convert.ToInt32(ViewState["LoginUserId"]);
+            }
+            else
+            {
+                UsersService us = new UsersService();
+                DataRow user = us.GetUserByEmail(email);
+                if (user == null)
+                {
+                    lblCodeMessage.Text = "שגיאה: משתמש לא נמצא.";
+                    lblCodeMessage.ForeColor = System.Drawing.Color.Red;
+                    return;
+                }
+                string idCol = user.Table.Columns.Contains("Id") ? "Id" : "id";
+                userId = Convert.ToInt32(user[idCol]);
+            }
+            
+            string code = AuthCodeService.GenerateLoginCode(userId);
             EmailService.SendLoginCodeEmail(email, code);
 
             lblCodeMessage.Text = "\u05e7\u05d5\u05d3 \u05d7\u05d3\u05e9 \u05e0\u05e9\u05dc\u05d7 \u05dc\u05db\u05ea\u05d5\u05d1\u05ea \u05d4\u05d0\u05d9\u05de\u05d9\u05d9\u05dc \u05e9\u05dc\u05da.";

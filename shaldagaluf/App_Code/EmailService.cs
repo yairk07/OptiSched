@@ -16,7 +16,7 @@ public class EmailService
 
     private static string GetSmtpUsername()
     {
-        return "yairk07@gmail.com";
+        return "optischedual@gmail.com";
     }
 
     private static string GetSmtpPassword()
