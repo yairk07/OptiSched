@@ -1,4 +1,4 @@
-﻿<%@ Page Title="Task Calendar" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="tasks.aspx.cs" Inherits="tasks" ResponseEncoding="utf-8" %>
+﻿<%@ Page Title="Task Calendar" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="tasks.aspx.cs" Inherits="tasks" ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" Runat="Server">
 </asp:Content>

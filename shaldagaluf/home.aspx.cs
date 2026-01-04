@@ -78,6 +78,7 @@ public partial class home : System.Web.UI.Page
         Response.ContentType = "text/html; charset=utf-8";
         Response.Charset = "utf-8";
         Response.ContentEncoding = System.Text.Encoding.UTF8;
+        Response.HeaderEncoding = System.Text.Encoding.UTF8;
         
         if (!IsPostBack)
         {
@@ -250,16 +251,26 @@ public partial class home : System.Web.UI.Page
             {
                 DateTime eventDate;
 
-                if (!DateTime.TryParse(row["date"].ToString(), out eventDate))
+                string dateColumn = row.Table.Columns.Contains("EventDate") ? "EventDate" : (row.Table.Columns.Contains("date") ? "date" : "EventDate");
+                if (!row.Table.Columns.Contains(dateColumn) || row[dateColumn] == DBNull.Value || row[dateColumn] == null)
+                    continue;
+                if (!DateTime.TryParse(row[dateColumn].ToString(), out eventDate))
                 {
                     continue;
                 }
 
                 if (eventDate.Date == date.Date)
                 {
-                    string title = HttpUtility.HtmlEncode(Connect.FixEncoding(row["title"].ToString()));
-                    string time = HttpUtility.HtmlEncode(Connect.FixEncoding(row["time"]?.ToString() ?? ""));
-                    string note = HttpUtility.HtmlEncode(Connect.FixEncoding(row["notes"]?.ToString() ?? ""));
+                    string titleColumn = row.Table.Columns.Contains("Title") ? "Title" : (row.Table.Columns.Contains("title") ? "title" : "Title");
+                    string timeColumn = row.Table.Columns.Contains("EventTime") ? "EventTime" : (row.Table.Columns.Contains("time") ? "time" : "EventTime");
+                    string notesColumn = row.Table.Columns.Contains("Notes") ? "Notes" : (row.Table.Columns.Contains("notes") ? "notes" : "Notes");
+                    
+                    string title = row.Table.Columns.Contains(titleColumn) && row[titleColumn] != DBNull.Value && row[titleColumn] != null 
+                        ? HttpUtility.HtmlEncode(Connect.FixEncoding(row[titleColumn].ToString())) : "";
+                    string time = row.Table.Columns.Contains(timeColumn) && row[timeColumn] != DBNull.Value && row[timeColumn] != null 
+                        ? HttpUtility.HtmlEncode(Connect.FixEncoding(row[timeColumn].ToString())) : "";
+                    string note = row.Table.Columns.Contains(notesColumn) && row[notesColumn] != DBNull.Value && row[notesColumn] != null 
+                        ? HttpUtility.HtmlEncode(Connect.FixEncoding(row[notesColumn].ToString())) : "";
                     string eventType = table.TableName == "SharedEvents" ? " (טבלה משותפת)" : "";
 
                     sb.Append("<div class='calendar-event'>");
@@ -297,12 +308,17 @@ public partial class home : System.Web.UI.Page
             {
                 DateTime eventDate;
 
-                if (!DateTime.TryParse(row["date"].ToString(), out eventDate))
+                string dateColumn = row.Table.Columns.Contains("EventDate") ? "EventDate" : (row.Table.Columns.Contains("date") ? "date" : "EventDate");
+                if (!row.Table.Columns.Contains(dateColumn) || row[dateColumn] == DBNull.Value || row[dateColumn] == null)
+                    continue;
+                if (!DateTime.TryParse(row[dateColumn].ToString(), out eventDate))
                     continue;
 
                 if (eventDate.Date == currentDay)
                 {
-                    string title = Connect.FixEncoding(row["title"].ToString());
+                    string titleColumn = row.Table.Columns.Contains("Title") ? "Title" : (row.Table.Columns.Contains("title") ? "title" : "Title");
+                    string title = row.Table.Columns.Contains(titleColumn) && row[titleColumn] != DBNull.Value && row[titleColumn] != null 
+                        ? Connect.FixEncoding(row[titleColumn].ToString()) : "";
                     if (title.Length > 18)
                         title = title.Substring(0, 18) + "...";
 

@@ -1,280 +1,104 @@
 ﻿using System;
-using System.Data.OleDb;
-using System.Web;
 using System.Web.UI;
 
 public partial class google_oauth_callback : System.Web.UI.Page
 {
     protected void Page_Load(object sender, EventArgs e)
     {
-        // #region agent log
-        try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:ENTRY\",\"message\":\"Callback page loaded\",\"data\":{\"hasCode\":\"" + (!string.IsNullOrEmpty(Request.QueryString["code"])).ToString() + "\",\"hasState\":\"" + (!string.IsNullOrEmpty(Request.QueryString["state"])).ToString() + "\",\"hasError\":\"" + (!string.IsNullOrEmpty(Request.QueryString["error"])).ToString() + "\"},\"hypothesisId\":\"1,2,3,4\"}\n"); } catch { }
-        // #endregion
+        Response.ContentType = "text/html; charset=utf-8";
+        Response.Charset = "utf-8";
+        Response.ContentEncoding = System.Text.Encoding.UTF8;
         
-        string code = Request.QueryString["code"];
-        string state = Request.QueryString["state"];
-        string error = Request.QueryString["error"];
-
-        if (!string.IsNullOrEmpty(error))
-        {
-            // #region agent log
-            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:ERROR_PATH\",\"message\":\"Error in query string\",\"data\":{\"error\":\"" + (error ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"hypothesisId\":\"1\"}\n"); } catch { }
-            // #endregion
-            Session.Remove("OAuthState");
-            Session.Remove("QuickLoginEmail");
-            
-            if (error == "access_denied")
-            {
-                // #region agent log
-                try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:REDIRECT_ACCESS_DENIED\",\"message\":\"Redirecting to login (access denied)\",\"data\":{},\"hypothesisId\":\"1\"}\n"); } catch { }
-                // #endregion
-                Response.Redirect("login.aspx?error=" + HttpUtility.UrlEncode("ההתחברות בוטלה על ידי המשתמש"), false);
-                Context.ApplicationInstance.CompleteRequest();
-                return;
-            }
-            
-            // #region agent log
-            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:REDIRECT_ERROR\",\"message\":\"Redirecting to login (error)\",\"data\":{},\"hypothesisId\":\"1\"}\n"); } catch { }
-            // #endregion
-            Response.Redirect("login.aspx?error=" + HttpUtility.UrlEncode("שגיאה בהתחברות עם Google: " + error), false);
-            Context.ApplicationInstance.CompleteRequest();
-            return;
-        }
-
-        if (string.IsNullOrEmpty(code))
-        {
-            // #region agent log
-            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:NO_CODE\",\"message\":\"No code in query string\",\"data\":{},\"hypothesisId\":\"1\"}\n"); } catch { }
-            // #endregion
-            Session.Remove("OAuthState");
-            Session.Remove("QuickLoginEmail");
-            Response.Redirect("login.aspx?error=" + HttpUtility.UrlEncode("לא התקבל קוד הרשאה מ-Google"), false);
-            Context.ApplicationInstance.CompleteRequest();
-            return;
-        }
-
-        string sessionState = Session["OAuthState"]?.ToString();
-        if (string.IsNullOrEmpty(sessionState) || sessionState != state)
-        {
-            // #region agent log
-            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:STATE_MISMATCH\",\"message\":\"State validation failed\",\"data\":{\"sessionState\":\"" + (sessionState ?? "null") + "\",\"queryState\":\"" + (state ?? "null") + "\"},\"hypothesisId\":\"1\"}\n"); } catch { }
-            // #endregion
-            Session.Remove("OAuthState");
-            Session.Remove("QuickLoginEmail");
-            Response.Redirect("login.aspx?error=" + HttpUtility.UrlEncode("שגיאת אבטחה: State parameter לא תואם"), false);
-            Context.ApplicationInstance.CompleteRequest();
-            return;
-        }
-
-        Session.Remove("OAuthState");
-        // #region agent log
-        try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:STATE_VALID\",\"message\":\"State validated, proceeding with OAuth\",\"data\":{},\"hypothesisId\":\"1\"}\n"); } catch { }
-        // #endregion
-
         try
         {
-            GoogleUserInfo userInfo = null;
-            try
+            string code = Request.QueryString["code"];
+            string state = Request.QueryString["state"];
+            string error = Request.QueryString["error"];
+
+            if (!string.IsNullOrEmpty(error))
             {
-                // #region agent log
-                try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:BEFORE_GETUSERINFO\",\"message\":\"Before GetUserInfo call\",\"data\":{\"codeLength\":\"" + (code?.Length ?? 0) + "\"},\"hypothesisId\":\"2\"}\n"); } catch { }
-                // #endregion
-                userInfo = GoogleOAuthService.GetUserInfo(code);
-                // #region agent log
-                try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:AFTER_GETUSERINFO\",\"message\":\"After GetUserInfo call\",\"data\":{\"hasUserInfo\":\"" + (userInfo != null).ToString() + "\",\"hasId\":\"" + (!string.IsNullOrEmpty(userInfo?.Id)).ToString() + "\",\"hasEmail\":\"" + (!string.IsNullOrEmpty(userInfo?.Email)).ToString() + "\"},\"hypothesisId\":\"2\"}\n"); } catch { }
-                // #endregion
-            }
-            catch (Exception getUserInfoEx)
-            {
-                // #region agent log
-                try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:GETUSERINFO_EXCEPTION\",\"message\":\"GetUserInfo exception\",\"data\":{\"error\":\"" + getUserInfoEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + getUserInfoEx.GetType().Name + "\"},\"hypothesisId\":\"2\"}\n"); } catch { }
-                // #endregion
-                Response.Redirect("login.aspx?error=" + HttpUtility.UrlEncode("שגיאה בקבלת פרטי משתמש מ-Google: " + getUserInfoEx.Message), false);
-                Context.ApplicationInstance.CompleteRequest();
+                LoggingService.Log("GOOGLE_OAUTH_ERROR", string.Format("Google OAuth error: {0}", error));
+                Response.Redirect("login.aspx?error=google_oauth_failed");
                 return;
             }
+
+            if (string.IsNullOrEmpty(code))
+            {
+                LoggingService.Log("GOOGLE_OAUTH_NO_CODE", "No code parameter in callback");
+                Response.Redirect("login.aspx?error=no_code");
+                return;
+            }
+
+            string sessionState = Session["OAuthState"]?.ToString();
+            if (!string.IsNullOrEmpty(state) && !string.IsNullOrEmpty(sessionState) && state != sessionState)
+            {
+                LoggingService.Log("GOOGLE_OAUTH_STATE_MISMATCH", string.Format("State mismatch - Expected: {0}, Got: {1}", sessionState, state));
+                Response.Redirect("login.aspx?error=state_mismatch");
+                return;
+            }
+
+            LoggingService.Log("GOOGLE_OAUTH_CALLBACK", string.Format("Processing OAuth callback - Code: {0}, State: {1}", code, state));
+
+            GoogleUserInfo userInfo = GoogleOAuthService.GetUserInfo(code);
             
-            if (userInfo == null || string.IsNullOrEmpty(userInfo.Id) || string.IsNullOrEmpty(userInfo.Email))
+            if (userInfo == null || string.IsNullOrEmpty(userInfo.Email))
             {
-                // #region agent log
-                try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:INVALID_USERINFO\",\"message\":\"Invalid user info\",\"data\":{},\"hypothesisId\":\"2\"}\n"); } catch { }
-                // #endregion
-                Response.Redirect("login.aspx?error=" + HttpUtility.UrlEncode("לא ניתן לקבל פרטי משתמש מ-Google"), false);
-                Context.ApplicationInstance.CompleteRequest();
+                LoggingService.Log("GOOGLE_OAUTH_NO_USERINFO", "Failed to get user info from Google");
+                Response.Redirect("login.aspx?error=no_userinfo");
                 return;
             }
 
-            bool isNewUser = false;
-            try
-            {
-                // #region agent log
-                try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:BEFORE_CREATEUSER\",\"message\":\"Before CreateOrUpdateUser call\",\"data\":{\"email\":\"" + (userInfo.Email ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"hypothesisId\":\"3\"}\n"); } catch { }
-                // #endregion
-                isNewUser = GoogleOAuthService.CreateOrUpdateUser(userInfo);
-                // #region agent log
-                try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:AFTER_CREATEUSER\",\"message\":\"After CreateOrUpdateUser call\",\"data\":{\"isNewUser\":\"" + isNewUser.ToString() + "\"},\"hypothesisId\":\"3\"}\n"); } catch { }
-                // #endregion
-            }
-            catch (Exception createEx)
-            {
-                // #region agent log
-                try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:CREATEUSER_EXCEPTION\",\"message\":\"CreateOrUpdateUser exception\",\"data\":{\"error\":\"" + createEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + createEx.GetType().Name + "\"},\"hypothesisId\":\"3\"}\n"); } catch { }
-                // #endregion
-                Response.Redirect("login.aspx?error=" + HttpUtility.UrlEncode("שגיאה ביצירת/עדכון משתמש: " + createEx.Message), false);
-                Context.ApplicationInstance.CompleteRequest();
-                return;
-            }
+            LoggingService.Log("GOOGLE_OAUTH_USERINFO", string.Format("Got user info - Email: {0}, Name: {1}", userInfo.Email, userInfo.Name));
 
-            // #region agent log
-            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:BEFORE_GETUSERID\",\"message\":\"Before GetUserIdByGoogleId call\",\"data\":{},\"hypothesisId\":\"4\"}\n"); } catch { }
-            // #endregion
+            bool isNewUser = GoogleOAuthService.CreateOrUpdateUser(userInfo);
+            
             int? userId = GoogleOAuthService.GetUserIdByGoogleId(userInfo.Id);
             if (!userId.HasValue)
             {
-                // #region agent log
-                try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:GETUSERID_BY_EMAIL\",\"message\":\"GetUserIdByGoogleId returned null, trying email\",\"data\":{},\"hypothesisId\":\"4\"}\n"); } catch { }
-                // #endregion
                 userId = GoogleOAuthService.GetUserIdByEmail(userInfo.Email);
             }
 
             if (!userId.HasValue)
             {
-                // #region agent log
-                try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:NO_USERID\",\"message\":\"No userId found after create\",\"data\":{},\"hypothesisId\":\"4\"}\n"); } catch { }
-                // #endregion
-                Response.Redirect("login.aspx?error=" + HttpUtility.UrlEncode("לא ניתן למצוא את המשתמש במערכת לאחר יצירה"), false);
-                Context.ApplicationInstance.CompleteRequest();
+                LoggingService.Log("GOOGLE_OAUTH_NO_USERID", string.Format("Failed to get user ID - Email: {0}", userInfo.Email));
+                Response.Redirect("login.aspx?error=no_userid");
                 return;
             }
 
-            // #region agent log
-            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:BEFORE_DB_QUERY\",\"message\":\"Before database query for user data\",\"data\":{\"userId\":\"" + userId.Value + "\"},\"hypothesisId\":\"4\"}\n"); } catch { }
-            // #endregion
             string connectionString = Connect.GetConnectionString();
-            using (OleDbConnection conn = new OleDbConnection(connectionString))
+            using (System.Data.OleDb.OleDbConnection conn = new System.Data.OleDb.OleDbConnection(connectionString))
             {
                 conn.Open();
-                string sql = "SELECT * FROM Users WHERE Id=?";
-                using (OleDbCommand cmd = new OleDbCommand(sql, conn))
+                string sql = "SELECT [UserName], [Role] FROM [Users] WHERE [Id]=?";
+                using (System.Data.OleDb.OleDbCommand cmd = new System.Data.OleDb.OleDbCommand(sql, conn))
                 {
-                    OleDbParameter idParam = new OleDbParameter("?", OleDbType.Integer);
-                    idParam.Value = userId.Value;
-                    cmd.Parameters.Add(idParam);
-                    
-                    using (OleDbDataReader dr = cmd.ExecuteReader())
+                    cmd.Parameters.AddWithValue("?", userId.Value);
+                    using (System.Data.OleDb.OleDbDataReader dr = cmd.ExecuteReader())
                     {
                         if (dr.Read())
                         {
-                            // #region agent log
-                            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:USER_DATA_READ\",\"message\":\"User data read from database\",\"data\":{},\"hypothesisId\":\"4\"}\n"); } catch { }
-                            // #endregion
-                            string userName = "";
-                            string role = "";
-                            string userIdStr = "";
-                            
-                            try
-                            {
-                                userName = dr["UserName"]?.ToString() ?? "";
-                            }
-                            catch
-                            {
-                                try
-                                {
-                                    userName = dr["username"]?.ToString() ?? "";
-                                }
-                                catch
-                                {
-                                    userName = userInfo.Email.Split('@')[0];
-                                }
-                            }
-                            
-                            try
-                            {
-                                role = dr["Role"]?.ToString() ?? "user";
-                            }
-                            catch
-                            {
-                                try
-                                {
-                                    role = dr["role"]?.ToString() ?? "user";
-                                }
-                                catch
-                                {
-                                    role = "user";
-                                }
-                            }
-                            
-                            try
-                            {
-                                userIdStr = dr["Id"]?.ToString() ?? userId.Value.ToString();
-                            }
-                            catch
-                            {
-                                try
-                                {
-                                    userIdStr = dr["id"]?.ToString() ?? userId.Value.ToString();
-                                }
-                                catch
-                                {
-                                    userIdStr = userId.Value.ToString();
-                                }
-                            }
-                            
-                            // #region agent log
-                            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:BEFORE_SESSION_SET\",\"message\":\"Before setting session variables\",\"data\":{},\"hypothesisId\":\"3\"}\n"); } catch { }
-                            // #endregion
-                            Session["username"] = Connect.FixEncoding(userName);
-                            Session["Role"] = Connect.FixEncoding(role);
-                            Session["userId"] = userIdStr;
+                            Session["username"] = dr["UserName"]?.ToString() ?? "";
+                            Session["Role"] = dr["Role"]?.ToString() ?? "user";
+                            Session["userId"] = userId.Value.ToString();
                             Session["loggedIn"] = true;
-                            
-                            Session.Remove("QuickLoginEmail");
-                            
-                            // #region agent log
-                            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:BEFORE_EMAIL_SEND\",\"message\":\"Before email send (if new user)\",\"data\":{\"isNewUser\":\"" + isNewUser.ToString() + "\"},\"hypothesisId\":\"3\"}\n"); } catch { }
-                            // #endregion
-                            if (isNewUser)
-                            {
-                                try
-                                {
-                                    EmailService.SendRegistrationEmail(userInfo.Email, userInfo.GivenName ?? "");
-                                    // #region agent log
-                                    try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:AFTER_EMAIL_SEND\",\"message\":\"After email send\",\"data\":{},\"hypothesisId\":\"3\"}\n"); } catch { }
-                                    // #endregion
-                                }
-                                catch (Exception emailEx)
-                                {
-                                    // #region agent log
-                                    try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:EMAIL_SEND_EXCEPTION\",\"message\":\"Email send exception (non-fatal)\",\"data\":{\"error\":\"" + emailEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"hypothesisId\":\"3\"}\n"); } catch { }
-                                    // #endregion
-                                }
-                            }
-                            
-                            // #region agent log
-                            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:REDIRECT_HOME\",\"message\":\"Redirecting to home.aspx\",\"data\":{},\"hypothesisId\":\"1\"}\n"); } catch { }
-                            // #endregion
-                            Response.Redirect("home.aspx", false);
-                            Context.ApplicationInstance.CompleteRequest();
+                            Session.Remove("OAuthState");
+
+                            LoggingService.Log("GOOGLE_OAUTH_SUCCESS", string.Format("User logged in - Email: {0}, Username: {1}, IsNewUser: {2}", userInfo.Email, Session["username"], isNewUser));
+
+                            Response.Redirect("home.aspx");
                             return;
                         }
                     }
                 }
             }
 
-            // #region agent log
-            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:NO_USER_DATA\",\"message\":\"No user data found in database\",\"data\":{},\"hypothesisId\":\"4\"}\n"); } catch { }
-            // #endregion
-            Response.Redirect("login.aspx?error=" + HttpUtility.UrlEncode("לא ניתן לטעון פרטי משתמש מהמסד נתונים"), false);
-            Context.ApplicationInstance.CompleteRequest();
+            LoggingService.Log("GOOGLE_OAUTH_USER_NOT_FOUND", string.Format("User not found after creation - Email: {0}, UserId: {1}", userInfo.Email, userId));
+            Response.Redirect("login.aspx?error=user_not_found");
         }
         catch (Exception ex)
         {
-            // #region agent log
-            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + "\",\"location\":\"google-oauth-callback.Page_Load:OUTER_EXCEPTION\",\"message\":\"Outer exception caught\",\"data\":{\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + ex.GetType().Name + "\"},\"hypothesisId\":\"1,2,3,4\"}\n"); } catch { }
-            // #endregion
-            Response.Redirect("login.aspx?error=" + HttpUtility.UrlEncode("שגיאה כללית: " + ex.Message), false);
-            Context.ApplicationInstance.CompleteRequest();
+            LoggingService.Log("GOOGLE_OAUTH_EXCEPTION", string.Format("Exception in OAuth callback - Error: {0}", ex.Message), ex);
+            Response.Redirect("login.aspx?error=exception");
         }
     }
 }
-

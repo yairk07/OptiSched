@@ -1,4 +1,4 @@
-<%@ Page Language="C#" AutoEventWireup="true" CodeFile="google-oauth-callback.aspx.cs" Inherits="google_oauth_callback" ResponseEncoding="utf-8" %>
+<%@ Page Language="C#" AutoEventWireup="true" CodeFile="google-oauth-callback.aspx.cs" Inherits="google_oauth_callback" ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
 
 <!DOCTYPE html>
 <html dir="rtl">

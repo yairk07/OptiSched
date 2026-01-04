@@ -1,82 +1,131 @@
 ﻿<%@ Page Title="רשימת משתמשים" Language="C#" MasterPageFile="~/danimaster.master"
-    AutoEventWireup="true" CodeFile="exusers.aspx.cs" Inherits="exusers" ResponseEncoding="utf-8" %>
+    AutoEventWireup="true" CodeFile="exusers.aspx.cs" Inherits="exusers" ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="ContentPlaceHolder1" runat="server">
 
     <section class="users-shell">
         <div class="users-hero">
-            <h2 class="hero-title">רשימת משתמשים</h2>
+            <h2 class="hero-title"><i class="fas fa-users"></i> רשימת משתמשים</h2>
             <p class="hero-description">ניהול וצפייה בכל המשתמשים הרשומים במערכת</p>
         </div>
 
         <div class="users-search-section">
-            <asp:TextBox ID="txtSearchemail" runat="server" CssClass="search-input" Placeholder="חפש לפי שם, אימייל, טלפון או עיר..." />
+            <div class="search-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <asp:TextBox ID="txtSearchemail" runat="server" CssClass="search-input" 
+                    Placeholder="חפש לפי שם משתמש, שם פרטי, שם משפחה, אימייל, טלפון או עיר..." 
+                    AutoPostBack="false" />
+            </div>
             <asp:Button ID="btnSearch" runat="server" Text="חפש" OnClick="btnSearch_Click" CssClass="search-button" />
+            <asp:Button ID="btnClear" runat="server" Text="נקה" OnClick="btnClear_Click" CssClass="clear-button" />
         </div>
 
-        <div class="users-grid-container">
-            <asp:DataList ID="DataListUsers" runat="server"
-                RepeatColumns="3"
-                RepeatDirection="Horizontal"
-                CssClass="users-grid"
-                ItemStyle-CssClass="user-card-wrapper">
-
-                <ItemTemplate>
-                    <div class="user-card">
-                        <div class="user-card-header">
-                            <div class="user-avatar">
-                                <span><%# GetAvatarLetter(Container.DataItem) %></span>
+        <div class="table-container">
+            <asp:GridView ID="gvUsers" runat="server" 
+                AutoGenerateColumns="false"
+                CssClass="users-table"
+                AllowPaging="true"
+                PageSize="20"
+                OnPageIndexChanging="gvUsers_PageIndexChanging"
+                OnRowDataBound="gvUsers_RowDataBound"
+                PagerStyle-CssClass="pager-style"
+                HeaderStyle-CssClass="header-style"
+                RowStyle-CssClass="row-style"
+                AlternatingRowStyle-CssClass="alternating-row-style">
+                <Columns>
+                    <asp:TemplateField HeaderText="#" ItemStyle-CssClass="avatar-cell">
+                        <ItemTemplate>
+                            <div class="table-avatar">
+                                <%# GetAvatarLetter(Container) %>
                             </div>
-                            <div class="user-name-section">
-                                <h3 class="user-name"><%# Eval("userName") %></h3>
-                                <p class="user-full-name"><%# Eval("firstName") %> <%# Eval("lastName") %></p>
-                            </div>
-                        </div>
-
-                        <div class="user-details">
-                            <div class="user-detail-item">
-                                <span class="detail-icon">📧</span>
-                                <span class="detail-text"><%# Eval("email") %></span>
-                            </div>
-                            <div class="user-detail-item">
-                                <span class="detail-icon">📱</span>
-                                <span class="detail-text"><%# Eval("phonenum") %></span>
-                            </div>
-                            <div class="user-detail-item">
-                                <span class="detail-icon">📍</span>
-                                <span class="detail-text"><%# GetCity(Container.DataItem) %></span>
-                            </div>
-                        </div>
-
-                        <div class="user-card-footer">
-                            <div style="display: flex; gap: 10px; justify-content: center;">
+                        </ItemTemplate>
+                    </asp:TemplateField>
+                    <asp:TemplateField HeaderText="שם משתמש" ItemStyle-CssClass="user-name-cell">
+                        <ItemTemplate>
+                            <%# Connect.FixEncoding(Eval("userName")?.ToString() ?? "") %>
+                        </ItemTemplate>
+                    </asp:TemplateField>
+                    <asp:TemplateField HeaderText="שם פרטי">
+                        <ItemTemplate>
+                            <%# Connect.FixEncoding(Eval("firstName")?.ToString() ?? "") %>
+                        </ItemTemplate>
+                    </asp:TemplateField>
+                    <asp:TemplateField HeaderText="שם משפחה">
+                        <ItemTemplate>
+                            <%# Connect.FixEncoding(Eval("lastName")?.ToString() ?? "") %>
+                        </ItemTemplate>
+                    </asp:TemplateField>
+                    <asp:TemplateField HeaderText="אימייל" ItemStyle-CssClass="email-cell">
+                        <ItemTemplate>
+                            <%# Connect.FixEncoding(Eval("email")?.ToString() ?? "") %>
+                        </ItemTemplate>
+                    </asp:TemplateField>
+                    <asp:TemplateField HeaderText="טלפון">
+                        <ItemTemplate>
+                            <%# Connect.FixEncoding(Eval("phonenum")?.ToString() ?? "") %>
+                        </ItemTemplate>
+                    </asp:TemplateField>
+                    <asp:TemplateField HeaderText="עיר">
+                        <ItemTemplate>
+                            <%# GetCity(Container) %>
+                        </ItemTemplate>
+                    </asp:TemplateField>
+                    <asp:TemplateField HeaderText="פעולות" ItemStyle-CssClass="actions-cell">
+                        <ItemTemplate>
+                            <div class="action-buttons">
+                                <asp:HyperLink ID="lnkEdit" runat="server"
+                                    NavigateUrl='<%# "editUser.aspx?id=" + Eval("id") %>'
+                                    CssClass="action-btn edit-btn"
+                                    Visible='<%# IsOwner() %>'
+                                    ToolTip="ערוך משתמש">
+                                    <i class="fas fa-edit"></i>
+                                </asp:HyperLink>
                                 <asp:HyperLink ID="lnkMoreInfo" runat="server"
-                                    Text="פרטים נוספים"
                                     NavigateUrl='<%# "exuserdetails.aspx?id=" + Eval("id") %>'
-                                    CssClass="user-link-btn" />
-                                <asp:Button ID="btnDeleteUser" runat="server"
-                                    Text="מחק משתמש"
+                                    CssClass="action-btn info-btn"
+                                    ToolTip="פרטים נוספים">
+                                    <i class="fas fa-eye"></i>
+                                </asp:HyperLink>
+                                <asp:LinkButton ID="btnResetPassword" runat="server"
+                                    CommandArgument='<%# Eval("id") %>'
+                                    OnClick="btnResetPassword_Click"
+                                    OnClientClick="return confirm('האם אתה בטוח שברצונך לאפס את הסיסמה של המשתמש הזה? הסיסמה החדשה תהיה: 123456');"
+                                    CssClass="action-btn reset-btn"
+                                    Visible='<%# IsOwner() %>'
+                                    ToolTip="אפס סיסמה">
+                                    <i class="fas fa-lock"></i>
+                                </asp:LinkButton>
+                                <asp:LinkButton ID="btnDeleteUser" runat="server"
                                     CommandArgument='<%# Eval("id") %>'
                                     OnClick="btnDeleteUser_Click"
                                     OnClientClick="return confirm('האם אתה בטוח שברצונך למחוק את המשתמש הזה? פעולה זו לא ניתנת לביטול.');"
-                                    CssClass="user-delete-btn"
-                                    Visible='<%# IsOwner() %>' />
+                                    CssClass="action-btn delete-btn"
+                                    Visible='<%# IsOwner() %>'
+                                    ToolTip="מחק משתמש">
+                                    <i class="fas fa-user-times"></i>
+                                </asp:LinkButton>
                             </div>
-                        </div>
+                        </ItemTemplate>
+                    </asp:TemplateField>
+                </Columns>
+                <EmptyDataTemplate>
+                    <div class="empty-state">
+                        <i class="fas fa-users-slash"></i>
+                        <p>לא נמצאו משתמשים</p>
                     </div>
-                </ItemTemplate>
-
-            </asp:DataList>
+                </EmptyDataTemplate>
+            </asp:GridView>
         </div>
     </section>
 
     <style>
         .users-shell {
-            width: min(1500px, 95%);
-            margin: 40px auto 60px;
+            width: min(1400px, 98%);
+            margin: 30px auto 60px;
             padding: 0 20px;
         }
 
@@ -86,10 +135,18 @@
         }
 
         .users-hero .hero-title {
-            font-size: 32px;
+            font-size: 36px;
             font-weight: 700;
             color: var(--heading);
             margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .users-hero .hero-title i {
+            color: var(--brand);
         }
 
         .users-hero .hero-description {
@@ -102,24 +159,47 @@
             display: flex;
             gap: 12px;
             justify-content: center;
-            margin-bottom: 40px;
-            max-width: 600px;
+            margin-bottom: 30px;
+            max-width: 900px;
             margin-left: auto;
             margin-right: auto;
+            align-items: center;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            max-width: 600px;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text);
+            opacity: 0.5;
+            pointer-events: none;
         }
 
         .search-input {
-            flex: 1;
-            padding: 12px 18px;
-            border: 1px solid var(--border);
+            width: 100%;
+            padding: 12px 45px 12px 18px;
+            border: 2px solid var(--border);
             border-radius: 8px;
             font-size: 15px;
             direction: rtl;
             background: var(--surface);
             color: var(--text);
+            transition: border-color 0.3s ease;
         }
 
-        .search-button {
+        .search-input:focus {
+            outline: none;
+            border-color: var(--brand);
+        }
+
+        .search-button, .clear-button {
             padding: 12px 28px;
             background: var(--brand);
             color: #fff;
@@ -128,149 +208,232 @@
             font-weight: 600;
             cursor: pointer;
             transition: background .2s ease;
+            font-size: 15px;
         }
 
         .search-button:hover {
             background: var(--brand-dark);
         }
 
-        .users-grid-container {
-            width: 100%;
+        .clear-button {
+            background: #6c757d;
         }
 
-        .users-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 24px;
-            width: 100%;
+        .clear-button:hover {
+            background: #5a6268;
         }
 
-        .user-card-wrapper {
-            width: 100%;
-        }
-
-        .user-card {
+        .table-container {
             background: var(--surface);
-            border-radius: 16px;
-            padding: 24px;
+            border-radius: 12px;
+            padding: 20px;
             box-shadow: var(--shadow-md);
-            border: 1px solid var(--border);
-            transition: transform .2s ease, box-shadow .2s ease;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
+            overflow-x: auto;
         }
 
-        .user-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+            direction: rtl;
         }
 
-        .user-card-header {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 20px;
-            padding-bottom: 20px;
+        .users-table th {
+            background: var(--brand);
+            color: #fff;
+            padding: 15px 12px;
+            text-align: right;
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .users-table td {
+            padding: 15px 12px;
             border-bottom: 1px solid var(--border);
+            font-size: 14px;
         }
 
-        .user-avatar {
-            width: 60px;
-            height: 60px;
+        .row-style {
+            background: var(--surface);
+        }
+
+        .alternating-row-style {
+            background: rgba(0,0,0,0.02);
+        }
+
+        .row-style:hover, .alternating-row-style:hover {
+            background: rgba(0,0,0,0.05);
+        }
+
+        .table-avatar {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             background: var(--brand);
             color: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 16px;
             font-weight: 700;
-            flex-shrink: 0;
         }
 
-        .user-name-section {
-            flex: 1;
-        }
-
-        .user-name {
-            font-size: 20px;
-            font-weight: 700;
+        .user-name-cell {
+            font-weight: 600;
             color: var(--heading);
-            margin: 0 0 4px 0;
         }
 
-        .user-full-name {
-            font-size: 14px;
-            color: var(--text);
-            opacity: 0.7;
-            margin: 0;
+        .email-cell {
+            color: var(--brand);
         }
 
-        .user-details {
-            flex: 1;
+        .actions-cell {
+            text-align: center;
+        }
+
+        .action-buttons {
             display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .user-detail-item {
-            display: flex;
+            gap: 8px;
+            justify-content: center;
             align-items: center;
-            gap: 10px;
-            font-size: 14px;
         }
 
-        .detail-icon {
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            text-decoration: none;
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .edit-btn {
+            background: var(--surface);
+            color: var(--brand);
+            border-color: var(--brand);
+        }
+
+        .edit-btn:hover {
+            background: var(--brand);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .info-btn {
+            background: var(--surface);
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .info-btn:hover {
+            background: rgba(0,0,0,0.05);
+            color: var(--brand);
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .reset-btn {
+            background: var(--surface);
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .reset-btn:hover {
+            background: rgba(255,193,7,0.1);
+            color: #f57c00;
+            border-color: #ffc107;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .delete-btn {
+            background: var(--surface);
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .delete-btn:hover {
+            background: rgba(220,53,69,0.1);
+            color: #c82333;
+            border-color: #dc3545;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text);
+            opacity: 0.6;
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .empty-state p {
             font-size: 18px;
         }
 
-        .detail-text {
-            color: var(--text);
-        }
-
-        .user-card-footer {
-            margin-top: auto;
-        }
-
-        .user-link-btn {
-            display: block;
+        .pager-style {
+            padding: 15px;
             text-align: center;
-            padding: 10px 20px;
+            direction: rtl;
+        }
+
+        .pager-style a {
+            padding: 8px 12px;
+            margin: 0 4px;
             background: var(--brand);
             color: #fff;
-            border-radius: 8px;
             text-decoration: none;
-            font-weight: 600;
-            transition: background .2s ease;
+            border-radius: 4px;
         }
 
-        .user-link-btn:hover {
+        .pager-style a:hover {
             background: var(--brand-dark);
-            text-decoration: none;
         }
 
-        .user-delete-btn {
-            padding: 10px 20px;
-            background: #dc3545;
+        .pager-style span {
+            padding: 8px 12px;
+            margin: 0 4px;
+            background: var(--brand-dark);
             color: #fff;
-            border: none;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background .2s ease;
-            font-size: 14px;
-        }
-
-        .user-delete-btn:hover {
-            background: #c82333;
+            border-radius: 4px;
         }
 
         @media (max-width: 768px) {
-            .users-grid {
-                grid-template-columns: 1fr;
+            .users-table {
+                font-size: 12px;
+            }
+
+            .users-table th,
+            .users-table td {
+                padding: 10px 8px;
+            }
+
+            .action-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 12px;
+            }
+
+            .users-search-section {
+                flex-direction: column;
+            }
+
+            .search-wrapper {
+                width: 100%;
             }
         }
     </style>

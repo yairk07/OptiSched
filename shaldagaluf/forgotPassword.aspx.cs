@@ -9,9 +9,13 @@ public partial class forgotPassword : System.Web.UI.Page
 {
     protected void Page_Load(object sender, EventArgs e)
     {
+        // Set UTF-8 encoding - MUST be first, before any output
+        Response.Clear();
         Response.ContentType = "text/html; charset=utf-8";
         Response.Charset = "utf-8";
         Response.ContentEncoding = System.Text.Encoding.UTF8;
+        Response.HeaderEncoding = System.Text.Encoding.UTF8;
+        Response.AppendHeader("Content-Type", "text/html; charset=utf-8");
         
         if (Session["username"] != null)
         {
@@ -19,52 +23,20 @@ public partial class forgotPassword : System.Web.UI.Page
             return;
         }
 
-        // DSD Schema: Use AuthCodeService instead of VerificationCodeService
-        AuthCodeService.CleanExpiredCodes();
-        
         if (!IsPostBack)
         {
-            SetHebrewText();
+            pnlRequest.Visible = true;
+            pnlReset.Visible = false;
         }
-    }
-    
-    private void SetHebrewText()
-    {
-        string hebrewTitle = "\u05e9\u05db\u05d7\u05ea \u05e1\u05d9\u05e1\u05de\u05d4?";
-        string hebrewSubtitle = "\u05d4\u05d6\u05df \u05d0\u05ea \u05db\u05ea\u05d5\u05d1\u05ea \u05d4\u05d0\u05d9\u05de\u05d9\u05d9\u05dc \u05e9\u05dc\u05da \u05d5\u05e0\u05e9\u05dc\u05d7 \u05dc\u05da \u05e7\u05d5\u05d3 \u05d0\u05de\u05ea \u05dc\u05d0\u05d9\u05e4\u05d5\u05e1 \u05d4\u05e1\u05d9\u05e1\u05de\u05d4";
-        string hebrewEmailLabel = "\u05db\u05ea\u05d5\u05d1\u05ea \u05d0\u05d9\u05de\u05d9\u05d9\u05dc <span class=\"required\">*</span>";
-        string hebrewSendCode = "\u05e9\u05dc\u05d7 \u05e7\u05d5\u05d3 \u05d0\u05de\u05ea";
-        string hebrewCodeLabel = "\u05e7\u05d5\u05d3 \u05d0\u05de\u05ea <span class=\"required\">*</span>";
-        string hebrewCodeInfo = "\u05e7\u05d5\u05d3 \u05d4\u05d0\u05de\u05ea \u05e0\u05e9\u05dc\u05d7 \u05dc\u05db\u05ea\u05d5\u05d1\u05ea \u05d4\u05d0\u05d9\u05de\u05d9\u05d9\u05dc \u05e9\u05dc\u05da. \u05d4\u05e7\u05d5\u05d3 \u05ea\u05e7\u05e3 \u05dc\u05de\u05e9\u05d4 15 \u05d3\u05e7\u05d5\u05ea.";
-        string hebrewVerify = "\u05d0\u05de\u05ea \u05e7\u05d5\u05d3";
-        string hebrewNewPassword = "\u05e1\u05d9\u05e1\u05de\u05d4 \u05d7\u05d3\u05e9\u05d4 <span class=\"required\">*</span>";
-        string hebrewConfirmPassword = "\u05d0\u05d9\u05de\u05d5\u05ea \u05e1\u05d9\u05e1\u05de\u05d4 <span class=\"required\">*</span>";
-        string hebrewReset = "\u05d0\u05d9\u05e4\u05d5\u05e1 \u05e1\u05d9\u05e1\u05de\u05d4";
-        string hebrewFooter = "\u05d6\u05db\u05e8\u05ea \u05d0\u05ea \u05d4\u05e1\u05d9\u05e1\u05de\u05d4? <a href=\"login.aspx\">\u05d7\u05d6\u05d5\u05e8 \u05dc\u05d3\u05e3 \u05d4\u05d4\u05ea\u05d7\u05d1\u05e8\u05d5\u05ea</a>";
-
-        System.Web.UI.WebControls.ContentPlaceHolder contentPlaceHolder = Master.FindControl("ContentPlaceHolder1") as System.Web.UI.WebControls.ContentPlaceHolder;
-        if (contentPlaceHolder == null) return;
-        
-        System.Web.UI.HtmlControls.HtmlGenericControl h2Title = contentPlaceHolder.FindControl("h2Title") as System.Web.UI.HtmlControls.HtmlGenericControl;
-        System.Web.UI.HtmlControls.HtmlGenericControl pSubtitle = contentPlaceHolder.FindControl("pSubtitle") as System.Web.UI.HtmlControls.HtmlGenericControl;
-        System.Web.UI.HtmlControls.HtmlGenericControl lblEmail = contentPlaceHolder.FindControl("lblEmail") as System.Web.UI.HtmlControls.HtmlGenericControl;
-        System.Web.UI.HtmlControls.HtmlGenericControl lblCode = contentPlaceHolder.FindControl("lblCode") as System.Web.UI.HtmlControls.HtmlGenericControl;
-        System.Web.UI.HtmlControls.HtmlGenericControl pCodeInfo = contentPlaceHolder.FindControl("pCodeInfo") as System.Web.UI.HtmlControls.HtmlGenericControl;
-        System.Web.UI.HtmlControls.HtmlGenericControl lblNewPassword = contentPlaceHolder.FindControl("lblNewPassword") as System.Web.UI.HtmlControls.HtmlGenericControl;
-        System.Web.UI.HtmlControls.HtmlGenericControl lblConfirmPassword = contentPlaceHolder.FindControl("lblConfirmPassword") as System.Web.UI.HtmlControls.HtmlGenericControl;
-        System.Web.UI.HtmlControls.HtmlGenericControl pFooter = contentPlaceHolder.FindControl("pFooter") as System.Web.UI.HtmlControls.HtmlGenericControl;
-
-        if (h2Title != null) h2Title.InnerText = hebrewTitle;
-        if (pSubtitle != null) pSubtitle.InnerText = hebrewSubtitle;
-        if (lblEmail != null) lblEmail.InnerHtml = hebrewEmailLabel;
-        if (btnSendReset != null) btnSendReset.Text = hebrewSendCode;
-        if (lblCode != null) lblCode.InnerHtml = hebrewCodeLabel;
-        if (pCodeInfo != null) pCodeInfo.InnerText = hebrewCodeInfo;
-        if (btnVerifyCode != null) btnVerifyCode.Text = hebrewVerify;
-        if (lblNewPassword != null) lblNewPassword.InnerHtml = hebrewNewPassword;
-        if (lblConfirmPassword != null) lblConfirmPassword.InnerHtml = hebrewConfirmPassword;
-        if (btnResetPassword != null) btnResetPassword.Text = hebrewReset;
-        if (pFooter != null) pFooter.InnerHtml = hebrewFooter;
+        else
+        {
+            // If we have email in session, show reset panel
+            if (Session["ResetPasswordEmail"] != null)
+            {
+                pnlRequest.Visible = false;
+                pnlReset.Visible = true;
+            }
+        }
     }
 
     protected void btnSendReset_Click(object sender, EventArgs e)
@@ -73,7 +45,7 @@ public partial class forgotPassword : System.Web.UI.Page
 
         if (string.IsNullOrEmpty(email))
         {
-            lblMessage.Text = "\u05d0\u05e0\u05d0 \u05d4\u05d6\u05df \u05db\u05ea\u05d5\u05d1\u05ea \u05d0\u05d9\u05de\u05d9\u05d9\u05dc.";
+            lblMessage.Text = "אנא הזן כתובת אימייל.";
             lblMessage.ForeColor = System.Drawing.Color.Red;
             return;
         }
@@ -83,108 +55,71 @@ public partial class forgotPassword : System.Web.UI.Page
 
         if (user == null)
         {
-            lblMessage.Text = "\u05db\u05ea\u05d5\u05d1\u05ea \u05d4\u05d0\u05d9\u05de\u05d9\u05d9\u05dc \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0\u05d4 \u05d1\u05de\u05e2\u05e8\u05db\u05ea.";
+            lblMessage.Text = "כתובת האימייל לא נמצאה במערכת.";
             lblMessage.ForeColor = System.Drawing.Color.Red;
             return;
         }
 
         try
         {
-            // DSD Schema: Get UserId and use AuthCodeService.GenerateResetCode
-            string idCol = user.Table.Columns.Contains("Id") ? "Id" : "id";
-            int userId = Convert.ToInt32(user[idCol]);
+            // Generate login code using LoginCodeService
+            string code = LoginCodeService.GenerateCode(email);
+            LoggingService.Log("FORGOT_PASSWORD_CODE_GENERATED", string.Format("Code generated for password reset - Email: {0}, Code: {1}", email, code));
             
-            string code = AuthCodeService.GenerateResetCode(userId);
-            SendVerificationCodeEmail(email, code);
+            // Send code via email
+            EmailService.SendLoginCodeEmail(email, code);
             
-            ViewState["ResetEmail"] = email;
-            ViewState["ResetUserId"] = userId;
+            // Store email in session for verification
+            Session["ResetPasswordEmail"] = email;
+            
+            // Show reset panel
             pnlRequest.Visible = false;
-            pnlCode.Visible = true;
-            lblCodeMessage.Text = "\u05e7\u05d5\u05d3 \u05d0\u05d9\u05de\u05d5\u05ea \u05e0\u05e9\u05dc\u05d7 \u05dc\u05db\u05ea\u05d5\u05d1\u05ea \u05d4\u05d0\u05d9\u05de\u05d9\u05d9\u05dc \u05e9\u05dc\u05da.";
-            lblCodeMessage.ForeColor = System.Drawing.Color.Green;
+            pnlReset.Visible = true;
+            
+            lblResetMessage.Text = "קוד נשלח בהצלחה לכתובת האימייל שלך. אנא הזן את הקוד בן 6 הספרות.";
+            lblResetMessage.ForeColor = System.Drawing.Color.Green;
+            lblResetMessage.Visible = true;
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
             lblMessage.Text = ex.Message;
             lblMessage.ForeColor = System.Drawing.Color.Red;
-        }
-    }
-
-    protected void btnVerifyCode_Click(object sender, EventArgs e)
-    {
-        string email = ViewState["ResetEmail"]?.ToString();
-        string code = txtVerificationCode.Text.Trim();
-
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(code))
-        {
-            lblCodeMessage.Text = "\u05d0\u05e0\u05d0 \u05d4\u05d6\u05df \u05e7\u05d5\u05d3 \u05d0\u05de\u05ea.";
-            lblCodeMessage.ForeColor = System.Drawing.Color.Red;
-            return;
-        }
-
-        if (code.Length != 6 || !System.Text.RegularExpressions.Regex.IsMatch(code, @"^\d{6}$"))
-        {
-            lblCodeMessage.Text = "\u05e7\u05d5\u05d3 \u05d0\u05de\u05ea \u05d7\u05d9\u05d9\u05d1 \u05dc\u05d4\u05d9\u05d5\u05ea \u05d1\u05df 6 \u05e1\u05e4\u05e8\u05d5\u05ea.";
-            lblCodeMessage.ForeColor = System.Drawing.Color.Red;
-            return;
-        }
-
-        
-
-        try
-        {
-            // DSD Schema: Use UserId for validation with AuthCodeService
-            int userId = 0;
-            if (ViewState["ResetUserId"] != null)
-            {
-                userId = Convert.ToInt32(ViewState["ResetUserId"]);
-            }
-            else
-            {
-                // Fallback: get user by email
-                UsersService us = new UsersService();
-                DataRow user = us.GetUserByEmail(email);
-                if (user == null)
-                {
-                    lblCodeMessage.Text = "\u05e7\u05d5\u05d3 \u05d0\u05de\u05ea \u05dc\u05d0 \u05ea\u05e7\u05d9\u05df \u05d0\u05d5 \u05e9\u05e4\u05d2 \u05ea\u05d5\u05e7\u05e4\u05d5.";
-                    lblCodeMessage.ForeColor = System.Drawing.Color.Red;
-                    return;
-                }
-                string idCol = user.Table.Columns.Contains("Id") ? "Id" : "id";
-                userId = Convert.ToInt32(user[idCol]);
-            }
-            
-            bool isValid = AuthCodeService.ValidateResetCode(userId, code);
-
-            if (isValid)
-            {
-                ViewState["VerifiedEmail"] = email;
-                ViewState["VerifiedUserId"] = userId;
-                pnlCode.Visible = false;
-                pnlReset.Visible = true;
-                lblResetMessage.Text = "";
-            }
-            else
-            {
-                lblCodeMessage.Text = "\u05e7\u05d5\u05d3 \u05d0\u05de\u05ea \u05dc\u05d0 \u05ea\u05e7\u05d9\u05df \u05d0\u05d5 \u05e9\u05e4\u05d2 \u05ea\u05d5\u05e7\u05e4\u05d5. \u05d0\u05e0\u05d0 \u05e0\u05e1\u05d4 \u05e9\u05d5\u05d1.";
-                lblCodeMessage.ForeColor = System.Drawing.Color.Red;
-            }
+            LoggingService.Log("FORGOT_PASSWORD_CODE_ERROR", string.Format("Failed to generate code - Error: {0}", ex.Message), ex);
         }
         catch (Exception ex)
         {
-            lblCodeMessage.Text = "\u05e9\u05d2\u05d9\u05d0\u05d4 \u05d1\u05d0\u05d9\u05de\u05d5\u05ea \u05d4\u05e7\u05d5\u05d3: " + ex.Message;
-            lblCodeMessage.ForeColor = System.Drawing.Color.Red;
+            lblMessage.Text = "שגיאה בשליחת האימייל. אנא נסה שוב מאוחר יותר.";
+            lblMessage.ForeColor = System.Drawing.Color.Red;
+            LoggingService.Log("FORGOT_PASSWORD_EMAIL_ERROR", string.Format("Failed to send reset email - Error: {0}", ex.Message), ex);
         }
     }
 
     protected void btnResetPassword_Click(object sender, EventArgs e)
     {
-        string email = ViewState["VerifiedEmail"]?.ToString();
+        string email = Session["ResetPasswordEmail"]?.ToString() ?? "";
+        string code = txtResetToken.Text?.Trim();
+        
         if (string.IsNullOrEmpty(email))
         {
-            lblResetMessage.Text = "\u05e9\u05d2\u05d9\u05d0\u05d4: \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0 \u05d0\u05d9\u05de\u05d9\u05d9\u05dc \u05de\u05d0\u05d5\u05de\u05ea.";
+            lblResetMessage.Text = "שגיאה: לא נמצא אימייל. אנא התחל מחדש.";
             lblResetMessage.ForeColor = System.Drawing.Color.Red;
+            lblResetMessage.Visible = true;
+            return;
+        }
+        
+        if (string.IsNullOrEmpty(code))
+        {
+            lblResetMessage.Text = "אנא הזן את קוד ההתחברות שקיבלת באימייל.";
+            lblResetMessage.ForeColor = System.Drawing.Color.Red;
+            lblResetMessage.Visible = true;
+            return;
+        }
+
+        if (code.Length != 6)
+        {
+            lblResetMessage.Text = "קוד ההתחברות חייב להיות בן 6 ספרות.";
+            lblResetMessage.ForeColor = System.Drawing.Color.Red;
+            lblResetMessage.Visible = true;
             return;
         }
 
@@ -193,73 +128,326 @@ public partial class forgotPassword : System.Web.UI.Page
 
         if (string.IsNullOrEmpty(newPassword) || string.IsNullOrEmpty(confirmPassword))
         {
-            lblResetMessage.Text = "\u05d0\u05e0\u05d0 \u05de\u05dc\u05d0 \u05d0\u05ea \u05db\u05dc \u05d4\u05e9\u05d3\u05d5\u05ea.";
+            lblResetMessage.Text = "אנא מלא את כל השדות.";
             lblResetMessage.ForeColor = System.Drawing.Color.Red;
+            lblResetMessage.Visible = true;
             return;
         }
 
         if (newPassword != confirmPassword)
         {
-            lblResetMessage.Text = "\u05d4\u05e1\u05d9\u05e1\u05de\u05d0\u05d5\u05ea \u05d0\u05d9\u05e0\u05df \u05ea\u05d0\u05d5\u05de\u05d5\u05ea.";
+            lblResetMessage.Text = "הסיסמאות אינן תואמות.";
             lblResetMessage.ForeColor = System.Drawing.Color.Red;
+            lblResetMessage.Visible = true;
             return;
         }
 
-        // DSD Schema: Use UserId from ViewState or get from email
-        int userId = 0;
-        if (ViewState["VerifiedUserId"] != null)
+        // Validate the code
+        bool isValid = LoginCodeService.ValidateCode(email, code);
+        if (!isValid)
         {
-            userId = Convert.ToInt32(ViewState["VerifiedUserId"]);
-        }
-        else
-        {
-            UsersService us = new UsersService();
-            DataRow user = us.GetUserByEmail(email);
-            
-            if (user == null)
-            {
-                lblResetMessage.Text = "\u05e9\u05d2\u05d9\u05d0\u05d4: \u05de\u05e9\u05ea\u05de\u05e9 \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0.";
-                lblResetMessage.ForeColor = System.Drawing.Color.Red;
-                return;
-            }
-            
-            string idCol = user.Table.Columns.Contains("Id") ? "Id" : "id";
-            userId = Convert.ToInt32(user[idCol]);
+            lblResetMessage.Text = "קוד שגוי או שפג תוקפו. אנא נסה שוב או בקש קוד חדש.";
+            lblResetMessage.ForeColor = System.Drawing.Color.Red;
+            lblResetMessage.Visible = true;
+            return;
         }
 
-        UsersService us2 = new UsersService();
-        us2.UpdatePassword(userId, newPassword);
-
-        lblResetMessage.Text = "\u05d4\u05e1\u05d9\u05e1\u05de\u05d4 \u05e2\u05d5\u05d3\u05db\u05e0\u05d4 \u05d1\u05d4\u05e6\u05dc\u05d7\u05d4! \u05d0\u05ea\u05d4 \u05d9\u05db\u05d5\u05dc \u05dc\u05d4\u05ea\u05d7\u05d1\u05e8 \u05e2\u05db\u05e9\u05d9\u05d5.";
-        lblResetMessage.ForeColor = System.Drawing.Color.Green;
+        // Get user by email
+        UsersService us = new UsersService();
+        DataRow user = us.GetUserByEmail(email);
         
-        ViewState.Remove("VerifiedEmail");
-        ViewState.Remove("ResetEmail");
+        if (user == null)
+        {
+            lblResetMessage.Text = "שגיאה: משתמש לא נמצא במערכת.";
+            lblResetMessage.ForeColor = System.Drawing.Color.Red;
+            lblResetMessage.Visible = true;
+            return;
+        }
+
+        int userId = Convert.ToInt32(user["Id"] ?? user["id"]);
+        
+        // Update password
+        us.UpdatePassword(userId, newPassword);
+
+        // Clear session
+        Session.Remove("ResetPasswordEmail");
+
+        lblResetMessage.Text = "הסיסמה עודכנה בהצלחה! אתה יכול להתחבר עכשיו.";
+        lblResetMessage.ForeColor = System.Drawing.Color.Green;
+        lblResetMessage.Visible = true;
+
+        // Redirect to login after 3 seconds
+        Response.AddHeader("REFRESH", "3;URL=login.aspx");
     }
 
-    private void SendVerificationCodeEmail(string email, string code)
+    private string GenerateResetToken()
     {
-        string subject = "Password Reset Code - OptiSched";
-        string body = $@"
-<html dir='ltr'>
-<body style='font-family: Arial, sans-serif; direction: ltr;'>
+        return Guid.NewGuid().ToString("N");
+    }
+
+    private void SaveResetToken(int userId, string token)
+    {
+        string conStr = Connect.GetConnectionString();
+        using (System.Data.OleDb.OleDbConnection con = new System.Data.OleDb.OleDbConnection(conStr))
+        {
+            con.Open();
+            
+            // Check if notes column exists, if not create it
+            bool notesExists = ColumnExists(con, "Users", "notes");
+            if (!notesExists)
+            {
+                try
+                {
+                    using (System.Data.OleDb.OleDbCommand alterCmd = new System.Data.OleDb.OleDbCommand("ALTER TABLE [Users] ADD COLUMN [notes] TEXT", con))
+                    {
+                        alterCmd.ExecuteNonQuery();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Log("FORGOT_PASSWORD_CREATE_NOTES_COLUMN_ERROR", string.Format("Failed to create notes column - Error: {0}", ex.Message), ex);
+                }
+            }
+            
+            string expiry = DateTime.Now.AddHours(1).ToString("yyyy-MM-dd HH:mm:ss");
+            string tokenData = string.Format("{0}|{1}", token, expiry);
+            
+            // Try different column name variations
+            string[] notesVariations = { "notes", "Notes", "note", "Note" };
+            bool updated = false;
+            
+            foreach (string colName in notesVariations)
+            {
+                if (ColumnExists(con, "Users", colName))
+                {
+                    try
+                    {
+                        // Try different Id column variations
+                        string[] idVariations = { "Id", "id", "ID" };
+                        foreach (string idCol in idVariations)
+                        {
+                            if (ColumnExists(con, "Users", idCol))
+                            {
+                                string sql = string.Format("UPDATE [Users] SET [{0}] = ? WHERE [{1}] = ?", colName, idCol);
+                                LoggingService.Log("FORGOT_PASSWORD_UPDATE_TOKEN", string.Format("Updating token - SQL: {0}, UserId: {1}, TokenData: {2}", sql, userId, tokenData));
+                                try
+                                {
+                                    using (System.Data.OleDb.OleDbCommand cmd = new System.Data.OleDb.OleDbCommand(sql, con))
+                                    {
+                                        cmd.Parameters.AddWithValue("?", tokenData);
+                                        cmd.Parameters.AddWithValue("?", userId);
+                                        cmd.ExecuteNonQuery();
+                                        updated = true;
+                                        LoggingService.Log("FORGOT_PASSWORD_UPDATE_SUCCESS", "Token updated successfully");
+                                        break;
+                                    }
+                                }
+                                catch (Exception idEx)
+                                {
+                                    LoggingService.Log("FORGOT_PASSWORD_UPDATE_ID_ERROR", string.Format("Failed with Id column {0} - Error: {1}", idCol, idEx.Message), idEx);
+                                    continue;
+                                }
+                            }
+                        }
+                        if (updated) break;
+                    }
+                    catch (Exception ex)
+                    {
+                        LoggingService.Log("FORGOT_PASSWORD_UPDATE_ERROR", string.Format("Failed to update with column {0} - Error: {1}", colName, ex.Message), ex);
+                        continue;
+                    }
+                }
+            }
+            
+            if (!updated)
+            {
+                LoggingService.Log("FORGOT_PASSWORD_UPDATE_FAILED", "Failed to update token - no suitable column found");
+                throw new Exception("Failed to save reset token - no suitable column found in Users table");
+            }
+        }
+    }
+    
+    private bool ColumnExists(System.Data.OleDb.OleDbConnection conn, string tableName, string columnName)
+    {
+        try
+        {
+            string[] variations = { columnName, columnName.ToLower(), columnName.ToUpper(), 
+                                   char.ToUpper(columnName[0]) + columnName.Substring(1).ToLower() };
+            
+            foreach (string variant in variations)
+            {
+                try
+                {
+                    using (System.Data.OleDb.OleDbCommand cmd = new System.Data.OleDb.OleDbCommand(string.Format("SELECT TOP 1 [{0}] FROM [{1}]", variant, tableName), conn))
+                    {
+                        cmd.ExecuteScalar();
+                        return true;
+                    }
+                }
+                catch
+                {
+                    continue;
+                }
+            }
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private int? GetUserIdByToken(string token)
+    {
+        string conStr = Connect.GetConnectionString();
+        using (System.Data.OleDb.OleDbConnection con = new System.Data.OleDb.OleDbConnection(conStr))
+        {
+            con.Open();
+            
+            // Try different column name variations
+            string[] notesVariations = { "notes", "Notes", "note", "Note" };
+            string[] idVariations = { "Id", "id", "ID" };
+            
+            foreach (string notesCol in notesVariations)
+            {
+                if (ColumnExists(con, "Users", notesCol))
+                {
+                    foreach (string idCol in idVariations)
+                    {
+                        if (ColumnExists(con, "Users", idCol))
+                        {
+                            try
+                            {
+                                string sql = string.Format("SELECT [{0}], [{1}] FROM [Users] WHERE [{1}] LIKE ?", idCol, notesCol);
+                                LoggingService.Log("FORGOT_PASSWORD_GET_TOKEN", string.Format("Getting user by token - SQL: {0}, Token: {1}", sql, token));
+                                using (System.Data.OleDb.OleDbCommand cmd = new System.Data.OleDb.OleDbCommand(sql, con))
+                                {
+                                    cmd.Parameters.AddWithValue("?", token + "%");
+                                    using (System.Data.OleDb.OleDbDataReader dr = cmd.ExecuteReader())
+                                    {
+                                        while (dr.Read())
+                                        {
+                                            string notes = dr[notesCol]?.ToString() ?? "";
+                                            if (notes.StartsWith(token + "|"))
+                                            {
+                                                string[] parts = notes.Split('|');
+                                                if (parts.Length >= 2)
+                                                {
+                                                    if (DateTime.TryParse(parts[1], out DateTime expiry) && expiry > DateTime.Now)
+                                                    {
+                                                        int userId = Convert.ToInt32(dr[idCol]);
+                                                        LoggingService.Log("FORGOT_PASSWORD_TOKEN_FOUND", string.Format("Token found - UserId: {0}", userId));
+                                                        return userId;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                LoggingService.Log("FORGOT_PASSWORD_GET_TOKEN_ERROR", string.Format("Error getting token - Error: {0}", ex.Message), ex);
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        LoggingService.Log("FORGOT_PASSWORD_TOKEN_NOT_FOUND", string.Format("Token not found - Token: {0}", token));
+        return null;
+    }
+
+    private void DeleteResetToken(string token)
+    {
+        string conStr = Connect.GetConnectionString();
+        using (System.Data.OleDb.OleDbConnection con = new System.Data.OleDb.OleDbConnection(conStr))
+        {
+            con.Open();
+            
+            // Try different column name variations
+            string[] notesVariations = { "notes", "Notes", "note", "Note" };
+            
+            foreach (string colName in notesVariations)
+            {
+                if (ColumnExists(con, "Users", colName))
+                {
+                    try
+                    {
+                        string sql = string.Format("UPDATE [Users] SET [{0}] = NULL WHERE [{0}] LIKE ?", colName);
+                        LoggingService.Log("FORGOT_PASSWORD_DELETE_TOKEN", string.Format("Deleting token - SQL: {0}, Token: {1}", sql, token));
+                        using (System.Data.OleDb.OleDbCommand cmd = new System.Data.OleDb.OleDbCommand(sql, con))
+                        {
+                            cmd.Parameters.AddWithValue("?", token + "%");
+                            cmd.ExecuteNonQuery();
+                            LoggingService.Log("FORGOT_PASSWORD_DELETE_SUCCESS", "Token deleted successfully");
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LoggingService.Log("FORGOT_PASSWORD_DELETE_ERROR", string.Format("Failed to delete token with column {0} - Error: {1}", colName, ex.Message), ex);
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+
+    private void SendResetEmail(string email, string resetLink, string token)
+    {
+        string smtpServer = "smtp.gmail.com";
+        int smtpPort = 587;
+        string smtpUsername = "yairk07@gmail.com";
+        string smtpPassword = "wdbf swcf qexu qugl";
+
+        MailMessage mail = new MailMessage();
+        mail.From = new MailAddress(smtpUsername, "OptiSched", System.Text.Encoding.UTF8);
+        mail.To.Add(email);
+        mail.SubjectEncoding = System.Text.Encoding.UTF8;
+        mail.Subject = "איפוס סיסמה - OptiSched";
+        mail.BodyEncoding = System.Text.Encoding.UTF8;
+        
+        string body = string.Format(@"
+<html dir='rtl'>
+<head>
+    <meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
+</head>
+<body style='font-family: Arial, sans-serif; direction: rtl; text-align: right;'>
     <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
-        <h2 style='color: #e50914;'>Password Reset Code</h2>
-        <p>We received a request to reset your password.</p>
-        <p>Your verification code is:</p>
-        <div style='background: #f5f5f5; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;'>
-            <span style='font-size: 32px; font-weight: bold; color: #e50914; letter-spacing: 8px; font-family: monospace;'>{code}</span>
-        </div>
-        <p>Enter this code on the password reset page to continue.</p>
-        <p style='color: #666; font-size: 14px;'><strong>This code is valid for 15 minutes only.</strong></p>
-        <p>If you did not request a password reset, please ignore this email.</p>
+        <h2 style='color: #e50914;'>איפוס סיסמה</h2>
+        <p>שלום,</p>
+        <p>קיבלנו בקשה לאיפוס הסיסמה שלך.</p>
+        <p><strong>קוד איפוס הסיסמה שלך:</strong></p>
+        <p style='text-align: center; margin: 20px 0;'>
+            <span style='background: #f5f5f5; padding: 15px 25px; border-radius: 5px; font-size: 18px; font-weight: bold; letter-spacing: 2px; display: inline-block; font-family: monospace;'>{1}</span>
+        </p>
+        <p>לחץ על הקישור הבא כדי לאפס את הסיסמה:</p>
+        <p style='text-align: center; margin: 30px 0;'>
+            <a href='{0}' style='background: #e50914; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;'>איפוס סיסמה</a>
+        </p>
+        <p>או העתק את הקישור הבא לדפדפן:</p>
+        <p style='background: #f5f5f5; padding: 10px; border-radius: 5px; word-break: break-all; font-size: 12px;'>{0}</p>
+        <p><strong>קישור זה תקף למשך שעה אחת בלבד.</strong></p>
+        <p>אם הקישור לא עובד, תוכל להעתיק את הקוד למעלה ולהכניס אותו בדף איפוס הסיסמה.</p>
+        <p>אם לא ביקשת איפוס סיסמה, אנא התעלם מהאימייל הזה.</p>
         <hr style='border: none; border-top: 1px solid #ddd; margin: 30px 0;'>
-        <p style='color: #666; font-size: 12px;'>OptiSched - Smart Scheduling for Maximum Efficiency</p>
+        <p style='color: #666; font-size: 12px; text-align: center;'>OptiSched - Smart Scheduling for Maximum Efficiency</p>
     </div>
 </body>
-</html>";
+</html>", resetLink, token);
+        
+        mail.Body = body;
+        mail.IsBodyHtml = true;
 
-        EmailService.SendEmail(email, subject, body, true);
+        SmtpClient smtp = new SmtpClient(smtpServer, smtpPort);
+        smtp.EnableSsl = true;
+        smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
+        smtp.UseDefaultCredentials = false;
+        smtp.Credentials = new NetworkCredential(smtpUsername, smtpPassword);
+
+        smtp.Send(mail);
     }
 }
 

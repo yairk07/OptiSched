@@ -1,4 +1,4 @@
-<%@ Page Language="C#" AutoEventWireup="true" CodeFile="migrate-database.aspx.cs" Inherits="migrate_database" %>
+<%@ Page Language="C#" AutoEventWireup="true" CodeFile="migrate-database.aspx.cs" Inherits="migrate_database" ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
 
 <!DOCTYPE html>
 <html>
@@ -17,4 +17,5 @@
     </form>
 </body>
 </html>
+
 

@@ -6,6 +6,11 @@ public partial class exuserdetails : System.Web.UI.Page
 {
     protected void Page_Load(object sender, EventArgs e)
     {
+        Response.ContentType = "text/html; charset=utf-8";
+        Response.Charset = "utf-8";
+        Response.ContentEncoding = System.Text.Encoding.UTF8;
+        Response.HeaderEncoding = System.Text.Encoding.UTF8;
+        
         // אם אין סשן — שולח לכניסה
         if (Session["username"] == null)
         {
@@ -83,7 +88,6 @@ public partial class exuserdetails : System.Web.UI.Page
     {
         if (row == null || row.Table == null) return string.Empty;
 
-        // מאתר עמודה גם אם אותיות לא תואמות
         var col = row.Table.Columns
             .Cast<DataColumn>()
             .FirstOrDefault(c => c.ColumnName.Trim().ToLower() == columnName.ToLower());
@@ -91,7 +95,10 @@ public partial class exuserdetails : System.Web.UI.Page
         if (col == null) return string.Empty;
 
         object val = row[col.ColumnName];
-        return val == null || val == DBNull.Value ? string.Empty : Convert.ToString(val);
+        if (val == null || val == DBNull.Value) return string.Empty;
+        
+        string result = Convert.ToString(val);
+        return Connect.FixEncoding(result);
     }
 
     private string GetCity(DataRow row)
@@ -101,8 +108,12 @@ public partial class exuserdetails : System.Web.UI.Page
         string[] names = { "CityName", "cityname", "city" };
 
         foreach (var n in names)
-            if (row.Table.Columns.Contains(n))
-                return SafeGet(row, n);
+        {
+            if (row.Table.Columns.Contains(n) && row[n] != DBNull.Value && row[n] != null)
+            {
+                return Connect.FixEncoding(Convert.ToString(row[n]));
+            }
+        }
 
         return string.Empty;
     }

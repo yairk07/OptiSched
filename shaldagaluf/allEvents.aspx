@@ -3,7 +3,7 @@
     AutoEventWireup="true" 
     CodeFile="allEvents.aspx.cs" 
     Inherits="allEvents" 
-    ResponseEncoding="utf-8" %>
+    ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server"></asp:Content>
 
@@ -41,7 +41,8 @@
             <asp:DataList ID="dlEvents" runat="server" 
                       RepeatLayout="Table" 
                       RepeatDirection="Vertical"
-                      CssClass="events-table">
+                      CssClass="events-table"
+                      OnItemDataBound="dlEvents_ItemDataBound">
                 <HeaderTemplate>
                     <table class="events-table">
                         <thead>
@@ -59,13 +60,13 @@
                 </HeaderTemplate>
                 <ItemTemplate>
                             <tr>
-                                <td><%# Eval("Title") %></td>
-                                <td><%# Eval("UserName") %> (#<%# Eval("UserId") %>)</td>
-                                <td><%# Eval("EventDate", "{0:dd/MM/yyyy}") %></td>
-                                <td><%# Eval("EventTime") %></td>
-                                <td><%# (Eval("Category") != null && Eval("Category") != DBNull.Value && !string.IsNullOrWhiteSpace(Eval("Category").ToString())) ? Eval("Category") : "אחר" %></td>
-                                <td><%# Eval("Notes") %></td>
-                                <td><a href='editEvent.aspx?id=<%# Eval("Id") %>' class="edit-link">ערוך</a></td>
+                                <td><asp:Literal ID="litTitle" runat="server" /></td>
+                                <td><asp:Literal ID="litUserName" runat="server" /></td>
+                                <td><asp:Literal ID="litEventDate" runat="server" /></td>
+                                <td><asp:Literal ID="litEventTime" runat="server" /></td>
+                                <td><asp:Literal ID="litCategory" runat="server" /></td>
+                                <td><asp:Literal ID="litNotes" runat="server" /></td>
+                                <td><asp:HyperLink ID="lnkEdit" runat="server" CssClass="edit-link" Text="ערוך" /></td>
                             </tr>
                 </ItemTemplate>
                 <FooterTemplate>

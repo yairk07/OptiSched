@@ -1,4 +1,4 @@
-﻿<%@ Page Title="הרשמה" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="register.aspx.cs" Inherits="register" ResponseEncoding="utf-8" %>
+﻿<%@ Page Title="הרשמה" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="register.aspx.cs" Inherits="register" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" Runat="Server">
 </asp:Content>
@@ -13,11 +13,6 @@
 
             <div class="register-form-container">
                 <asp:Label ID="lblMessage" runat="server" CssClass="form-message"></asp:Label>
-
-                <asp:Button ID="btnGoogleSignup" runat="server" Text="הירשם עם Google" OnClick="btnGoogleSignup_Click" CssClass="google-button" />
-                <div class="auth-divider">
-                    <span>או</span>
-                </div>
 
                 <div class="form-row">
                     <div class="form-group">

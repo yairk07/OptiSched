@@ -1,4 +1,4 @@
-<%@ Page Title="התחברות עם קוד" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="login-with-code.aspx.cs" Inherits="login_with_code" Culture="he-IL" UICulture="he-IL" ResponseEncoding="utf-8" %>
+<%@ Page Title="התחברות עם קוד" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="login-with-code.aspx.cs" Inherits="login_with_code" Culture="he-IL" UICulture="he-IL" ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" Runat="Server">
     <meta charset="utf-8" />

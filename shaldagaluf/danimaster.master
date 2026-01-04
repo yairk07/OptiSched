@@ -3,7 +3,7 @@
 <!DOCTYPE html>
 <html lang="he">
 <head runat="server">
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OptiSched</title>
     
@@ -33,11 +33,11 @@
                 </div>
 
                 <nav class="nav-bar">
-                    <a href="home.aspx" runat="server" id="linkHome">בית</a>
+                    <a href="home.aspx">בית</a>
                     <a href="register.aspx" runat="server" id="linkRegister">הרשמה</a>
                     <a href="tasks.aspx" runat="server" id="linkTasks">טופס משימות</a>
                     <a href="sharedCalendars.aspx" runat="server" id="linkSharedCalendars">טבלאות משותפות</a>
-                    <a href="contactus.aspx" runat="server" id="linkContact">צור קשר</a>
+                    <a href="contactus.aspx">צור קשר</a>
                     <a href="contant.aspx" runat="server" id="linkContent">תוכן</a>
                     <a href="login.aspx" runat="server" id="linkLogin">כניסה</a>
                     <a href="termofservice.aspx" runat="server" id="linkTerms">תנאי שירות</a>

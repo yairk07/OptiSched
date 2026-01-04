@@ -1,4 +1,4 @@
-﻿<%@ Page Title="תנאי שירות" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="termofservice.aspx.cs" Inherits="termsofservice" ResponseEncoding="utf-8" %>
+﻿<%@ Page Title="תנאי שירות" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="termofservice.aspx.cs" Inherits="termsofservice" ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" Runat="Server">
 </asp:Content>

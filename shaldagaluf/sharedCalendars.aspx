@@ -1,4 +1,4 @@
-﻿<%@ Page Title="טבלאות משותפות" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="sharedCalendars.aspx.cs" Inherits="sharedCalendars" ResponseEncoding="utf-8" %>
+﻿<%@ Page Title="טבלאות משותפות" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="sharedCalendars.aspx.cs" Inherits="sharedCalendars" ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" Runat="Server">
 </asp:Content>
@@ -54,9 +54,7 @@
                                 </div>
                             </div>
                             <div class="calendar-card-footer">
-                                <%# Convert.ToInt32(Eval("IsMember") ?? 0) == 1 || Convert.ToInt32(Eval("IsAdmin") ?? 0) == 1
-                                    ? "<a href='sharedCalendarDetails.aspx?id=" + Eval("CalendarId") + "' class='btn-view'>צפה בטבלה</a>"
-                                    : "<a href='sharedCalendarDetails.aspx?id=" + Eval("CalendarId") + "' class='btn-join'>הצטרף</a>" %>
+                                <%# GetCalendarActionButton(Container.DataItem) %>
                             </div>
                         </div>
                     </ItemTemplate>
@@ -305,9 +303,31 @@
             transition: background .2s ease;
         }
 
-        .btn-view:hover, .btn-join:hover {
+        .btn-view:hover, .btn-join:hover, .btn-request:hover {
             background: var(--brand-dark);
             text-decoration: none;
+        }
+
+        .btn-request {
+            display: inline-block;
+            padding: 10px 20px;
+            background: var(--brand);
+            color: #fff;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background .2s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-requested {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #666;
+            color: #fff;
+            border-radius: 8px;
+            font-weight: 600;
         }
 
         @media (max-width: 768px) {
@@ -316,4 +336,17 @@
             }
         }
     </style>
+
+    <script type="text/javascript">
+        function requestAccess(calendarId) {
+            console.log('requestAccess called with calendarId:', calendarId);
+            if (confirm('האם אתה בטוח שברצונך לבקש גישה לטבלה זו?')) {
+                console.log('User confirmed, redirecting to:', 'sharedCalendars.aspx?requestAccess=' + calendarId);
+                // Use simple query string approach
+                window.location.href = 'sharedCalendars.aspx?requestAccess=' + calendarId;
+            } else {
+                console.log('User cancelled');
+            }
+        }
+    </script>
 </asp:Content>

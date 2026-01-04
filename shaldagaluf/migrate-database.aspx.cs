@@ -8,6 +8,7 @@ public partial class migrate_database : System.Web.UI.Page
         Response.ContentType = "text/html; charset=utf-8";
         Response.Charset = "utf-8";
         Response.ContentEncoding = System.Text.Encoding.UTF8;
+        Response.HeaderEncoding = System.Text.Encoding.UTF8;
     }
 
     protected void btnMigrate_Click(object sender, EventArgs e)
@@ -44,4 +45,7 @@ public partial class migrate_database : System.Web.UI.Page
         }
     }
 }
+
+
+
 

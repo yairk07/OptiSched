@@ -1,5 +1,5 @@
 ﻿<%@ Page Title="עריכת אירוע" Language="C#" MasterPageFile="~/danimaster.master"
-    AutoEventWireup="true" CodeFile="editEvent.aspx.cs" Inherits="editEvent" ResponseEncoding="utf-8" %>
+    AutoEventWireup="true" CodeFile="editEvent.aspx.cs" Inherits="editEvent" ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
 
 <asp:Content ID="head" ContentPlaceHolderID="head" runat="server"></asp:Content>
 

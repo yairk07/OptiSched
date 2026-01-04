@@ -7,29 +7,11 @@ public partial class register : System.Web.UI.Page
 {
     protected void Page_Load(object sender, EventArgs e)
     {
-        Response.ContentType = "text/html; charset=utf-8";
-        Response.Charset = "utf-8";
-        Response.ContentEncoding = System.Text.Encoding.UTF8;
-        
         lblMessage.Text = "";
 
         if (!IsPostBack)
         {
-            BindCities();
-        }
-    }
-
-    protected void btnGoogleSignup_Click(object sender, EventArgs e)
-    {
-        try
-        {
-            string authUrl = GoogleOAuthService.GetAuthorizationUrl();
-            Response.Redirect(authUrl);
-        }
-        catch (Exception ex)
-        {
-            lblMessage.Text = "שגיאה בהרשמה עם Google: " + ex.Message;
-            lblMessage.ForeColor = System.Drawing.Color.Red;
+            BindCities();   // טוען ערים מהטבלה Citys
         }
     }
 
@@ -85,15 +67,6 @@ public partial class register : System.Web.UI.Page
             return;
         }
 
-        UsersService us = new UsersService();
-        DataRow existingUser = us.GetUserByEmail(email);
-        if (existingUser != null)
-        {
-            lblMessage.Text = "כתובת האימייל כבר קיימת במערכת. אנא השתמש באימייל אחר או התחבר לחשבון הקיים.";
-            lblMessage.ForeColor = System.Drawing.Color.Red;
-            return;
-        }
-
         // המרות מספריות מאובטחות
         if (!int.TryParse(genderStr, out int gender) ||
             !int.TryParse(cityStr, out int city) ||
@@ -116,20 +89,12 @@ public partial class register : System.Web.UI.Page
             YearOfBirth = yearOfBirth,
             UserId = id,
             PhoneNum = phone,
-            City = city
+            City = city              // <-- תמיד ה-id מטבלת Citys
         };
 
         user.insertintodb();
 
-        try
-        {
-            EmailService.SendRegistrationEmail(email, firstName);
-        }
-        catch
-        {
-        }
-
-        lblMessage.Text = "הרישום בוצע בהצלחה! נשלח לך אימייל אישור.";
+        lblMessage.Text = "הרישום בוצע בהצלחה!";
         lblMessage.ForeColor = System.Drawing.Color.Green;
     }
 }

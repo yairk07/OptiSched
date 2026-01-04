@@ -1,5 +1,5 @@
 ﻿<%@ Page Title="פרטי משתמש" Language="C#" MasterPageFile="~/danimaster.master"
-    AutoEventWireup="true" CodeFile="exuserdetails.aspx.cs" Inherits="exuserdetails" ResponseEncoding="utf-8" %>
+    AutoEventWireup="true" CodeFile="exuserdetails.aspx.cs" Inherits="exuserdetails" ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
 </asp:Content>

@@ -1,6 +1,7 @@
-﻿<%@ Page Title="טבלה משותפת" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="sharedCalendarDetails.aspx.cs" Inherits="sharedCalendarDetails" Debug="true" ResponseEncoding="utf-8" %>
+﻿<%@ Page Title="טבלה משותפת" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="sharedCalendarDetails.aspx.cs" Inherits="sharedCalendarDetails" Debug="true" ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" Runat="Server">
+    <script src="tasks-text-parser.js"></script>
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="ContentPlaceHolder1" Runat="Server">
@@ -68,8 +69,24 @@
                                 <asp:TextBox ID="txtEventNotes" runat="server" TextMode="MultiLine" Rows="3" CssClass="form-input" placeholder="הערות נוספות"></asp:TextBox>
                             </div>
                             <div class="form-actions">
-                                <asp:Button ID="btnSaveEvent" runat="server" Text="שמור אירוע" OnClick="btnSaveEvent_Click" CssClass="btn-save" />
-                                <asp:Button ID="btnCancelEvent" runat="server" Text="ביטול" OnClick="btnCancelEvent_Click" CssClass="btn-cancel" />
+                                <asp:Button ID="btnSaveEvent" runat="server" Text="שמור אירוע" OnClick="btnSaveEvent_Click" CssClass="btn-save" UseSubmitBehavior="true" />
+                                <asp:Button ID="btnCancelEvent" runat="server" Text="ביטול" OnClick="btnCancelEvent_Click" CssClass="btn-cancel" UseSubmitBehavior="true" />
+                                <asp:Label ID="lblSaveError" runat="server" CssClass="form-error" Visible="false" />
+                            </div>
+
+                            <div class="text-converter-section" style="margin-top: 30px; padding-top: 30px; border-top: 2px solid var(--border);">
+                                <h3 style="margin-bottom: 15px; color: var(--heading);">הדבק טקסט להמרה לאירועים</h3>
+                                <textarea id="txtPasteText" class="form-input" rows="8" placeholder="הדבק כאן טקסט בעברית עם תאריכים ושעות...&#10;&#10;לוגיקה: תאריכים (DD.MM), שעות (HH:MM-HH:MM), מיקומים (ב-, במושב), כותרת, תיאור. כל שורת תאריך = אירוע חדש.&#10;&#10;דוגמה:&#10;25.12&#10;כותרת האירוע&#10;מיקום&#10;19:00-21:00" style="width: 100%; margin-bottom: 10px;"></textarea>
+                                <button type="button" id="btnParseText" class="btn-add-event" style="margin-top: 10px;">המר לאירועים</button>
+                            </div>
+
+                            <div id="parsedEventsContainer" style="display: none; margin-top: 20px; background: var(--surface); border-radius: 12px; padding: 20px; border: 1px solid var(--border);">
+                                <div class="calendar-meta-line">
+                                    <span class="meta-label" style="font-weight: 600; color: var(--heading); display: block; margin-bottom: 15px;">אירועים שנוצרו:</span>
+                                    <div id="parsedEventsList" style="max-height: 400px; overflow-y: auto; margin-top: 10px;"></div>
+                                    <button type="button" id="btnSaveParsedEvents" class="btn-add-event" style="margin-top: 15px;">שמור את כל האירועים</button>
+                                    <button type="button" id="btnCancelParsedEvents" class="btn-cancel" style="margin-top: 10px;">ביטול</button>
+                                </div>
                             </div>
                         </asp:Panel>
 
@@ -78,41 +95,38 @@
                         </div>
 
                         <div class="events-table-container">
-                        <asp:DataList ID="dlEvents" runat="server" RepeatLayout="Table" CssClass="events-table">
-                            <HeaderTemplate>
-                                <table class="events-table">
-                                    <thead>
-                                        <tr>
-                                            <th>כותרת</th>
-                                            <th>תאריך</th>
-                                            <th>שעה</th>
-                                            <th>קטגוריה</th>
-                                            <th>הערות</th>
-                                            <th>נוצר על ידי</th>
-                                            <th>פעולות</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                            </HeaderTemplate>
+                        <table class="events-table">
+                            <thead>
+                                <tr>
+                                    <th>כותרת</th>
+                                    <th>תאריך</th>
+                                    <th>שעה</th>
+                                    <th>קטגוריה</th>
+                                    <th>הערות</th>
+                                    <th>נוצר על ידי</th>
+                                    <th>פעולות</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                        <asp:Repeater ID="dlEvents" runat="server">
                             <ItemTemplate>
-                                        <tr>
-                                            <td><%# GetSafeString(Eval("Title"), "ללא כותרת") %></td>
-                                            <td><%# GetSafeDate(Eval("EventDate")) %></td>
-                                            <td><%# GetSafeString(Eval("EventTime"), "—") %></td>
-                                            <td><%# GetSafeString(Eval("Category"), "אחר") %></td>
-                                            <td><%# GetSafeString(Eval("Notes"), "—") %></td>
-                                            <td><%# GetSafeString(Eval("CreatedByName"), "ללא שם") %></td>
-                                            <td>
-                                                <asp:LinkButton ID="lnkEdit" runat="server" CommandArgument='<%# Eval("Id") %>' OnClick="lnkEdit_Click" CssClass="edit-link">ערוך</asp:LinkButton>
-                                                <asp:LinkButton ID="lnkDelete" runat="server" CommandArgument='<%# Eval("Id") %>' OnClick="lnkDelete_Click" CssClass="delete-link" OnClientClick="return confirm('האם אתה בטוח שברצונך למחוק את האירוע?');">מחק</asp:LinkButton>
-                                            </td>
-                                        </tr>
+                                <tr>
+                                    <td><%# GetSafeString(Eval("Title"), "ללא כותרת") %></td>
+                                    <td><%# GetSafeDate(Eval("EventDate")) %></td>
+                                    <td><%# GetSafeString(Eval("EventTime"), "—") %></td>
+                                    <td><%# GetSafeString(Eval("Category"), "אחר") %></td>
+                                    <td><%# GetSafeString(Eval("Notes"), "—") %></td>
+                                    <td><%# GetSafeString(Eval("CreatedByName"), "ללא שם") %></td>
+                                    <td>
+                                        <asp:LinkButton ID="lnkEdit" runat="server" CommandArgument='<%# Eval("Id") %>' OnClick="lnkEdit_Click" CssClass="edit-link">ערוך</asp:LinkButton>
+                                        <asp:LinkButton ID="lnkDelete" runat="server" CommandArgument='<%# Eval("Id") %>' OnClick="lnkDelete_Click" CssClass="delete-link" OnClientClick="return confirm('האם אתה בטוח שברצונך למחוק את האירוע?');">מחק</asp:LinkButton>
+                                    </td>
+                                </tr>
                             </ItemTemplate>
-                            <FooterTemplate>
-                                    </tbody>
-                                </table>
-                            </FooterTemplate>
-                        </asp:DataList>
+                        </asp:Repeater>
+                            </tbody>
+                        </table>
+                        <asp:Label ID="lblNoEvents" runat="server" Text="אין אירועים להצגה" CssClass="no-events-message" Visible="false" />
                         </div>
                     </asp:Panel>
 
@@ -248,6 +262,82 @@
             cursor: pointer;
         }
 
+        .events-table-container {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .events-table {
+            width: 100%;
+            border-collapse: collapse;
+            direction: rtl;
+        }
+
+        .events-table thead {
+            background: var(--bg);
+            border-bottom: 2px solid var(--border);
+        }
+
+        .events-table th {
+            padding: 12px 16px;
+            text-align: right;
+            font-weight: 600;
+            color: var(--heading);
+            font-size: 15px;
+        }
+
+        .events-table td {
+            padding: 12px 16px;
+            text-align: right;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .events-table tbody tr:hover {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .events-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .edit-link, .delete-link {
+            margin-left: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .edit-link {
+            color: var(--brand);
+        }
+
+        .edit-link:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .delete-link {
+            color: #ff6b6b;
+        }
+
+        .delete-link:hover {
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .no-events-message {
+            display: block;
+            text-align: center;
+            padding: 40px;
+            color: var(--text);
+            opacity: 0.6;
+            font-size: 16px;
+        }
 
         .requests-list {
             display: flex;
@@ -362,6 +452,56 @@
             font-weight: 600;
         }
 
+        .form-error {
+            display: block;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 16px;
+            text-align: center;
+            font-weight: 600;
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .text-converter-section {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .text-converter-section h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        #parsedEventsList {
+            background: rgba(0,0,0,0.02);
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .parsed-event-item {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .parsed-event-item strong {
+            color: var(--brand);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .parsed-event-item span {
+            font-size: 13px;
+            color: var(--text);
+            opacity: 0.8;
+        }
+
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -373,4 +513,126 @@
             }
         }
     </style>
+
+    <script>
+        (function() {
+            const pasteTextarea = document.getElementById('txtPasteText');
+            const parseBtn = document.getElementById('btnParseText');
+            const parsedEventsContainer = document.getElementById('parsedEventsContainer');
+            const parsedEventsList = document.getElementById('parsedEventsList');
+            const saveBtn = document.getElementById('btnSaveParsedEvents');
+            const cancelBtn = document.getElementById('btnCancelParsedEvents');
+            let parsedEvents = [];
+
+            if (parseBtn && pasteTextarea) {
+                parseBtn.addEventListener('click', function() {
+                    const text = pasteTextarea.value.trim();
+                    if (!text) {
+                        alert('אנא הדבק טקסט להמרה');
+                        return;
+                    }
+
+                    if (typeof window.TextEventParser === 'undefined') {
+                        alert('שגיאה: ספריית המרת הטקסט לא נטענה. אנא רענן את הדף.');
+                        return;
+                    }
+
+                    parsedEvents = window.TextEventParser.parseText(text);
+                    
+                    if (parsedEvents.length === 0) {
+                        alert('לא נמצאו אירועים בטקסט. אנא ודא שהטקסט מכיל תאריכים בפורמט: יום א 25.12');
+                        return;
+                    }
+
+                    displayParsedEvents(parsedEvents);
+                });
+            }
+
+            function displayParsedEvents(events) {
+                if (!parsedEventsList || !parsedEventsContainer) return;
+                
+                parsedEventsList.innerHTML = '';
+                
+                events.forEach(function(event, index) {
+                    const eventDiv = document.createElement('div');
+                    eventDiv.className = 'parsed-event-item';
+                    
+                    let html = '<strong>' + (event.title || 'אירוע ללא כותרת') + '</strong>';
+                    html += '<span>תאריך: ' + (event.date || 'לא צוין') + '</span>';
+                    if (event.startTime || event.endTime) {
+                        html += '<br><span>שעה: ';
+                        if (event.startTime && event.endTime) {
+                            html += event.startTime + ' - ' + event.endTime;
+                        } else if (event.startTime) {
+                            html += event.startTime;
+                        }
+                        html += '</span>';
+                    }
+                    if (event.location) {
+                        html += '<br><span>מיקום: ' + event.location + '</span>';
+                    }
+                    if (event.description) {
+                        html += '<br><span>תיאור: ' + event.description + '</span>';
+                    }
+                    
+                    eventDiv.innerHTML = html;
+                    parsedEventsList.appendChild(eventDiv);
+                });
+                
+                parsedEventsContainer.style.display = 'block';
+            }
+
+            if (saveBtn) {
+                saveBtn.addEventListener('click', function() {
+                    if (parsedEvents.length === 0) {
+                        alert('אין אירועים לשמירה');
+                        return;
+                    }
+
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = window.location.href;
+
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'parsedEventsJson';
+                    input.value = JSON.stringify(parsedEvents);
+                    form.appendChild(input);
+
+                    const viewState = document.querySelector('input[name="__VIEWSTATE"]');
+                    if (viewState) {
+                        const viewStateInput = document.createElement('input');
+                        viewStateInput.type = 'hidden';
+                        viewStateInput.name = '__VIEWSTATE';
+                        viewStateInput.value = viewState.value;
+                        form.appendChild(viewStateInput);
+                    }
+
+                    const eventValidation = document.querySelector('input[name="__EVENTVALIDATION"]');
+                    if (eventValidation) {
+                        const eventValidationInput = document.createElement('input');
+                        eventValidationInput.type = 'hidden';
+                        eventValidationInput.name = '__EVENTVALIDATION';
+                        eventValidationInput.value = eventValidation.value;
+                        form.appendChild(eventValidationInput);
+                    }
+
+                    document.body.appendChild(form);
+                    form.submit();
+                });
+            }
+
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function() {
+                    if (parsedEventsContainer) {
+                        parsedEventsContainer.style.display = 'none';
+                    }
+                    if (pasteTextarea) {
+                        pasteTextarea.value = '';
+                    }
+                    parsedEvents = [];
+                });
+            }
+        })();
+    </script>
 </asp:Content>

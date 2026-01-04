@@ -1,66 +1,32 @@
 ﻿using System;
 using System.Data.OleDb;
-using System.Web;
 using System.Web.UI;
+using System.Security.Cryptography;
+using System.Text;
 
 public partial class login : System.Web.UI.Page
 {
     protected void Page_Load(object sender, EventArgs e)
     {
-        Response.ContentType = "text/html; charset=utf-8";
-        Response.Charset = "utf-8";
-        Response.ContentEncoding = System.Text.Encoding.UTF8;
-        
-        string action = Request.QueryString["action"];
-        
-        if (action == "google-login")
-        {
-            StartGoogleOAuth();
-            return;
-        }
-
         if (Session["username"] != null)
         {
             Response.Redirect("home.aspx");
             return;
         }
-
-        string error = Request.QueryString["error"];
-        if (!string.IsNullOrEmpty(error))
-        {
-            lblError.Text = HttpUtility.UrlDecode(error);
-        }
     }
 
-    private void StartGoogleOAuth()
+    private string HashPassword(string password)
     {
-        try
+        using (SHA256 sha256 = SHA256.Create())
         {
-            Session.Remove("OAuthState");
-            Session.Remove("QuickLoginEmail");
-            
-            string authUrl = GoogleOAuthService.GetAuthorizationUrl();
-            
-            if (string.IsNullOrEmpty(authUrl))
+            byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < bytes.Length; i++)
             {
-                Response.Redirect("login.aspx?error=" + HttpUtility.UrlEncode("לא ניתן ליצור כתובת OAuth"), false);
-                Context.ApplicationInstance.CompleteRequest();
-                return;
+                builder.Append(bytes[i].ToString("x2"));
             }
-            
-            Response.Redirect(authUrl, false);
-            Context.ApplicationInstance.CompleteRequest();
+            return builder.ToString();
         }
-        catch (Exception ex)
-        {
-            Response.Redirect("login.aspx?error=" + HttpUtility.UrlEncode("שגיאה בהתחברות עם Google: " + ex.Message), false);
-            Context.ApplicationInstance.CompleteRequest();
-        }
-    }
-
-    protected void btnGoogleLogin_Click(object sender, EventArgs e)
-    {
-        StartGoogleOAuth();
     }
 
     protected void btnLogin_Click(object sender, EventArgs e)
@@ -68,7 +34,7 @@ public partial class login : System.Web.UI.Page
         string username = txtUserName.Text.Trim();
         string password = txtPassword.Text.Trim();
 
-        string hashedPassword = PasswordHelper.HashPassword(password);
+        string hashedPassword = HashPassword(password);
 
         string connStr = Connect.GetConnectionString();
 
@@ -76,151 +42,49 @@ public partial class login : System.Web.UI.Page
         {
             conn.Open();
 
-            // DSD Schema: Use SELECT * to handle both old and new column names during migration
-            string sql = "SELECT * FROM Users WHERE (UserName=? OR userName=?)";
-            
-            using (OleDbCommand cmd = new OleDbCommand(sql, conn))
+            string sql = "SELECT id, userName, role, [password] FROM Users WHERE userName=?";
+            OleDbCommand cmd = new OleDbCommand(sql, conn);
+            cmd.Parameters.AddWithValue("?", username);
+
+            OleDbDataReader dr = cmd.ExecuteReader();
+
+            if (dr.Read())
             {
-                OleDbParameter userNameParam1 = new OleDbParameter("?", OleDbType.WChar);
-                userNameParam1.Value = username?.Trim() ?? "";
-                cmd.Parameters.Add(userNameParam1);
+                string dbPassword = dr["password"]?.ToString() ?? "";
                 
-                OleDbParameter userNameParam2 = new OleDbParameter("?", OleDbType.WChar);
-                userNameParam2.Value = username?.Trim() ?? "";
-                cmd.Parameters.Add(userNameParam2);
-
-                using (OleDbDataReader dr = cmd.ExecuteReader())
+                bool passwordMatch = false;
+                
+                if (dbPassword.Length == 64 && System.Text.RegularExpressions.Regex.IsMatch(dbPassword, @"^[a-f0-9]{64}$"))
                 {
-                    if (dr.Read())
+                    passwordMatch = (dbPassword == hashedPassword);
+                }
+                else
+                {
+                    passwordMatch = (dbPassword == password);
+                    
+                    if (passwordMatch)
                     {
-                        // DSD Schema: Use PasswordHash column (try new first, fallback to old during migration)
-                        string dbPassword = "";
-                        try
-                        {
-                            dbPassword = dr["PasswordHash"]?.ToString() ?? "";
-                        }
-                        catch
-                        {
-                            try
-                            {
-                                dbPassword = dr["password"]?.ToString() ?? "";
-                            }
-                            catch { }
-                        }
-                        
-                        bool passwordMatch = false;
-                        
-                        if (dbPassword.Length == 64 && System.Text.RegularExpressions.Regex.IsMatch(dbPassword, @"^[a-f0-9]{64}$"))
-                        {
-                            passwordMatch = (dbPassword == hashedPassword);
-                        }
-                        else
-                        {
-                            passwordMatch = (dbPassword == password);
-                            
-                            if (passwordMatch)
-                            {
-                                // DSD Schema: Update PasswordHash column
-                                int userId = 0;
-                                try
-                                {
-                                    userId = Convert.ToInt32(dr["Id"]);
-                                }
-                                catch
-                                {
-                                    userId = Convert.ToInt32(dr["id"]);
-                                }
-                                
-                                string updateSql = "UPDATE Users SET PasswordHash=?, [password]=? WHERE Id=?";
-                                using (OleDbCommand updateCmd = new OleDbCommand(updateSql, conn))
-                                {
-                                    OleDbParameter passwordHashParam = new OleDbParameter("?", OleDbType.WChar);
-                                    passwordHashParam.Value = hashedPassword ?? "";
-                                    updateCmd.Parameters.Add(passwordHashParam);
-                                    
-                                    OleDbParameter passwordParam = new OleDbParameter("?", OleDbType.WChar);
-                                    passwordParam.Value = hashedPassword ?? "";
-                                    updateCmd.Parameters.Add(passwordParam);
-                                    
-                                    OleDbParameter idParam = new OleDbParameter("?", OleDbType.Integer);
-                                    idParam.Value = userId;
-                                    updateCmd.Parameters.Add(idParam);
-                                    updateCmd.ExecuteNonQuery();
-                                }
-                            }
-                        }
-
-                        if (passwordMatch)
-                        {
-                            // DSD Schema: Use UserName, Role, Id columns (try new first, fallback to old during migration)
-                            string userName = "";
-                            string role = "";
-                            string userIdStr = "";
-                            
-                            try
-                            {
-                                userName = dr["UserName"].ToString();
-                            }
-                            catch
-                            {
-                                userName = dr["userName"].ToString();
-                            }
-                            
-                            try
-                            {
-                                role = dr["Role"]?.ToString() ?? "user";
-                            }
-                            catch
-                            {
-                                role = dr["role"]?.ToString() ?? "user";
-                            }
-                            
-                            try
-                            {
-                                userIdStr = dr["Id"].ToString();
-                            }
-                            catch
-                            {
-                                userIdStr = dr["id"].ToString();
-                            }
-                            
-                            Session["username"] = Connect.FixEncoding(userName);
-                            Session["Role"] = Connect.FixEncoding(role);
-                            Session["userId"] = userIdStr;
-                            Session["loggedIn"] = true;
-
-                            Response.Redirect("home.aspx");
-                            return;
-                        }
+                        string updateSql = "UPDATE Users SET [password]=? WHERE id=?";
+                        OleDbCommand updateCmd = new OleDbCommand(updateSql, conn);
+                        updateCmd.Parameters.AddWithValue("?", hashedPassword);
+                        updateCmd.Parameters.AddWithValue("?", dr["id"]);
+                        updateCmd.ExecuteNonQuery();
                     }
+                }
+
+                if (passwordMatch)
+                {
+                    Session["username"] = dr["userName"].ToString();
+                    Session["Role"] = dr["role"]?.ToString() ?? "user";
+                    Session["userId"] = dr["id"].ToString();
+                    Session["loggedIn"] = true;
+
+                    Response.Redirect("home.aspx");
+                    return;
                 }
             }
             
             lblError.Text = "שם משתמש או סיסמה שגויים.";
-        }
-    }
-
-    protected string GetGoogleAuthUrl()
-    {
-        try
-        {
-            return GoogleOAuthService.GetAuthorizationUrl();
-        }
-        catch
-        {
-            return "login.aspx?error=" + HttpUtility.UrlEncode("שגיאה בהתחברות עם Google");
-        }
-    }
-    
-    protected string GetGoogleQuickLoginUrl(string email)
-    {
-        try
-        {
-            return GoogleOAuthService.GetQuickLoginUrl(email);
-        }
-        catch
-        {
-            return GetGoogleAuthUrl();
         }
     }
 }

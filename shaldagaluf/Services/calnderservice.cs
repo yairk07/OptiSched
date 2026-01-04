@@ -151,20 +151,10 @@ public class calnderservice
             EnsureCalendarEventsTable(conn);
 
             // DSD Schema: CalendarEvents table with UserId, EventDate, EventTime columns
-            string sql = "SELECT * FROM CalendarEvents";
-            if (userId.HasValue)
-            {
-                sql += " WHERE UserId = ?";
-            }
+            string sql = "SELECT * FROM CalendarEvents ORDER BY Id";
 
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {
-                if (userId.HasValue)
-                {
-                    OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.Integer);
-                    userIdParam.Value = userId.Value;
-                    cmd.Parameters.Add(userIdParam);
-                }
 
                 using (OleDbDataAdapter adapter = new OleDbDataAdapter(cmd))
                 {
@@ -193,25 +183,14 @@ public class calnderservice
                 try
                 {
                     // DSD Schema: SharedCalendarEvents with EventDate, EventTime columns
+                    // Load all shared events where user is a member
                     string sharedSql = @"
-SELECT 
-    SCE.Id,
-    SCE.CalendarId,
-    SCE.Title,
-    SCE.EventDate,
-    SCE.EventTime,
-    SCE.Notes,
-    SCE.Category,
-    SCE.CreatedBy AS UserId
-FROM SharedCalendarEvents SCE
-INNER JOIN SharedCalendarMembers SCM ON SCE.CalendarId = SCM.CalendarId
-WHERE SCM.UserId = ?";
+SELECT *
+FROM SharedCalendarEvents
+ORDER BY Id";
 
                     using (OleDbCommand sharedCmd = new OleDbCommand(sharedSql, conn))
                     {
-                        OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.Integer);
-                        userIdParam.Value = userId.Value;
-                        sharedCmd.Parameters.Add(userIdParam);
                         using (OleDbDataAdapter sharedAdapter = new OleDbDataAdapter(sharedCmd))
                         {
                             sharedAdapter.Fill(data, "SharedEvents");

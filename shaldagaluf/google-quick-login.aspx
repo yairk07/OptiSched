@@ -1,4 +1,4 @@
-<%@ Page Language="C#" AutoEventWireup="true" CodeFile="google-quick-login.aspx.cs" Inherits="google_quick_login" ResponseEncoding="utf-8" %>
+<%@ Page Language="C#" AutoEventWireup="true" CodeFile="google-quick-login.aspx.cs" Inherits="google_quick_login" ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
 
 <!DOCTYPE html>
 <html dir="rtl">

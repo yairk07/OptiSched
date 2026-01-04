@@ -16,6 +16,7 @@ public partial class tasks : System.Web.UI.Page
         Response.ContentType = "text/html; charset=utf-8";
         Response.Charset = "utf-8";
         Response.ContentEncoding = System.Text.Encoding.UTF8;
+        Response.HeaderEncoding = System.Text.Encoding.UTF8;
         
         string deleteEventId = Request.Form["deleteEventId"];
         if (!string.IsNullOrEmpty(deleteEventId) && int.TryParse(deleteEventId, out int eventId))
@@ -257,18 +258,32 @@ public partial class tasks : System.Web.UI.Page
         {
             foreach (DataRow row in table.Rows)
             {
-                if (row.IsNull("date"))
+                string dateColumn = row.Table.Columns.Contains("EventDate") ? "EventDate" : (row.Table.Columns.Contains("date") ? "date" : "EventDate");
+                
+                if (row.IsNull(dateColumn))
                     continue;
 
                 DateTime eventDate;
-                if (!DateTime.TryParse(row["date"].ToString(), out eventDate))
+                if (!row.Table.Columns.Contains(dateColumn) || row[dateColumn] == DBNull.Value || row[dateColumn] == null)
+                    continue;
+                    
+                if (!DateTime.TryParse(row[dateColumn].ToString(), out eventDate))
                     continue;
                 if (eventDate.Date == date.Date)
                 {
-                    string title = HttpUtility.HtmlEncode(Connect.FixEncoding(row["title"].ToString()));
-                    string time = HttpUtility.HtmlEncode(Connect.FixEncoding(row["time"]?.ToString() ?? ""));
-                    string note = HttpUtility.HtmlEncode(Connect.FixEncoding(row["notes"]?.ToString() ?? ""));
-                    string category = HttpUtility.HtmlEncode(Connect.FixEncoding(row["category"]?.ToString() ?? "אחר"));
+                    string titleColumn = row.Table.Columns.Contains("Title") ? "Title" : (row.Table.Columns.Contains("title") ? "title" : "Title");
+                    string timeColumn = row.Table.Columns.Contains("EventTime") ? "EventTime" : (row.Table.Columns.Contains("time") ? "time" : "EventTime");
+                    string notesColumn = row.Table.Columns.Contains("Notes") ? "Notes" : (row.Table.Columns.Contains("notes") ? "notes" : "Notes");
+                    string categoryColumn = row.Table.Columns.Contains("Category") ? "Category" : (row.Table.Columns.Contains("category") ? "category" : "Category");
+                    
+                    string title = row.Table.Columns.Contains(titleColumn) && row[titleColumn] != DBNull.Value && row[titleColumn] != null 
+                        ? HttpUtility.HtmlEncode(Connect.FixEncoding(row[titleColumn].ToString())) : "";
+                    string time = row.Table.Columns.Contains(timeColumn) && row[timeColumn] != DBNull.Value && row[timeColumn] != null 
+                        ? HttpUtility.HtmlEncode(Connect.FixEncoding(row[timeColumn].ToString())) : "";
+                    string note = row.Table.Columns.Contains(notesColumn) && row[notesColumn] != DBNull.Value && row[notesColumn] != null 
+                        ? HttpUtility.HtmlEncode(Connect.FixEncoding(row[notesColumn].ToString())) : "";
+                    string category = row.Table.Columns.Contains(categoryColumn) && row[categoryColumn] != DBNull.Value && row[categoryColumn] != null 
+                        ? HttpUtility.HtmlEncode(Connect.FixEncoding(row[categoryColumn].ToString())) : "אחר";
                     string eventType = table.TableName == "SharedEvents" ? "טבלה משותפת" : "אישי";
 
                     string eventId = row["Id"]?.ToString() ?? "";
@@ -287,10 +302,14 @@ public partial class tasks : System.Web.UI.Page
                         {
                             canDelete = true;
                         }
-                        else if (currentUserId.HasValue && !row.IsNull("Userid"))
+                        else if (currentUserId.HasValue)
                         {
-                            int rowUserId = Convert.ToInt32(row["Userid"]);
-                            canDelete = (rowUserId == currentUserId.Value);
+                            string userIdColumn = row.Table.Columns.Contains("UserId") ? "UserId" : (row.Table.Columns.Contains("Userid") ? "Userid" : "UserId");
+                            if (row.Table.Columns.Contains(userIdColumn) && !row.IsNull(userIdColumn) && row[userIdColumn] != DBNull.Value && row[userIdColumn] != null)
+                            {
+                                int rowUserId = Convert.ToInt32(row[userIdColumn]);
+                                canDelete = (rowUserId == currentUserId.Value);
+                            }
                         }
                     }
 
@@ -343,11 +362,16 @@ public partial class tasks : System.Web.UI.Page
         {
             foreach (DataRow row in table.Rows)
             {
-                if (row.IsNull("date"))
+                string dateColumn = row.Table.Columns.Contains("EventDate") ? "EventDate" : (row.Table.Columns.Contains("date") ? "date" : "EventDate");
+                
+                if (!row.Table.Columns.Contains(dateColumn) || row.IsNull(dateColumn))
                     continue;
 
                 DateTime eventDate;
-                if (!DateTime.TryParse(row["date"].ToString(), out eventDate))
+                if (row[dateColumn] == DBNull.Value || row[dateColumn] == null)
+                    continue;
+                    
+                if (!DateTime.TryParse(row[dateColumn].ToString(), out eventDate))
                     continue;
                 if (eventDate.Date == currentDay.Date)
                 {
