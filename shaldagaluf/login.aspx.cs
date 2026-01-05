@@ -8,10 +8,44 @@ public partial class login : System.Web.UI.Page
 {
     protected void Page_Load(object sender, EventArgs e)
     {
+        Response.ContentType = "text/html; charset=utf-8";
+        Response.Charset = "utf-8";
+        Response.ContentEncoding = System.Text.Encoding.UTF8;
+        Response.HeaderEncoding = System.Text.Encoding.UTF8;
+        
         if (Session["username"] != null)
         {
             Response.Redirect("home.aspx");
             return;
+        }
+    }
+
+    protected void btnGoogleLogin_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            LoggingService.Log("GOOGLE_LOGIN_CLICK", "Google login button clicked");
+            
+            string clientId = System.Configuration.ConfigurationManager.AppSettings["GoogleOAuth:ClientId"];
+            LoggingService.Log("GOOGLE_LOGIN_CHECK_CLIENT_ID", string.Format("Checking ClientId - IsEmpty: {0}, Length: {1}", string.IsNullOrWhiteSpace(clientId), clientId?.Length ?? 0));
+            
+            if (string.IsNullOrWhiteSpace(clientId))
+            {
+                LoggingService.Log("GOOGLE_LOGIN_NO_CLIENT_ID", "ClientId is empty - cannot proceed with Google login");
+                lblError.Text = "Google OAuth לא מוגדר. אנא פנה למנהל המערכת.";
+                lblError.Visible = true;
+                return;
+            }
+            
+            string redirectUrl = GoogleOAuthService.GetAuthorizationUrl();
+            LoggingService.Log("GOOGLE_LOGIN_REDIRECT", string.Format("Redirecting to Google OAuth - URL length: {0}", redirectUrl?.Length ?? 0));
+            Response.Redirect(redirectUrl);
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("GOOGLE_LOGIN_ERROR", string.Format("Error in Google login: {0}, StackTrace: {1}", ex.Message, ex.StackTrace), ex);
+            lblError.Text = "שגיאה בהתחברות עם Google: " + ex.Message;
+            lblError.Visible = true;
         }
     }
 

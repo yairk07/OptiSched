@@ -562,7 +562,7 @@ public partial class home : System.Web.UI.Page
         }
     }
 
-    internal static HebrewInfo FetchHebrewInfo(DateTime date)
+    public static HebrewInfo FetchHebrewInfo(DateTime date)
     {
         var info = new HebrewInfo();
         var serializer = new JavaScriptSerializer();
@@ -707,7 +707,7 @@ public partial class home : System.Web.UI.Page
         public string CssClass { get; set; }
     }
 
-    internal class HebrewInfo
+    public class HebrewInfo
     {
         public string HebrewDate { get; set; }
         public string Parasha { get; set; }

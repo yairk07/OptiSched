@@ -12,56 +12,128 @@ public class GoogleOAuthService
 {
     private static string GetClientId()
     {
-        return ConfigurationManager.AppSettings["GoogleOAuth:ClientId"] ?? "";
+        try
+        {
+            string clientId = ConfigurationManager.AppSettings["GoogleOAuth:ClientId"] ?? "";
+            LoggingService.Log("GOOGLE_OAUTH_GET_CLIENT_ID", string.Format("ClientId from config - Length: {0}, IsEmpty: {1}", clientId?.Length ?? 0, string.IsNullOrEmpty(clientId)));
+            return clientId;
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("GOOGLE_OAUTH_GET_CLIENT_ID_ERROR", string.Format("Error getting ClientId: {0}", ex.Message), ex);
+            return "";
+        }
     }
 
     private static string GetClientSecret()
     {
-        return ConfigurationManager.AppSettings["GoogleOAuth:ClientSecret"] ?? "";
+        try
+        {
+            string clientSecret = ConfigurationManager.AppSettings["GoogleOAuth:ClientSecret"] ?? "";
+            LoggingService.Log("GOOGLE_OAUTH_GET_CLIENT_SECRET", string.Format("ClientSecret from config - Length: {0}, IsEmpty: {1}", clientSecret?.Length ?? 0, string.IsNullOrEmpty(clientSecret)));
+            return clientSecret;
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("GOOGLE_OAUTH_GET_CLIENT_SECRET_ERROR", string.Format("Error getting ClientSecret: {0}", ex.Message), ex);
+            return "";
+        }
     }
 
     private static string GetRedirectUri()
     {
-        if (HttpContext.Current == null || HttpContext.Current.Request == null || HttpContext.Current.Request.Url == null)
+        try
         {
-            throw new InvalidOperationException("HttpContext לא זמין");
+            if (HttpContext.Current == null || HttpContext.Current.Request == null || HttpContext.Current.Request.Url == null)
+            {
+                LoggingService.Log("GOOGLE_OAUTH_NO_HTTPCONTEXT", "HttpContext is not available");
+                throw new InvalidOperationException("HttpContext לא זמין");
+            }
+            string baseUrl = HttpContext.Current.Request.Url.Scheme + "://" + HttpContext.Current.Request.Url.Authority;
+            string redirectUri = baseUrl + "/google-oauth-callback.aspx";
+            LoggingService.Log("GOOGLE_OAUTH_REDIRECT_URI_BUILT", string.Format("RedirectUri built: {0}", redirectUri));
+            return redirectUri;
         }
-        string baseUrl = HttpContext.Current.Request.Url.Scheme + "://" + HttpContext.Current.Request.Url.Authority;
-        return baseUrl + "/google-oauth-callback.aspx";
+        catch (Exception ex)
+        {
+            LoggingService.Log("GOOGLE_OAUTH_GET_REDIRECT_URI_ERROR", string.Format("Err" +
+                "or getting RedirectUri: {0}", ex.Message), ex);
+            throw;
+        }
     }
 
     public static string GetAuthorizationUrl()
     {
-        string clientId = GetClientId();
-        string redirectUri = GetRedirectUri();
-        
-        if (string.IsNullOrEmpty(clientId))
+        try
         {
-            throw new Exception("Google OAuth Client ID לא מוגדר ב-Web.config");
-        }
-        
-        if (string.IsNullOrEmpty(redirectUri))
-        {
-            throw new Exception("לא ניתן לקבוע כתובת redirect");
-        }
-        
-        string scope = "openid email profile";
-        string state = Guid.NewGuid().ToString();
-        if (HttpContext.Current != null && HttpContext.Current.Session != null)
-        {
-            HttpContext.Current.Session["OAuthState"] = state;
-        }
+            LoggingService.Log("GOOGLE_OAUTH_GET_AUTH_URL_START", "Starting GetAuthorizationUrl");
+            
+            string clientId = GetClientId();
+            LoggingService.Log("GOOGLE_OAUTH_CLIENT_ID", string.Format("ClientId retrieved - Length: {0}, IsEmpty: {1}, Value: {2}", clientId?.Length ?? 0, string.IsNullOrEmpty(clientId), string.IsNullOrEmpty(clientId) ? "EMPTY" : clientId.Substring(0, Math.Min(10, clientId.Length)) + "..."));
+            
+            string redirectUri = GetRedirectUri();
+            LoggingService.Log("GOOGLE_OAUTH_REDIRECT_URI", string.Format("RedirectUri: {0}", redirectUri));
+            
+            if (string.IsNullOrEmpty(clientId))
+            {
+                LoggingService.Log("GOOGLE_OAUTH_NO_CLIENT_ID", "Client ID is empty or null - checking all AppSettings keys");
+                try
+                {
+                    var allKeys = System.Configuration.ConfigurationManager.AppSettings.AllKeys;
+                    LoggingService.Log("GOOGLE_OAUTH_APP_SETTINGS_KEYS", string.Format("All AppSettings keys: {0}", string.Join(", ", allKeys)));
+                    foreach (string key in allKeys)
+                    {
+                        if (key.Contains("Google") || key.Contains("OAuth"))
+                        {
+                            string value = System.Configuration.ConfigurationManager.AppSettings[key];
+                            LoggingService.Log("GOOGLE_OAUTH_KEY_FOUND", string.Format("Found key: {0}, Value length: {1}", key, value?.Length ?? 0));
+                        }
+                    }
+                }
+                catch (Exception ex2)
+                {
+                    LoggingService.Log("GOOGLE_OAUTH_CHECK_KEYS_ERROR", string.Format("Error checking AppSettings keys: {0}", ex2.Message), ex2);
+                }
+                throw new Exception("Google OAuth Client ID לא מוגדר ב-Web.config");
+            }
+            
+            if (string.IsNullOrEmpty(redirectUri))
+            {
+                LoggingService.Log("GOOGLE_OAUTH_NO_REDIRECT_URI", "Redirect URI is empty or null");
+                throw new Exception("לא ניתן לקבוע כתובת redirect");
+            }
+            
+            string scope = "openid email profile";
+            string state = Guid.NewGuid().ToString();
+            LoggingService.Log("GOOGLE_OAUTH_STATE", string.Format("Generated state: {0}", state));
+            
+            if (HttpContext.Current != null && HttpContext.Current.Session != null)
+            {
+                HttpContext.Current.Session["OAuthState"] = state;
+                LoggingService.Log("GOOGLE_OAUTH_STATE_SAVED", "State saved to session");
+            }
+            else
+            {
+                LoggingService.Log("GOOGLE_OAUTH_NO_SESSION", "Session is not available");
+            }
 
-        string authUrl = "https://accounts.google.com/o/oauth2/v2/auth?" +
-            "client_id=" + Uri.EscapeDataString(clientId) + "&" +
-            "redirect_uri=" + Uri.EscapeDataString(redirectUri) + "&" +
-            "response_type=code&" +
-            "scope=" + Uri.EscapeDataString(scope) + "&" +
-            "state=" + Uri.EscapeDataString(state) + "&" +
-            "access_type=online&" +
-            "prompt=select_account";
+            string authUrl = "https://accounts.google.com/o/oauth2/v2/auth?" +
+                "client_id=" + Uri.EscapeDataString(clientId) + "&" +
+                "redirect_uri=" + Uri.EscapeDataString(redirectUri) + "&" +
+                "response_type=code&" +
+                "scope=" + Uri.EscapeDataString(scope) + "&" +
+                "state=" + Uri.EscapeDataString(state) + "&" +
+                "access_type=online&" +
+                "prompt=select_account";
 
-        return authUrl;
+            LoggingService.Log("GOOGLE_OAUTH_URL_GENERATED", string.Format("Authorization URL generated successfully - Length: {0}", authUrl.Length));
+            return authUrl;
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("GOOGLE_OAUTH_GET_AUTH_URL_ERROR", string.Format("Error in GetAuthorizationUrl: {0}, StackTrace: {1}", ex.Message, ex.StackTrace), ex);
+            throw;
+        }
     }
 
     public static GoogleUserInfo GetUserInfo(string code)
@@ -159,18 +231,43 @@ public class GoogleOAuthService
 
     public static int? GetUserIdByEmail(string email)
     {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return null;
+        }
+
         string connectionString = Connect.GetConnectionString();
+        string emailLower = email.Trim().ToLower();
+
         using (OleDbConnection conn = new OleDbConnection(connectionString))
         {
             conn.Open();
-            string sql = "SELECT [Id] FROM [Users] WHERE LCase([Email])=?";
-            using (OleDbCommand cmd = new OleDbCommand(sql, conn))
+
+            string[] queries = new string[]
             {
-                cmd.Parameters.AddWithValue("?", email?.Trim().ToLower() ?? "");
-                object result = cmd.ExecuteScalar();
-                if (result != null && result != DBNull.Value)
+                "SELECT [Id] FROM [Users] WHERE LCase([Email])=?",
+                "SELECT [Id] FROM [Users] WHERE LCase([email])=?",
+                "SELECT [Id] FROM [Users] WHERE [Email]=?",
+                "SELECT [Id] FROM [Users] WHERE [email]=?"
+            };
+
+            foreach (string sql in queries)
+            {
+                try
                 {
-                    return Convert.ToInt32(result);
+                    using (OleDbCommand cmd = new OleDbCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("?", emailLower);
+                        object result = cmd.ExecuteScalar();
+                        if (result != null && result != DBNull.Value)
+                        {
+                            return Convert.ToInt32(result);
+                        }
+                    }
+                }
+                catch
+                {
+                    continue;
                 }
             }
         }
