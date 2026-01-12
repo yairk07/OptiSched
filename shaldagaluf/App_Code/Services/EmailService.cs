@@ -15,7 +15,8 @@ public class EmailService
     private static int GetSmtpPort()
     {
         string portStr = ConfigurationManager.AppSettings["Smtp:Port"];
-        if (int.TryParse(portStr, out int port))
+        int port;
+        if (int.TryParse(portStr, out port))
         {
             return port;
         }
@@ -54,8 +55,8 @@ public class EmailService
         string smtpUsername = GetSmtpUsername();
         string smtpPassword = GetSmtpPassword();
         
-        LoggingService.Log("EMAIL_START", string.Format("Starting email send - To: {0}, Subject: {1}, Body Length: {2}, IsHtml: {3}", to, subject, body?.Length ?? 0, isHtml));
-        LoggingService.Log("EMAIL_CONFIG", string.Format("SMTP Config - Server: {0}, Port: {1}, Username: {2}, Password Length: {3}", smtpServer, smtpPort, smtpUsername, smtpPassword?.Length ?? 0));
+        LoggingService.Log("EMAIL_START", string.Format("Starting email send - To: {0}, Subject: {1}, Body Length: {2}, IsHtml: {3}", to, subject, body != null ? body.Length : 0, isHtml));
+        LoggingService.Log("EMAIL_CONFIG", string.Format("SMTP Config - Server: {0}, Port: {1}, Username: {2}, Password Length: {3}", smtpServer, smtpPort, smtpUsername, smtpPassword != null ? smtpPassword.Length : 0));
 
         if (string.IsNullOrWhiteSpace(smtpServer))
         {
@@ -79,37 +80,37 @@ public class EmailService
         {
             using (MailMessage mail = new MailMessage())
             {
-                mail.From = new MailAddress(smtpUsername, "OptiSched", System.Text.Encoding.UTF8);
-                mail.To.Add(to);
-                mail.SubjectEncoding = System.Text.Encoding.UTF8;
-                mail.Subject = subject;
-                mail.BodyEncoding = System.Text.Encoding.UTF8;
-                mail.Body = body;
-                mail.IsBodyHtml = isHtml;
-                
-                LoggingService.Log("EMAIL_BODY", string.Format("Email body prepared - Encoding: UTF-8, Length: {0}, IsHtml: {1}", body?.Length ?? 0, isHtml));
-                if (body != null && body.Length < 500)
-                {
-                    LoggingService.Log("EMAIL_BODY_CONTENT", "Body content: " + body.Replace("\r", "").Replace("\n", " "));
-                }
+            mail.From = new MailAddress(smtpUsername, "OptiSched", System.Text.Encoding.UTF8);
+            mail.To.Add(to);
+            mail.SubjectEncoding = System.Text.Encoding.UTF8;
+            mail.Subject = subject;
+            mail.BodyEncoding = System.Text.Encoding.UTF8;
+            mail.Body = body;
+            mail.IsBodyHtml = isHtml;
+            
+            LoggingService.Log("EMAIL_BODY", string.Format("Email body prepared - Encoding: UTF-8, Length: {0}, IsHtml: {1}", body != null ? body.Length : 0, isHtml));
+            if (body != null && body.Length < 500)
+            {
+                LoggingService.Log("EMAIL_BODY_CONTENT", "Body content: " + body.Replace("\r", "").Replace("\n", " "));
+            }
 
-                string cleanPassword = smtpPassword?.Replace(" ", "") ?? "";
+            string cleanPassword = smtpPassword != null ? smtpPassword.Replace(" ", "") : "";
+            
+            using (SmtpClient smtp = new SmtpClient(smtpServer, smtpPort))
+            {
+                smtp.EnableSsl = true;
+                smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
+                smtp.UseDefaultCredentials = false;
+                smtp.Timeout = 120000;
                 
-                using (SmtpClient smtp = new SmtpClient(smtpServer, smtpPort))
-                {
-                    smtp.EnableSsl = true;
-                    smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
-                    smtp.UseDefaultCredentials = false;
-                    smtp.Timeout = 120000;
-                    
-                    NetworkCredential credentials = new NetworkCredential(smtpUsername, cleanPassword);
-                    smtp.Credentials = credentials;
-                    
-                    LoggingService.Log("EMAIL_SEND_ATTEMPT", string.Format("Attempting to send email via SMTP - Server: {0}, Port: {1}, SSL: True", smtpServer, smtpPort));
-                    smtp.Send(mail);
-                    LoggingService.LogEmailSending(to, subject, body, true);
-                    LoggingService.Log("EMAIL_SEND_SUCCESS", string.Format("Email sent successfully - To: {0}, Subject: {1}", to, subject));
-                }
+                NetworkCredential credentials = new NetworkCredential(smtpUsername, cleanPassword);
+                smtp.Credentials = credentials;
+                
+                LoggingService.Log("EMAIL_SEND_ATTEMPT", string.Format("Attempting to send email via SMTP - Server: {0}, Port: {1}, SSL: True", smtpServer, smtpPort));
+                smtp.Send(mail);
+                LoggingService.LogEmailSending(to, subject, body, true);
+                LoggingService.Log("EMAIL_SEND_SUCCESS", string.Format("Email sent successfully - To: {0}, Subject: {1}", to, subject));
+            }
             }
         }
         catch (Exception ex)
@@ -155,7 +156,7 @@ public class EmailService
 
     public static void SendLoginCodeEmail(string email, string code)
     {
-        LoggingService.Log("EMAIL_LOGIN_CODE_START", string.Format("Preparing login code email - Email: {0}, Code: {1}, Code Length: {2}", email, code, code?.Length ?? 0));
+        LoggingService.Log("EMAIL_LOGIN_CODE_START", string.Format("Preparing login code email - Email: {0}, Code: {1}, Code Length: {2}", email, code, code != null ? code.Length : 0));
         
         if (string.IsNullOrWhiteSpace(code))
         {
@@ -187,11 +188,16 @@ public class EmailService
 </body>
         </html>", code);
 
-        LoggingService.Log("EMAIL_LOGIN_CODE_BODY", string.Format("Login code email body created - Code in body: {0}, Body contains code: {1}, Body length: {2}", code, body.Contains(code), body?.Length ?? 0));
-        LoggingService.Log("EMAIL_LOGIN_CODE_BODY_DETAIL", string.Format("Code details - Code: {0}, Code Length: {1}, Code Type: {2}, Code Characters: [{3}]", code, code?.Length ?? 0, code?.GetType().Name ?? "NULL", code != null ? string.Join(", ", code.ToCharArray()) : "NULL"));
+        LoggingService.Log("EMAIL_LOGIN_CODE_BODY", string.Format("Login code email body created - Code in body: {0}, Body contains code: {1}, Body length: {2}", code, body.Contains(code), body != null ? body.Length : 0));
+        LoggingService.Log("EMAIL_LOGIN_CODE_BODY_DETAIL", string.Format("Code details - Code: {0}, Code Length: {1}, Code Type: {2}, Code Characters: [{3}]", code, code != null ? code.Length : 0, code != null ? code.GetType().Name : "NULL", code != null ? string.Join(", ", code.ToCharArray()) : "NULL"));
         
         SendEmail(email, subject, body, true);
         LoggingService.Log("EMAIL_LOGIN_CODE_SENT", string.Format("Login code email sent successfully - Email: {0}, Code: {1}", email, code));
+    }
+
+    public void SendLoginCode(string email, string code)
+    {
+        SendLoginCodeEmail(email, code);
     }
 }
 

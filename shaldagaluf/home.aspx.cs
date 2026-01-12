@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
+using System.IO;
 using System.Net;
 using System.Text;
 using System.Web;
@@ -13,7 +14,7 @@ public partial class home : System.Web.UI.Page
 {
     private enum CalendarDisplayMode { Gregorian, Hebrew }
 
-    calnderservice calendarService = new calnderservice();
+    CalendarService calendarService = new CalendarService();
     private DataSet allEvents;
     private static readonly CultureInfo heCulture = new CultureInfo("he-IL");
     private static readonly HebrewCalendar HebrewCal = new HebrewCalendar();
@@ -33,8 +34,14 @@ public partial class home : System.Web.UI.Page
     {
         get
         {
-            if (ViewState["CalendarMode"] is string value && Enum.TryParse(value, out CalendarDisplayMode mode))
-                return mode;
+            object viewStateValue = ViewState["CalendarMode"];
+            if (viewStateValue is string)
+            {
+                string value = viewStateValue as string;
+                CalendarDisplayMode mode;
+                if (Enum.TryParse(value, out mode))
+                    return mode;
+            }
             return CalendarDisplayMode.Gregorian;
         }
         set
@@ -52,7 +59,8 @@ public partial class home : System.Web.UI.Page
         bool updated = false;
         foreach (Control control in e.Cell.Controls)
         {
-            if (control is LinkButton link)
+            LinkButton link = control as LinkButton;
+            if (link != null)
             {
                 link.Text = string.Empty;
                 link.Controls.Clear();
@@ -61,7 +69,8 @@ public partial class home : System.Web.UI.Page
                 break;
             }
 
-            if (control is LiteralControl literal && !string.IsNullOrWhiteSpace(literal.Text))
+            LiteralControl literal = control as LiteralControl;
+            if (literal != null && !string.IsNullOrWhiteSpace(literal.Text))
             {
                 literal.Text = text;
                 updated = true;
@@ -75,68 +84,65 @@ public partial class home : System.Web.UI.Page
 
     protected void Page_Load(object sender, EventArgs e)
     {
-        Response.ContentType = "text/html; charset=utf-8";
-        Response.Charset = "utf-8";
-        Response.ContentEncoding = System.Text.Encoding.UTF8;
-        Response.HeaderEncoding = System.Text.Encoding.UTF8;
-        
-        if (!IsPostBack)
+        try
         {
-            // בדיקת התחברות
-            if (Session["username"] != null)
+            LoggingService.Log("HOME", string.Format("Page_Load called, IsPostBack={0}", IsPostBack));
+            
+            if (!IsPostBack)
             {
-                string name = Session["username"].ToString();
-                lblWelcome.Text = $"<h3>ברוך הבא, {name}!</h3>";
+                LoggingService.Log("HOME", string.Format("Checking session, username={0}", Session["username"] != null ? Session["username"].ToString() : "null"));
                 
-                string googleEmail = Session["GoogleEmailToStore"]?.ToString();
-                if (!string.IsNullOrEmpty(googleEmail))
+                if (Session["username"] != null)
                 {
-                    Session.Remove("GoogleEmailToStore");
-                    string script = $@"
-                        <script type='text/javascript'>
-                            try {{
-                                localStorage.setItem('googleLoginEmail', '{googleEmail.Replace("'", "\\'")}');
-                            }} catch(e) {{
-                                console.error('Failed to store email:', e);
-                            }}
-                        </script>";
-                    ClientScript.RegisterStartupScript(this.GetType(), "StoreGoogleEmail", script);
+                    string name = Session["username"].ToString();
+                    lblWelcome.Text = string.Format("<h3>ברוך הבא, {0}!</h3>", name);
                 }
+                else
+                {
+                    Response.Redirect("login.aspx");
+                    return; 
+                }
+
+                int? userId = null;
+                string role = Session["Role"] != null ? Session["Role"].ToString() : null;
+                
+                if (role != "owner" && Session["userId"] != null)
+                {
+                    userId = Convert.ToInt32(Session["userId"]);
+                }
+
+                LoggingService.Log("HOME", string.Format("Before calling GetAllEvents, userId={0}", userId != null ? userId.ToString() : "null"));
+
+                allEvents = calendarService.GetAllEvents(userId);
+                ViewState["AllEvents"] = allEvents;
+
+                LoggingService.Log("HOME", string.Format("After calling GetAllEvents, allEvents={0}, tablesCount={1}", allEvents != null ? "not null" : "null", allEvents != null ? allEvents.Tables.Count : 0));
+
+                calendar.SelectedDate = DateTime.Today;
+                calendar.VisibleDate = calendar.SelectedDate;
+                CurrentMode = CalendarDisplayMode.Gregorian;
+                rblCalendarMode.SelectedValue = "G";
+                ShowEvents(calendar.SelectedDate);
             }
             else
             {
-                Response.Redirect("login.aspx");
-                return; 
+                allEvents = (DataSet)ViewState["AllEvents"];
+                if (!string.IsNullOrEmpty(rblCalendarMode.SelectedValue))
+                    CurrentMode = rblCalendarMode.SelectedValue == "H" ? CalendarDisplayMode.Hebrew : CalendarDisplayMode.Gregorian;
             }
 
-            int? userId = null;
-            string role = Session["Role"]?.ToString();
-            
-            if (role != "owner" && Session["userId"] != null)
-            {
-                userId = Convert.ToInt32(Session["userId"]);
-            }
-
-            allEvents = calendarService.GetAllEvents(userId);
-            ViewState["AllEvents"] = allEvents;
-
-            calendar.SelectedDate = DateTime.Today;
+            rblCalendarMode.SelectedValue = CurrentMode == CalendarDisplayMode.Hebrew ? "H" : "G";
             calendar.VisibleDate = calendar.SelectedDate;
-            CurrentMode = CalendarDisplayMode.Gregorian;
-            rblCalendarMode.SelectedValue = "G";
-            ShowEvents(calendar.SelectedDate);
+            UpdateCalendarMeta(calendar.SelectedDate);
+            BindMonthNavigation(calendar.SelectedDate);
+            
+            LoggingService.Log("HOME", "Page_Load completed successfully");
         }
-        else
+        catch (Exception ex)
         {
-            allEvents = (DataSet)ViewState["AllEvents"];
-            if (!string.IsNullOrEmpty(rblCalendarMode.SelectedValue))
-                CurrentMode = rblCalendarMode.SelectedValue == "H" ? CalendarDisplayMode.Hebrew : CalendarDisplayMode.Gregorian;
+            LoggingService.Log("HOME", "Error in Page_Load", ex);
+            throw;
         }
-
-        rblCalendarMode.SelectedValue = CurrentMode == CalendarDisplayMode.Hebrew ? "H" : "G";
-        calendar.VisibleDate = calendar.SelectedDate;
-        UpdateCalendarMeta(calendar.SelectedDate);
-        BindMonthNavigation(calendar.SelectedDate);
     }
     
     protected void calendar_SelectionChanged(object sender, EventArgs e)
@@ -162,12 +168,14 @@ public partial class home : System.Web.UI.Page
         if (e.CommandName != "ChangeMonth")
             return;
 
-        var parts = Convert.ToString(e.CommandArgument)?.Split('|');
+        string commandArg = Convert.ToString(e.CommandArgument);
+        var parts = commandArg != null ? commandArg.Split('|') : null;
         if (parts == null || parts.Length != 2)
             return;
 
         string modeToken = parts[0];
-        if (!int.TryParse(parts[1], out int month))
+        int month;
+        if (!int.TryParse(parts[1], out month))
             return;
 
         DateTime baseDate = calendar.SelectedDate == DateTime.MinValue ? DateTime.Today : calendar.SelectedDate;
@@ -197,8 +205,12 @@ public partial class home : System.Web.UI.Page
 
     protected void ChangeYear_Click(object sender, EventArgs e)
     {
-        if (sender is LinkButton btn && int.TryParse(btn.CommandArgument, out int delta))
+        LinkButton btn = sender as LinkButton;
+        if (btn != null)
         {
+            int delta;
+            if (int.TryParse(btn.CommandArgument, out delta))
+            {
             DateTime baseDate = calendar.SelectedDate == DateTime.MinValue ? DateTime.Today : calendar.SelectedDate;
             DateTime newDate;
 
@@ -222,11 +234,12 @@ public partial class home : System.Web.UI.Page
                 newDate = baseDate.AddYears(delta);
             }
 
-            calendar.SelectedDate = newDate;
-            calendar.VisibleDate = newDate;
-            ShowEvents(newDate);
-            UpdateCalendarMeta(newDate);
-            BindMonthNavigation(newDate);
+                calendar.SelectedDate = newDate;
+                calendar.VisibleDate = newDate;
+                ShowEvents(newDate);
+                UpdateCalendarMeta(newDate);
+                BindMonthNavigation(newDate);
+            }
         }
     }
 
@@ -250,10 +263,11 @@ public partial class home : System.Web.UI.Page
             foreach (DataRow row in table.Rows)
             {
                 DateTime eventDate;
-
-                string dateColumn = row.Table.Columns.Contains("EventDate") ? "EventDate" : (row.Table.Columns.Contains("date") ? "date" : "EventDate");
-                if (!row.Table.Columns.Contains(dateColumn) || row[dateColumn] == DBNull.Value || row[dateColumn] == null)
+                string dateColumn = table.Columns.Contains("EventDate") ? "EventDate" : (table.Columns.Contains("date") ? "date" : null);
+                
+                if (dateColumn == null)
                     continue;
+                    
                 if (!DateTime.TryParse(row[dateColumn].ToString(), out eventDate))
                 {
                     continue;
@@ -261,16 +275,13 @@ public partial class home : System.Web.UI.Page
 
                 if (eventDate.Date == date.Date)
                 {
-                    string titleColumn = row.Table.Columns.Contains("Title") ? "Title" : (row.Table.Columns.Contains("title") ? "title" : "Title");
-                    string timeColumn = row.Table.Columns.Contains("EventTime") ? "EventTime" : (row.Table.Columns.Contains("time") ? "time" : "EventTime");
-                    string notesColumn = row.Table.Columns.Contains("Notes") ? "Notes" : (row.Table.Columns.Contains("notes") ? "notes" : "Notes");
+                    string titleColumn = table.Columns.Contains("Title") ? "Title" : (table.Columns.Contains("title") ? "title" : null);
+                    string timeColumn = table.Columns.Contains("EventTime") ? "EventTime" : (table.Columns.Contains("time") ? "time" : null);
+                    string notesColumn = table.Columns.Contains("Notes") ? "Notes" : (table.Columns.Contains("notes") ? "notes" : null);
                     
-                    string title = row.Table.Columns.Contains(titleColumn) && row[titleColumn] != DBNull.Value && row[titleColumn] != null 
-                        ? HttpUtility.HtmlEncode(Connect.FixEncoding(row[titleColumn].ToString())) : "";
-                    string time = row.Table.Columns.Contains(timeColumn) && row[timeColumn] != DBNull.Value && row[timeColumn] != null 
-                        ? HttpUtility.HtmlEncode(Connect.FixEncoding(row[timeColumn].ToString())) : "";
-                    string note = row.Table.Columns.Contains(notesColumn) && row[notesColumn] != DBNull.Value && row[notesColumn] != null 
-                        ? HttpUtility.HtmlEncode(Connect.FixEncoding(row[notesColumn].ToString())) : "";
+                    string title = titleColumn != null && row[titleColumn] != DBNull.Value && row[titleColumn] != null ? HttpUtility.HtmlEncode(row[titleColumn].ToString()) : "";
+                    string time = timeColumn != null && row[timeColumn] != null && row[timeColumn] != DBNull.Value ? HttpUtility.HtmlEncode(row[timeColumn].ToString()) : "";
+                    string note = notesColumn != null && row[notesColumn] != null && row[notesColumn] != DBNull.Value ? HttpUtility.HtmlEncode(row[notesColumn].ToString()) : "";
                     string eventType = table.TableName == "SharedEvents" ? " (טבלה משותפת)" : "";
 
                     sb.Append("<div class='calendar-event'>");
@@ -307,18 +318,19 @@ public partial class home : System.Web.UI.Page
             foreach (DataRow row in table.Rows)
             {
                 DateTime eventDate;
-
-                string dateColumn = row.Table.Columns.Contains("EventDate") ? "EventDate" : (row.Table.Columns.Contains("date") ? "date" : "EventDate");
-                if (!row.Table.Columns.Contains(dateColumn) || row[dateColumn] == DBNull.Value || row[dateColumn] == null)
+                string dateColumn = table.Columns.Contains("EventDate") ? "EventDate" : (table.Columns.Contains("date") ? "date" : null);
+                
+                if (dateColumn == null)
                     continue;
+
                 if (!DateTime.TryParse(row[dateColumn].ToString(), out eventDate))
                     continue;
 
                 if (eventDate.Date == currentDay)
                 {
-                    string titleColumn = row.Table.Columns.Contains("Title") ? "Title" : (row.Table.Columns.Contains("title") ? "title" : "Title");
-                    string title = row.Table.Columns.Contains(titleColumn) && row[titleColumn] != DBNull.Value && row[titleColumn] != null 
-                        ? Connect.FixEncoding(row[titleColumn].ToString()) : "";
+                    string titleColumn = table.Columns.Contains("Title") ? "Title" : (table.Columns.Contains("title") ? "title" : null);
+                    string title = titleColumn != null && row[titleColumn] != DBNull.Value && row[titleColumn] != null ? row[titleColumn].ToString() : "";
+                    
                     if (title.Length > 18)
                         title = title.Substring(0, 18) + "...";
 
@@ -343,7 +355,7 @@ public partial class home : System.Web.UI.Page
     {
         lblMetaDay.Text = date.ToString("dd");
         lblMetaWeekday.Text = date.ToString("dddd", heCulture);
-        lblSelectedDate.Text = $"בחרת את התאריך: {date:dd/MM/yyyy}";
+        lblSelectedDate.Text = string.Format("בחרת את התאריך: {0:dd/MM/yyyy}", date);
         hfSelectedDate.Value = date.ToString("yyyy-MM-dd");
 
         var hebrewInfo = FetchHebrewInfo(date);
@@ -351,7 +363,7 @@ public partial class home : System.Web.UI.Page
 
         lblMetaFullDate.Text = string.IsNullOrEmpty(hebrewDateText)
             ? date.ToString("dd MMM yyyy", heCulture)
-            : $"{date:dd MMM yyyy} / {hebrewDateText}";
+            : string.Format("{0:dd MMM yyyy} / {1}", date, hebrewDateText);
 
         lblHebrewDate.Text = string.IsNullOrEmpty(hebrewDateText) ? "—" : hebrewDateText;
         lblHoliday.Text = string.IsNullOrEmpty(hebrewInfo.Holiday) ? "—" : hebrewInfo.Holiday;
@@ -393,7 +405,7 @@ public partial class home : System.Web.UI.Page
 
                 items.Add(new MonthNavItem
                 {
-                    Value = $"G|{i}",
+                    Value = string.Format("G|{0}", i),
                     Label = label,
                     CssClass = referenceDate.Month == i ? "calendar-month-link active" : "calendar-month-link"
                 });
@@ -411,7 +423,7 @@ public partial class home : System.Web.UI.Page
             {
                 items.Add(new MonthNavItem
                 {
-                    Value = $"H|{m}",
+                    Value = string.Format("H|{0}", m),
                     Label = GetHebrewMonthName(m, isLeapYear),
                     CssClass = currentHebMonth == m ? "calendar-month-link active" : "calendar-month-link"
                 });
@@ -476,7 +488,8 @@ public partial class home : System.Web.UI.Page
             if (trimmed.Length == 0)
                 continue;
 
-            if (ParashaHebrewMap.TryGetValue(trimmed, out var heb))
+            string heb;
+            if (ParashaHebrewMap.TryGetValue(trimmed, out heb))
                 translated.Add(heb);
             else
                 translated.Add(trimmed);
@@ -537,7 +550,7 @@ public partial class home : System.Web.UI.Page
         if (string.IsNullOrEmpty(title))
             return false;
 
-        string normalizedCategory = category?.ToLowerInvariant() ?? string.Empty;
+        string normalizedCategory = category != null ? category.ToLowerInvariant() : string.Empty;
         string normalizedTitle = title.ToLowerInvariant();
 
         bool isChanukah = normalizedTitle.Contains("חנוכה") || normalizedTitle.Contains("chanuk") || normalizedTitle.Contains("hanukk");
@@ -569,7 +582,7 @@ public partial class home : System.Web.UI.Page
 
         try
         {
-            string converterUrl = $"https://www.hebcal.com/converter?cfg=json&gy={date.Year}&gm={date.Month}&gd={date.Day}&g2h=1";
+            string converterUrl = string.Format("https://www.hebcal.com/converter?cfg=json&gy={0}&gm={1}&gd={2}&g2h=1", date.Year, date.Month, date.Day);
             info.ConverterUrl = converterUrl;
             var converterJson = GetJson(converterUrl);
             if (!string.IsNullOrEmpty(converterJson))
@@ -580,36 +593,51 @@ public partial class home : System.Web.UI.Page
                     if (data.ContainsKey("hebrew"))
                         info.HebrewDate = Convert.ToString(data["hebrew"]);
 
-                    if (string.IsNullOrEmpty(info.Parasha) && data.TryGetValue("events", out object eventsObj) && eventsObj is object[] converterEvents)
+                    if (string.IsNullOrEmpty(info.Parasha))
                     {
-                        foreach (var evt in converterEvents)
+                        object eventsObj;
+                        if (data.TryGetValue("events", out eventsObj))
                         {
-                            string evtText = Convert.ToString(evt);
-                            if (string.IsNullOrWhiteSpace(evtText))
-                                continue;
-
-                            if (evtText.StartsWith("Parashat", StringComparison.OrdinalIgnoreCase) || evtText.StartsWith("Parshat", StringComparison.OrdinalIgnoreCase))
+                            object[] converterEvents = eventsObj as object[];
+                            if (converterEvents != null)
                             {
-                                info.Parasha = NormalizeParshaTitle(evtText);
-                                break;
+                                foreach (var evt in converterEvents)
+                                {
+                                    string evtText = Convert.ToString(evt);
+                                    if (string.IsNullOrWhiteSpace(evtText))
+                                        continue;
+
+                                    if (evtText.StartsWith("Parashat", StringComparison.OrdinalIgnoreCase) || evtText.StartsWith("Parshat", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        info.Parasha = NormalizeParshaTitle(evtText);
+                                        break;
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
 
-            string eventsUrl = $"https://www.hebcal.com/hebcal?v=1&cfg=json&start={date:yyyy-MM-dd}&end={date:yyyy-MM-dd}&maj=on&min=on&mod=on&nx=on&mf=on&c=on&geo=pos&latitude=32.0853&longitude=34.7818&tzid=Asia/Jerusalem";
+            string eventsUrl = string.Format("https://www.hebcal.com/hebcal?v=1&cfg=json&start={0:yyyy-MM-dd}&end={0:yyyy-MM-dd}&maj=on&min=on&mod=on&nx=on&mf=on&c=on&geo=pos&latitude=32.0853&longitude=34.7818&tzid=Asia/Jerusalem", date);
             info.EventsUrl = eventsUrl;
             var eventsJson = GetJson(eventsUrl);
             if (!string.IsNullOrEmpty(eventsJson))
             {
                 var data = serializer.Deserialize<Dictionary<string, object>>(eventsJson);
-                if (data != null && data.TryGetValue("items", out object itemsObj) && itemsObj is object[] items)
+                if (data != null)
                 {
-                    foreach (var itemObj in items)
+                    object itemsObj;
+                    if (data.TryGetValue("items", out itemsObj))
                     {
-                        if (itemObj is Dictionary<string, object> item)
+                        object[] items = itemsObj as object[];
+                        if (items != null)
                         {
+                            foreach (var itemObj in items)
+                            {
+                                Dictionary<string, object> item = itemObj as Dictionary<string, object>;
+                                if (item != null)
+                                {
                             string category = item.ContainsKey("category") ? Convert.ToString(item["category"]) : string.Empty;
                             string title = item.ContainsKey("title") ? Convert.ToString(item["title"]) : string.Empty;
                             if (string.IsNullOrEmpty(title))
@@ -620,14 +648,16 @@ public partial class home : System.Web.UI.Page
 
                             if (string.IsNullOrEmpty(info.Holiday) && IsHolidayCandidate(category, title))
                                 info.Holiday = NormalizeHolidayTitle(title);
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // swallow - UI will show defaults
+            LoggingService.Log("HOME", "Error fetching Hebrew info", ex);
         }
 
         return info;
@@ -659,8 +689,9 @@ public partial class home : System.Web.UI.Page
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            LoggingService.Log("HOME", "Error fetching Shabbat times", ex);
         }
 
         return times;
@@ -671,7 +702,8 @@ public partial class home : System.Web.UI.Page
         if (isoValue == null)
             return string.Empty;
 
-        if (DateTime.TryParse(Convert.ToString(isoValue), null, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out DateTime utc))
+        DateTime utc;
+        if (DateTime.TryParse(Convert.ToString(isoValue), null, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out utc))
         {
             var tz = IsraelTimeZone ?? TimeZoneInfo.Utc;
             var local = TimeZoneInfo.ConvertTimeFromUtc(utc, tz).AddHours(-2);
@@ -732,8 +764,9 @@ public partial class home : System.Web.UI.Page
                 return client.DownloadString(url);
             }
         }
-        catch
+        catch (Exception ex)
         {
+            LoggingService.Log("HOME", "Error getting JSON", ex);
             return string.Empty;
         }
     }
@@ -748,8 +781,9 @@ public partial class home : System.Web.UI.Page
                 return client.UploadString(url, "POST", payload);
             }
         }
-        catch
+        catch (Exception ex)
         {
+            LoggingService.Log("HOME", "Error posting JSON", ex);
             return string.Empty;
         }
     }

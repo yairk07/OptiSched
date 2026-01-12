@@ -54,11 +54,15 @@ public class ZmanimProxy : IHttpHandler
         }
     }
 
-    public bool IsReusable => false;
+    public bool IsReusable
+    {
+        get { return false; }
+    }
 
     private static double ParseDouble(string value, double fallback)
     {
-        if (double.TryParse(value, out double result))
+        double result;
+        if (double.TryParse(value, out result))
             return result;
         return fallback;
     }

@@ -23,7 +23,8 @@ public partial class exuserdetails : System.Web.UI.Page
             // קורא את ה־ID מה־URL
             string idStr = Request.QueryString["id"];
 
-            if (!int.TryParse(idStr, out int userId))
+            int userId;
+            if (!int.TryParse(idStr, out userId))
             {
                 ShowNotFound();
                 return;
@@ -49,9 +50,11 @@ public partial class exuserdetails : System.Web.UI.Page
         // 🎯 קריאה לפי ID בלבד
         DataRow row = t.AsEnumerable()
             .FirstOrDefault(r =>
-                int.TryParse(Convert.ToString(r["id"]), out int id) &&
-                id == userId
-            );
+            {
+                int id;
+                return int.TryParse(Convert.ToString(r["id"]), out id) &&
+                id == userId;
+            });
 
         if (row == null)
         {

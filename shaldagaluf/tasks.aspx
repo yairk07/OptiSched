@@ -47,6 +47,16 @@
                     <span class="meta-label">הערות</span>
                     <asp:TextBox ID="txtNote" runat="server" CssClass="task-input" TextMode="MultiLine" Rows="2" placeholder="פרטים נוספים" />
                 </div>
+                <div class="calendar-meta-line">
+                    <span class="meta-label">קובץ מצורף</span>
+                    <asp:FileUpload ID="fileUpload" runat="server" CssClass="task-input" />
+                    <small style="color: #999; font-size: 12px;">גודל מקסימלי: 5MB</small>
+                </div>
+                <div class="calendar-meta-line">
+                    <span class="meta-label">תמונה</span>
+                    <asp:FileUpload ID="imageUpload" runat="server" CssClass="task-input" Accept="image/*" />
+                    <small style="color: #999; font-size: 12px;">JPG, PNG, GIF - גודל מקסימלי: 5MB</small>
+                </div>
                 <asp:Button ID="btnAddEvent" runat="server" Text="שמור אירוע" CssClass="task-button" OnClick="AddEvent" />
 
                 <div class="calendar-meta-line" style="margin-top: 30px; padding-top: 30px; border-top: 2px solid rgba(255,255,255,0.1);">

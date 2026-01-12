@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Text;
 using System.Web;
 
@@ -8,26 +9,36 @@ public class Connect
     {
         try
         {
+            LoggingService.Log("CONNECT", "GetConnectionString called");
+            
             if (HttpContext.Current == null)
             {
+                LoggingService.Log("CONNECT", "HttpContext is null", new InvalidOperationException("HttpContext is not available"));
                 throw new InvalidOperationException("HttpContext is not available");
             }
             
             string path = HttpContext.Current.Server.MapPath("~/App_Data/calnder.db1.accdb.mdb");
+            LoggingService.Log("CONNECT", string.Format("Database path resolved: {0}", path ?? "null"));
             
             if (string.IsNullOrEmpty(path))
             {
+                LoggingService.Log("CONNECT", "Database path is empty", new InvalidOperationException("Database path is empty"));
                 throw new InvalidOperationException("Database path is empty");
             }
             
             if (!System.IO.File.Exists(path))
             {
+                LoggingService.Log("CONNECT", string.Format("Database file does not exist: {0}", path));
             }
             
-            return @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + path + ";Persist Security Info=False;";
+            string connectionString = @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + path + ";Persist Security Info=False;";
+            LoggingService.Log("CONNECT", "GetConnectionString completed successfully");
+            
+            return connectionString;
         }
-        catch
+        catch (Exception ex)
         {
+            LoggingService.Log("CONNECT", "Exception in GetConnectionString", ex);
             throw;
         }
     }
@@ -66,8 +77,9 @@ public class Connect
             
             return text;
         }
-        catch
+        catch (Exception ex)
         {
+            LoggingService.Log("CONNECT", "Error in FixEncoding", ex);
             return text;
         }
     }

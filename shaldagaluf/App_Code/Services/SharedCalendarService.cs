@@ -274,7 +274,7 @@ ORDER BY SC.CreatedDate DESC";
         return calendarId;
     }
 
-    public void AddMemberToCalendar(int calendarId, int userId, string role = "member")
+    public void AddMemberToCalendar(int calendarId, int userId, string role = "member", string permission = "Read")
     {
         string conStr = Connect.GetConnectionString();
 
@@ -284,24 +284,56 @@ ORDER BY SC.CreatedDate DESC";
             {
                 con.Open();
 
-                // DSD Schema: INTEGER types
-                string sql = "INSERT INTO SharedCalendarMembers (CalendarId, UserId, Role, JoinedDate) VALUES (?, ?, ?, ?)";
-                using (OleDbCommand cmd = new OleDbCommand(sql, con))
+                bool hasPermissionColumn = ColumnExists(con, "SharedCalendarMembers", "Permission");
+                
+                if (hasPermissionColumn)
                 {
-                    OleDbParameter calendarIdParam = new OleDbParameter("?", OleDbType.Integer);
-                    calendarIdParam.Value = calendarId;
-                    cmd.Parameters.Add(calendarIdParam);
+                    if (permission != "Read" && permission != "ReadWrite")
+                        permission = "Read";
                     
-                    OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.Integer);
-                    userIdParam.Value = userId;
-                    cmd.Parameters.Add(userIdParam);
-                    
-                    OleDbParameter roleParam = new OleDbParameter("?", OleDbType.WChar);
-                    roleParam.Value = role?.Trim() ?? "member";
-                    cmd.Parameters.Add(roleParam);
-                    
-                    cmd.Parameters.AddWithValue("?", DateTime.Now);
-                    cmd.ExecuteNonQuery();
+                    string sql = "INSERT INTO SharedCalendarMembers (CalendarId, UserId, Role, Permission, JoinedDate) VALUES (?, ?, ?, ?, ?)";
+                    using (OleDbCommand cmd = new OleDbCommand(sql, con))
+                    {
+                        OleDbParameter calendarIdParam = new OleDbParameter("?", OleDbType.Integer);
+                        calendarIdParam.Value = calendarId;
+                        cmd.Parameters.Add(calendarIdParam);
+                        
+                        OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.Integer);
+                        userIdParam.Value = userId;
+                        cmd.Parameters.Add(userIdParam);
+                        
+                        OleDbParameter roleParam = new OleDbParameter("?", OleDbType.WChar);
+                        roleParam.Value = role != null ? role.Trim() : "member";
+                        cmd.Parameters.Add(roleParam);
+                        
+                        OleDbParameter permissionParam = new OleDbParameter("?", OleDbType.WChar);
+                        permissionParam.Value = permission;
+                        cmd.Parameters.Add(permissionParam);
+                        
+                        cmd.Parameters.AddWithValue("?", DateTime.Now);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                else
+                {
+                    string sql = "INSERT INTO SharedCalendarMembers (CalendarId, UserId, Role, JoinedDate) VALUES (?, ?, ?, ?)";
+                    using (OleDbCommand cmd = new OleDbCommand(sql, con))
+                    {
+                        OleDbParameter calendarIdParam = new OleDbParameter("?", OleDbType.Integer);
+                        calendarIdParam.Value = calendarId;
+                        cmd.Parameters.Add(calendarIdParam);
+                        
+                        OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.Integer);
+                        userIdParam.Value = userId;
+                        cmd.Parameters.Add(userIdParam);
+                        
+                        OleDbParameter roleParam = new OleDbParameter("?", OleDbType.WChar);
+                        roleParam.Value = role != null ? role.Trim() : "member";
+                        cmd.Parameters.Add(roleParam);
+                        
+                        cmd.Parameters.AddWithValue("?", DateTime.Now);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
             }
         }
@@ -441,7 +473,7 @@ WHERE JR.CalendarId = ? AND JR.Status = 'pending'";
         return dt;
     }
 
-    public void ApproveJoinRequest(int requestId, int calendarId, int userId)
+    public void ApproveJoinRequest(int requestId, int calendarId, int userId, string permission = "Read")
     {
         string conStr = Connect.GetConnectionString();
 
@@ -458,7 +490,7 @@ WHERE JR.CalendarId = ? AND JR.Status = 'pending'";
                     cmd.ExecuteNonQuery();
                 }
 
-                AddMemberToCalendar(calendarId, userId, "member");
+                AddMemberToCalendar(calendarId, userId, "member", permission);
             }
         }
         catch
@@ -998,7 +1030,7 @@ ORDER BY SC.Id";
         {
             try
             {
-                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                LoggingService.Log("SharedCalendarService", 
                     "{\"location\":\"SharedCalendarService.GetSharedCalendar:ERROR\",\"message\":\"Error getting shared calendar\",\"data\":{\"calendarId\":\"" + calendarId + "\",\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
             }
             catch { }
@@ -1045,7 +1077,7 @@ CREATE TABLE JoinRequests (
                     {
                         try
                         {
-                            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                            LoggingService.Log("SharedCalendarService", 
                                 "{\"location\":\"SharedCalendarService.RequestAccess:CREATE_TABLE_ERROR\",\"message\":\"Failed to create JoinRequests table\",\"data\":{\"error\":\"" + createEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                         }
                         catch { }
@@ -1198,8 +1230,8 @@ WHERE JR.CalendarId = ? AND JR.Status = 'Pending'";
         {
             try
             {
-                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                    "{\"location\":\"SharedCalendarService.GetAccessRequests:ERROR\",\"message\":\"Error getting access requests\",\"data\":{\"calendarId\":\"" + calendarId + "\",\"approverUserId\":\"" + (approverUserId?.ToString() ?? "null") + "\",\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
+                LoggingService.Log("SharedCalendarService", 
+                    "{\"location\":\"SharedCalendarService.GetAccessRequests:ERROR\",\"message\":\"Error getting access requests\",\"data\":{\"calendarId\":\"" + calendarId + "\",\"approverUserId\":\"" + (approverUserId != null ? approverUserId.ToString() : "null") + "\",\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
             }
             catch { }
         }
@@ -1503,6 +1535,95 @@ WHERE JR.Id = ?";
         catch
         {
         }
-        return "Read"; // Default permission
+        return "Read";
+    }
+
+    public string GetUserPermission(int calendarId, int userId)
+    {
+        string conStr = Connect.GetConnectionString();
+        try
+        {
+            using (OleDbConnection con = new OleDbConnection(conStr))
+            {
+                con.Open();
+                DataRow calendar = GetSharedCalendar(calendarId);
+                if (calendar != null)
+                {
+                    int createdBy = Convert.ToInt32(calendar["CreatedBy"]);
+                    if (createdBy == userId)
+                    {
+                        return "ReadWrite";
+                    }
+                }
+                return GetMemberPermission(con, calendarId, userId);
+            }
+        }
+        catch
+        {
+            return "Read";
+        }
+    }
+
+    public bool CanUserEdit(int calendarId, int userId)
+    {
+        string permission = GetUserPermission(calendarId, userId);
+        return permission == "ReadWrite" || IsCalendarAdmin(calendarId, userId) || IsOwner(userId);
+    }
+
+    public DataTable GetPendingRequestsForUser(int userId)
+    {
+        string conStr = Connect.GetConnectionString();
+        DataTable dt = new DataTable();
+
+        try
+        {
+            using (OleDbConnection con = new OleDbConnection(conStr))
+            {
+                con.Open();
+
+                string userNameCol = "username";
+                if (!ColumnExists(con, "Users", "username"))
+                {
+                    if (ColumnExists(con, "Users", "UserName"))
+                        userNameCol = "UserName";
+                    else if (ColumnExists(con, "Users", "userName"))
+                        userNameCol = "userName";
+                }
+
+                string sql = @"
+SELECT 
+    JR.Id AS RequestId,
+    JR.CalendarId,
+    JR.UserId,
+    JR.Status,
+    JR.RequestDate,
+    JR.Message,
+    SC.Name AS CalendarName
+FROM JoinRequests JR
+INNER JOIN SharedCalendars SC ON JR.CalendarId = SC.Id
+WHERE JR.UserId = ? AND JR.Status = 'pending'
+ORDER BY JR.RequestDate DESC";
+
+                using (OleDbCommand cmd = new OleDbCommand(sql, con))
+                {
+                    cmd.Parameters.AddWithValue("?", userId);
+                    using (OleDbDataAdapter da = new OleDbDataAdapter(cmd))
+                    {
+                        da.Fill(dt);
+                    }
+                }
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    if (row.Table.Columns.Contains("CalendarName") && row["CalendarName"] != DBNull.Value && row["CalendarName"] != null)
+                        row["CalendarName"] = Connect.FixEncoding(row["CalendarName"].ToString());
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        return dt;
     }
 }

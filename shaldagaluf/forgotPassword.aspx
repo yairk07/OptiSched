@@ -1,4 +1,4 @@
-<%@ Page Title="שחזור סיסמה" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="forgotPassword.aspx.cs" Inherits="forgotPassword" ContentType="text/html; charset=utf-8" %>
+<%@ Page Title="שחזור סיסמה" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="forgotPassword.aspx.cs" Inherits="forgotPassword" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" Runat="Server">
 </asp:Content>
@@ -8,7 +8,7 @@
         <div class="forgot-password-container">
             <div class="forgot-password-header">
                 <h2 class="forgot-password-title">שכחת סיסמה?</h2>
-                <p class="forgot-password-subtitle">הזן את כתובת האימייל שלך ונשלח לך קוד התחברות לאיפוס הסיסמה</p>
+                <p class="forgot-password-subtitle">הזן את כתובת האימייל שלך ונשלח לך קישור לאיפוס הסיסמה</p>
             </div>
 
             <div class="forgot-password-form-container">
@@ -21,17 +21,11 @@
                     <asp:Label ID="lblMessage" runat="server" CssClass="form-message"></asp:Label>
 
                     <div class="form-actions">
-                        <asp:Button ID="btnSendReset" runat="server" Text="שלח קוד התחברות" OnClick="btnSendReset_Click" CssClass="btn-submit" />
+                        <asp:Button ID="btnSendReset" runat="server" Text="שלח קישור לאיפוס סיסמה" OnClick="btnSendReset_Click" CssClass="btn-submit" />
                     </div>
                 </asp:Panel>
 
                 <asp:Panel ID="pnlReset" runat="server" Visible="false">
-                    <div class="form-group">
-                        <label class="form-label">קוד התחברות <span class="required">*</span></label>
-                        <asp:TextBox ID="txtResetToken" runat="server" CssClass="form-input" placeholder="000000" MaxLength="6" style="text-align: center; font-size: 24px; letter-spacing: 8px; font-family: monospace;"></asp:TextBox>
-                        <p class="form-hint">הזן את הקוד בן 6 הספרות שנשלח לכתובת האימייל שלך</p>
-                    </div>
-
                     <div class="form-group">
                         <label class="form-label">סיסמה חדשה <span class="required">*</span></label>
                         <asp:TextBox ID="txtNewPassword" runat="server" TextMode="Password" CssClass="form-input" placeholder="הזן סיסמה חדשה"></asp:TextBox>
@@ -127,16 +121,6 @@
             outline: none;
             border-color: var(--brand);
             box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.1);
-        }
-
-        .form-hint {
-            font-size: 13px;
-            color: var(--text);
-            opacity: 0.7;
-            margin-top: 6px;
-            margin-bottom: 0;
-            direction: rtl;
-            text-align: right;
         }
 
         .form-message {

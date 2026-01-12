@@ -31,7 +31,7 @@ public class Calendar
 
     public void InsertIntoDb(int? userId = null)
     {
-        calnderservice cs = new calnderservice();
+        CalendarService cs = new CalendarService();
 
         cs.InsertEvent(this.title, this.date, this.time, this.notes, this.category, userId);
     }

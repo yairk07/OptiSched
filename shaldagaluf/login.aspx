@@ -1,4 +1,4 @@
-﻿<%@ Page Title="Login" Language="C#" MasterPageFile="~/danimaster.master" CodeFile="login.aspx.cs"AutoEventWireup="true"Inherits="login" %>
+﻿<%@ Page Title="Login" Language="C#" MasterPageFile="~/danimaster.master" CodeFile="login.aspx.cs" AutoEventWireup="true" Inherits="login" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" Runat="Server">
 </asp:Content>
@@ -44,9 +44,10 @@
                     <asp:TextBox ID="txtPassword" runat="server" TextMode="Password" CssClass="textbox" placeholder="••••••••" />
                 </div>
 
-                <asp:Button ID="btnLogin" runat="server" Text="כניסה למערכת" OnClick="btnLogin_Click" CssClass="button" />
-
-                <asp:Label ID="lblError" runat="server" CssClass="auth-error" />
+                <div class="form-field">
+                    <asp:Button ID="btnGoogleLogin" runat="server" Text="התחבר עם Google" OnClick="btnGoogleLogin_Click" 
+                        CssClass="google-button" />
+                </div>
 
                 <div style="margin: 24px 0; text-align: center; position: relative;">
                     <div style="position: relative; text-align: center;">
@@ -55,10 +56,9 @@
                     </div>
                 </div>
 
-                <div class="form-field">
-                    <asp:Button ID="btnGoogleLogin" runat="server" Text="התחבר עם Google" OnClick="btnGoogleLogin_Click" 
-                        CssClass="google-button" />
-                </div>
+                <asp:Button ID="btnLogin" runat="server" Text="כניסה למערכת" OnClick="btnLogin_Click" CssClass="button" />
+
+                <asp:Label ID="lblError" runat="server" CssClass="auth-error" />
 
                 <div class="auth-support">
                     <a href="forgotPassword.aspx" style="display: block; margin-bottom: 12px; color: var(--brand); text-decoration: none;">שכחת סיסמה?</a>

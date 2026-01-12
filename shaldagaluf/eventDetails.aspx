@@ -1,5 +1,5 @@
-﻿<%@ Page Title="עריכת אירוע" Language="C#" MasterPageFile="~/danimaster.master"
-    AutoEventWireup="true" CodeFile="editEvent.aspx.cs" Inherits="editEvent" ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
+<%@ Page Title="פרטי אירוע" Language="C#" MasterPageFile="~/danimaster.master"
+    AutoEventWireup="true" CodeFile="eventDetails.aspx.cs" Inherits="eventDetails" ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
 
 <asp:Content ID="head" ContentPlaceHolderID="head" runat="server"></asp:Content>
 
@@ -8,65 +8,74 @@
     <section class="edit-event-shell">
         <div class="edit-event-container">
             <div class="edit-event-header">
-                <h2 class="edit-event-title">עריכת אירוע</h2>
-                <p class="edit-event-subtitle">עדכן את פרטי האירוע ושמור את השינויים</p>
+                <h2 class="edit-event-title">פרטי האירוע</h2>
+                <p class="edit-event-subtitle">צפייה בפרטי האירוע</p>
             </div>
 
-            <asp:Panel ID="pnlForm" runat="server">
+            <asp:Panel ID="pnlContent" runat="server" Visible="false">
                 <div class="edit-event-form">
                     <div class="form-group">
                         <label class="form-label">כותרת</label>
-                        <asp:TextBox ID="txtTitle" runat="server" CssClass="form-input" placeholder="הזן כותרת לאירוע" />
+                        <div class="form-display-value">
+                            <asp:Label ID="lblTitle" runat="server" />
+                        </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">תאריך</label>
-                            <asp:TextBox ID="txtDate" runat="server" CssClass="form-input" TextMode="Date" />
+                            <div class="form-display-value">
+                                <asp:Label ID="lblDate" runat="server" />
+                            </div>
                         </div>
 
                         <div class="form-group">
                             <label class="form-label">שעה</label>
-                            <asp:TextBox ID="txtTime" runat="server" CssClass="form-input" TextMode="Time" />
+                            <div class="form-display-value">
+                                <asp:Label ID="lblTime" runat="server" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">קטגוריה</label>
+                            <div class="form-display-value">
+                                <asp:Label ID="lblCategory" runat="server" />
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">משתמש</label>
+                            <div class="form-display-value">
+                                <asp:Label ID="lblUserName" runat="server" />
+                            </div>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">קטגוריה</label>
-                        <asp:DropDownList ID="ddlCategory" runat="server" CssClass="form-input">
-                            <asp:ListItem Text="אירוע" Value="אירוע"></asp:ListItem>
-                            <asp:ListItem Text="יום הולדת" Value="יום הולדת"></asp:ListItem>
-                            <asp:ListItem Text="פגישה" Value="פגישה"></asp:ListItem>
-                            <asp:ListItem Text="מטלה" Value="מטלה"></asp:ListItem>
-                            <asp:ListItem Text="אחר" Value="אחר"></asp:ListItem>
-                        </asp:DropDownList>
+                        <label class="form-label">סוג אירוע</label>
+                        <div class="form-display-value">
+                            <asp:Label ID="lblEventType" runat="server" />
+                        </div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">הערות</label>
-                        <asp:TextBox ID="txtNotes" runat="server" TextMode="MultiLine" Rows="5" CssClass="form-input form-textarea" placeholder="הזן הערות נוספות (אופציונלי)" />
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">קובץ מצורף</label>
-                        <asp:FileUpload ID="fileUpload" runat="server" CssClass="form-input" />
-                        <small style="color: #999; font-size: 12px; display: block; margin-top: 4px;">גודל מקסימלי: 5MB</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">תמונה</label>
-                        <asp:FileUpload ID="imageUpload" runat="server" CssClass="form-input" Accept="image/*" />
-                        <small style="color: #999; font-size: 12px; display: block; margin-top: 4px;">JPG, PNG, GIF - גודל מקסימלי: 5MB</small>
+                        <div class="form-display-value form-display-textarea">
+                            <asp:Label ID="lblNotes" runat="server" />
+                        </div>
                     </div>
 
                     <asp:Panel ID="pnlFiles" runat="server" Visible="false">
                         <div class="form-group">
-                            <label class="form-label">קבצים קיימים</label>
-                            <asp:Repeater ID="rptFiles" runat="server" OnItemCommand="rptFiles_ItemCommand">
+                            <label class="form-label">קבצים מצורפים</label>
+                            <asp:Repeater ID="rptFiles" runat="server">
                                 <ItemTemplate>
-                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 8px;">
-                                        <a href='<%# "downloadFile.ashx?id=" + Eval("Id") %>' target="_blank"><%# Eval("file_name") %></a>
-                                        <asp:Button ID="btnDeleteFile" runat="server" Text="מחק" CommandName="DeleteFile" CommandArgument='<%# Eval("Id") %>' CssClass="btn-cancel" style="padding: 4px 12px; font-size: 12px;" />
+                                    <div style="padding: 8px; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 8px;">
+                                        <a href='<%# "downloadFile.ashx?id=" + Eval("Id") %>' target="_blank" style="color: var(--brand); text-decoration: none;">
+                                            📎 <%# Eval("file_name") %>
+                                        </a>
                                     </div>
                                 </ItemTemplate>
                             </asp:Repeater>
@@ -75,13 +84,14 @@
 
                     <asp:Panel ID="pnlImages" runat="server" Visible="false">
                         <div class="form-group">
-                            <label class="form-label">תמונות קיימות</label>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;">
-                                <asp:Repeater ID="rptImages" runat="server" OnItemCommand="rptImages_ItemCommand">
+                            <label class="form-label">תמונות</label>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                                <asp:Repeater ID="rptImages" runat="server">
                                     <ItemTemplate>
-                                        <div style="position: relative; border: 1px solid var(--border); border-radius: 4px; overflow: hidden;">
-                                            <img src='<%# "showImage.ashx?id=" + Eval("Id") %>' alt='<%# Eval("image_name") %>' style="width: 100%; height: 150px; object-fit: cover;" />
-                                            <asp:Button ID="btnDeleteImage" runat="server" Text="מחק" CommandName="DeleteImage" CommandArgument='<%# Eval("Id") %>' CssClass="btn-cancel" style="position: absolute; top: 4px; right: 4px; padding: 4px 8px; font-size: 11px; background: rgba(255,255,255,0.9);" />
+                                        <div style="border: 1px solid var(--border); border-radius: 4px; overflow: hidden;">
+                                            <a href='<%# "showImage.ashx?id=" + Eval("Id") %>' target="_blank">
+                                                <img src='<%# "showImage.ashx?id=" + Eval("Id") %>' alt='<%# Eval("image_name") %>' style="width: 100%; height: 200px; object-fit: cover; cursor: pointer;" />
+                                            </a>
                                         </div>
                                     </ItemTemplate>
                                 </asp:Repeater>
@@ -90,9 +100,17 @@
                     </asp:Panel>
 
                     <div class="form-actions">
-                        <asp:Button ID="btnSave" runat="server" Text="שמור שינויים" OnClick="btnSave_Click" CssClass="btn-save" />
-                        <asp:HyperLink ID="lnkBack" runat="server" Text="ביטול" NavigateUrl="allEvents.aspx" CssClass="btn-cancel" />
+                        <asp:HyperLink ID="lnkEdit" runat="server" CssClass="btn-save" Text="ערוך" />
+                        <asp:HyperLink ID="lnkBack" runat="server" Text="חזרה" NavigateUrl="allEvents.aspx" CssClass="btn-cancel" />
                     </div>
+                </div>
+            </asp:Panel>
+
+            <asp:Panel ID="pnlNotFound" runat="server" Visible="false">
+                <div class="not-found-message">
+                    <h3>אירוע לא נמצא</h3>
+                    <p>האירוע המבוקש לא נמצא במערכת.</p>
+                    <asp:HyperLink ID="lnkBackNotFound" runat="server" Text="חזרה לרשימת האירועים" NavigateUrl="allEvents.aspx" CssClass="btn-save" />
                 </div>
             </asp:Panel>
         </div>
@@ -154,7 +172,7 @@
             font-size: 15px;
         }
 
-        .form-input {
+        .form-display-value {
             width: 100%;
             padding: 12px 16px;
             border: 1px solid var(--border);
@@ -163,20 +181,13 @@
             direction: rtl;
             background: var(--bg);
             color: var(--text);
-            transition: border-color .2s ease, box-shadow .2s ease;
+            min-height: 20px;
             box-sizing: border-box;
         }
 
-        .form-input:focus {
-            outline: none;
-            border-color: var(--brand);
-            box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.1);
-        }
-
-        .form-textarea {
-            resize: vertical;
+        .form-display-textarea {
             min-height: 120px;
-            font-family: inherit;
+            white-space: pre-wrap;
         }
 
         .form-actions {
@@ -198,10 +209,14 @@
             font-size: 15px;
             cursor: pointer;
             transition: background .2s ease;
+            text-decoration: none;
+            display: inline-block;
         }
 
         .btn-save:hover {
             background: var(--brand-dark);
+            text-decoration: none;
+            color: #fff;
         }
 
         .btn-cancel {
@@ -223,6 +238,26 @@
             text-decoration: none;
         }
 
+        .not-found-message {
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .not-found-message h3 {
+            font-size: 24px;
+            color: var(--heading);
+            margin-bottom: 16px;
+        }
+
+        .not-found-message p {
+            color: var(--text);
+            margin-bottom: 24px;
+        }
+
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -240,3 +275,4 @@
     </style>
 
 </asp:Content>
+

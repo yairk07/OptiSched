@@ -4,11 +4,12 @@
 <html dir="rtl">
 <head runat="server">
     <meta charset="utf-8" />
-    <title>Google Quick Login</title>
-    <meta http-equiv="refresh" content="0;url=<%= GetRedirectUrl() %>" />
+    <title>מתחבר עם Google...</title>
 </head>
 <body>
-    <p>מתחבר...</p>
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <p>מתחבר עם Google...</p>
+    </div>
 </body>
 </html>
 

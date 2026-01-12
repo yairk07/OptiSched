@@ -29,7 +29,7 @@ public partial class google_oauth_callback : System.Web.UI.Page
                 return;
             }
 
-            string sessionState = Session["OAuthState"]?.ToString();
+            string sessionState = Session["OAuthState"] != null ? Session["OAuthState"].ToString() : null;
             if (!string.IsNullOrEmpty(state) && !string.IsNullOrEmpty(sessionState) && state != sessionState)
             {
                 LoggingService.Log("GOOGLE_OAUTH_STATE_MISMATCH", string.Format("State mismatch - Expected: {0}, Got: {1}", sessionState, state));
@@ -77,15 +77,22 @@ public partial class google_oauth_callback : System.Web.UI.Page
                     {
                         if (dr.Read())
                         {
-                            Session["username"] = dr["UserName"]?.ToString() ?? "";
-                            Session["Role"] = dr["Role"]?.ToString() ?? "user";
+                            Session["username"] = dr["UserName"] != null && dr["UserName"] != DBNull.Value ? dr["UserName"].ToString() : "";
+                            Session["Role"] = dr["Role"] != null && dr["Role"] != DBNull.Value ? dr["Role"].ToString() : "user";
                             Session["userId"] = userId.Value.ToString();
                             Session["loggedIn"] = true;
                             Session.Remove("OAuthState");
 
                             LoggingService.Log("GOOGLE_OAUTH_SUCCESS", string.Format("User logged in - Email: {0}, Username: {1}, IsNewUser: {2}", userInfo.Email, Session["username"], isNewUser));
 
-                            Response.Redirect("home.aspx");
+                            if (isNewUser)
+                            {
+                                Response.Redirect("home.aspx?newuser=true");
+                            }
+                            else
+                            {
+                                Response.Redirect("home.aspx");
+                            }
                             return;
                         }
                     }

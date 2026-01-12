@@ -19,7 +19,7 @@ public partial class fixHebrewData : System.Web.UI.Page
             return;
         }
 
-        string role = Session["Role"]?.ToString() ?? "";
+        string role = Session["Role"] != null ? Session["Role"].ToString() : "";
         bool isOwner = string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase);
 
         if (!isOwner)

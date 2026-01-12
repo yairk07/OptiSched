@@ -46,27 +46,27 @@
                     </asp:TemplateField>
                     <asp:TemplateField HeaderText="שם משתמש" ItemStyle-CssClass="user-name-cell">
                         <ItemTemplate>
-                            <%# Connect.FixEncoding(Eval("userName")?.ToString() ?? "") %>
+                            <%# Connect.FixEncoding(Eval("userName") != null ? Eval("userName").ToString() : "") %>
                         </ItemTemplate>
                     </asp:TemplateField>
                     <asp:TemplateField HeaderText="שם פרטי">
                         <ItemTemplate>
-                            <%# Connect.FixEncoding(Eval("firstName")?.ToString() ?? "") %>
+                            <%# Connect.FixEncoding(Eval("firstName") != null ? Eval("firstName").ToString() : "") %>
                         </ItemTemplate>
                     </asp:TemplateField>
                     <asp:TemplateField HeaderText="שם משפחה">
                         <ItemTemplate>
-                            <%# Connect.FixEncoding(Eval("lastName")?.ToString() ?? "") %>
+                            <%# Connect.FixEncoding(Eval("lastName") != null ? Eval("lastName").ToString() : "") %>
                         </ItemTemplate>
                     </asp:TemplateField>
                     <asp:TemplateField HeaderText="אימייל" ItemStyle-CssClass="email-cell">
                         <ItemTemplate>
-                            <%# Connect.FixEncoding(Eval("email")?.ToString() ?? "") %>
+                            <%# Connect.FixEncoding(Eval("email") != null ? Eval("email").ToString() : "") %>
                         </ItemTemplate>
                     </asp:TemplateField>
                     <asp:TemplateField HeaderText="טלפון">
                         <ItemTemplate>
-                            <%# Connect.FixEncoding(Eval("phonenum")?.ToString() ?? "") %>
+                            <%# Connect.FixEncoding(Eval("phonenum") != null ? Eval("phonenum").ToString() : "") %>
                         </ItemTemplate>
                     </asp:TemplateField>
                     <asp:TemplateField HeaderText="עיר">

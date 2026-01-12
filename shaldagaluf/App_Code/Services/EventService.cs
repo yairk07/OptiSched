@@ -9,7 +9,7 @@ public class EventService
     {
         try
         {
-            OleDbCommand cmd = new OleDbCommand($"SELECT TOP 1 * FROM [{tableName}]", con);
+            OleDbCommand cmd = new OleDbCommand(string.Format("SELECT TOP 1 * FROM [{0}]", tableName), con);
             cmd.ExecuteScalar();
             return true;
         }
@@ -63,19 +63,19 @@ public class EventService
                     con.Open();
                     try
                     {
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                        LoggingService.Log("EventService", 
                             "{\"location\":\"EventService.GetAllEvents:CONNECTION_OPENED\",\"message\":\"Connection opened successfully\",\"data\":{\"connectionString\":\"" + conStr.Replace("\\", "\\\\").Replace("\"", "\\\"").Substring(0, Math.Min(100, conStr.Length)) + "...\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
-                    catch { }
+                    catch (Exception logEx) { LoggingService.Log("EventService", "Error logging", logEx); }
                 }
                 catch (Exception connEx)
                 {
                     try
                     {
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                        LoggingService.Log("EventService", 
                             "{\"location\":\"EventService.GetAllEvents:CONNECTION_ERROR\",\"message\":\"Connection failed\",\"data\":{\"error\":\"" + connEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + connEx.GetType().Name + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
-                    catch { }
+                    catch (Exception logEx) { LoggingService.Log("EventService", "Error logging", logEx); }
                     throw;
                 }
 
@@ -84,10 +84,10 @@ public class EventService
                 {
                     try
                     {
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                        LoggingService.Log("EventService", 
                             "{\"location\":\"EventService.GetAllEvents:TABLE_NOT_FOUND\",\"message\":\"CalendarEvents table does not exist\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
-                    catch { }
+                    catch (Exception logEx) { LoggingService.Log("EventService", "Error logging", logEx); }
                     return dt;
                 }
 
@@ -97,7 +97,7 @@ public class EventService
                     {
                         object countResult = countCmd.ExecuteScalar();
                         int totalCount = countResult != null && countResult != DBNull.Value ? Convert.ToInt32(countResult) : 0;
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                        LoggingService.Log("EventService", 
                             "{\"location\":\"EventService.GetAllEvents:COUNT_CALENDAR_EVENTS\",\"message\":\"Total events in CalendarEvents table\",\"data\":{\"count\":\"" + totalCount + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
                 }
@@ -105,10 +105,10 @@ public class EventService
                 {
                     try
                     {
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                        LoggingService.Log("EventService", 
                             "{\"location\":\"EventService.GetAllEvents:COUNT_ERROR\",\"message\":\"Error counting CalendarEvents\",\"data\":{\"error\":\"" + countEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
-                    catch { }
+                    catch (Exception logEx) { LoggingService.Log("EventService", "Error logging", logEx); }
                 }
 
                 string sql = @"
@@ -120,7 +120,7 @@ ORDER BY Id";
 
                 try
                 {
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                    LoggingService.Log("EventService", 
                         "{\"location\":\"EventService.GetAllEvents:BEFORE_QUERY\",\"message\":\"Before executing query\",\"data\":{\"sql\":\"" + sql.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                 }
                 catch { }
@@ -130,14 +130,14 @@ ORDER BY Id";
                 
                 try
                 {
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                    LoggingService.Log("EventService", 
                         "{\"location\":\"EventService.GetAllEvents:AFTER_FILL_CALENDAR\",\"message\":\"After Fill CalendarEvents\",\"data\":{\"rowCount\":\"" + dt.Rows.Count + "\",\"columnCount\":\"" + dt.Columns.Count + "\",\"columns\":\"" + string.Join(",", dt.Columns.Cast<DataColumn>().Select(c => c.ColumnName)) + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                 }
                 catch { }
 
                 try
                 {
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                    LoggingService.Log("EventService", 
                         "{\"location\":\"EventService.GetAllEvents:QUERY_SUCCESS_CALENDAR\",\"message\":\"CalendarEvents query executed successfully\",\"data\":{\"rowCount\":\"" + dt.Rows.Count + "\",\"columnCount\":\"" + dt.Columns.Count + "\",\"columns\":\"" + string.Join(",", dt.Columns.Cast<DataColumn>().Select(c => c.ColumnName)) + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                 }
                 catch { }
@@ -173,7 +173,7 @@ ORDER BY Id";
                         string idCol = userRow.Table.Columns.Contains("Id") ? "Id" : "id";
                         string nameCol = userRow.Table.Columns.Contains("UserName") ? "UserName" : "username";
                         int uid = Convert.ToInt32(userRow[idCol]);
-                        string uname = Connect.FixEncoding(userRow[nameCol]?.ToString() ?? "");
+                        string uname = Connect.FixEncoding(userRow[nameCol] != null && userRow[nameCol] != DBNull.Value ? userRow[nameCol].ToString() : "");
                         usersDict[uid] = uname;
                     }
                 }
@@ -181,10 +181,10 @@ ORDER BY Id";
                 {
                     try
                     {
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                        LoggingService.Log("EventService", 
                             "{\"location\":\"EventService.GetAllEvents:USERS_QUERY_ERROR\",\"message\":\"Error loading users\",\"data\":{\"error\":\"" + usersEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
-                    catch { }
+                    catch (Exception logEx) { LoggingService.Log("EventService", "Error logging", logEx); }
                 }
             }
 
@@ -261,7 +261,7 @@ ORDER BY Id";
                     {
                         object countResult = countCmd.ExecuteScalar();
                         int totalCount = countResult != null && countResult != DBNull.Value ? Convert.ToInt32(countResult) : 0;
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                        LoggingService.Log("EventService", 
                             "{\"location\":\"EventService.GetAllEvents:COUNT_SHARED_EVENTS\",\"message\":\"Total events in SharedCalendarEvents table\",\"data\":{\"count\":\"" + totalCount + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
                 }
@@ -269,10 +269,10 @@ ORDER BY Id";
                 {
                     try
                     {
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                        LoggingService.Log("EventService", 
                             "{\"location\":\"EventService.GetAllEvents:COUNT_SHARED_ERROR\",\"message\":\"Error counting SharedCalendarEvents\",\"data\":{\"error\":\"" + countEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
-                    catch { }
+                    catch (Exception logEx) { LoggingService.Log("EventService", "Error logging", logEx); }
                 }
                 
                 string sharedSql = @"
@@ -288,10 +288,10 @@ ORDER BY Id";
                         sharedDa.Fill(sharedDt);
                         try
                         {
-                            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                            LoggingService.Log("EventService", 
                                 "{\"location\":\"EventService.GetAllEvents:AFTER_FILL_SHARED\",\"message\":\"After Fill SharedCalendarEvents\",\"data\":{\"rowCount\":\"" + sharedDt.Rows.Count + "\",\"columnCount\":\"" + sharedDt.Columns.Count + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                         }
-                        catch { }
+                        catch (Exception logEx) { LoggingService.Log("EventService", "Error logging", logEx); }
                     }
                 }
 
@@ -356,7 +356,8 @@ ORDER BY Id";
                             if (row["CreatedBy"] != DBNull.Value && row["CreatedBy"] != null)
                             {
                                 string createdByStr = row["CreatedBy"].ToString();
-                                if (int.TryParse(createdByStr, out int parsedUid))
+                                int parsedUid;
+                                if (int.TryParse(createdByStr, out parsedUid))
                                 {
                                     row["UserId"] = parsedUid;
                                 }
@@ -398,7 +399,8 @@ ORDER BY Id";
                         try
                         {
                             string createdByStr = row["CreatedBy"].ToString();
-                            if (int.TryParse(createdByStr, out int parsedUid))
+                            int parsedUid;
+                            if (int.TryParse(createdByStr, out parsedUid))
                             {
                                 uid = parsedUid;
                             }
@@ -468,7 +470,7 @@ ORDER BY Id";
                 
                 try
                 {
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                    LoggingService.Log("EventService", 
                         "{\"location\":\"EventService.GetAllEvents:AFTER_MERGE\",\"message\":\"After merging shared events\",\"data\":{\"totalRowCount\":\"" + dt.Rows.Count + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                 }
                 catch { }
@@ -582,8 +584,8 @@ ORDER BY Id";
         {
             try
             {
-                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                    "{\"location\":\"EventService.GetAllEvents:ERROR\",\"message\":\"Error getting events\",\"data\":{\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + ex.GetType().Name + "\",\"stackTrace\":\"" + ex.StackTrace?.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
+                LoggingService.Log("EventService", 
+                    "{\"location\":\"EventService.GetAllEvents:ERROR\",\"message\":\"Error getting events\",\"data\":{\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + ex.GetType().Name + "\",\"stackTrace\":\"" + (ex.StackTrace != null ? ex.StackTrace.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ") : "") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
             }
             catch { }
         }
@@ -592,7 +594,7 @@ ORDER BY Id";
         
         try
         {
-            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+            LoggingService.Log("EventService", 
                 "{\"location\":\"EventService.GetAllEvents:FINAL_RESULT\",\"message\":\"Final result before return\",\"data\":{\"rowCount\":\"" + dt.Rows.Count + "\",\"columnCount\":\"" + dt.Columns.Count + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
         }
         catch { }

@@ -1,24 +1,14 @@
-﻿using System;
+using System;
 using System.Data;
 using System.Data.OleDb;
 
-/// <summary>
-/// Calendar Service - DSD Schema: Uses CalendarEvents table
-/// Table: CalendarEvents (replaces old "calnder" table)
-/// Columns: Id, UserId, Title, EventDate, EventTime, Notes, Category, CreatedDate
-/// </summary>
-public class calnderservice
+public class CalendarService
 {
-    /// <summary>
-    /// Ensure CalendarEvents table exists - creates it if missing
-    /// </summary>
     private static void EnsureCalendarEventsTable(OleDbConnection conn)
     {
         if (!TableExists(conn, "CalendarEvents"))
         {
-            // #region agent log
-            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"calnderservice.EnsureCalendarEventsTable\",\"message\":\"Creating CalendarEvents table\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-            // #endregion
+            LoggingService.Log("CalendarService", "Creating CalendarEvents table");
             string createSql = @"
                 CREATE TABLE CalendarEvents (
                     Id AUTOINCREMENT PRIMARY KEY,
@@ -35,16 +25,12 @@ public class calnderservice
                 using (OleDbCommand cmd = new OleDbCommand(createSql, conn))
                 {
                     cmd.ExecuteNonQuery();
-                    // #region agent log
-                    try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"calnderservice.EnsureCalendarEventsTable\",\"message\":\"CalendarEvents table created successfully\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-                    // #endregion
+                    LoggingService.Log("CalendarService", "CalendarEvents table created successfully");
                 }
             }
             catch (Exception ex)
             {
-                // #region agent log
-                try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"calnderservice.EnsureCalendarEventsTable\",\"message\":\"Error creating CalendarEvents table\",\"data\":{\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-                // #endregion
+                LoggingService.Log("CalendarService", "Error creating CalendarEvents table", ex);
                 throw;
             }
         }
@@ -60,18 +46,15 @@ public class calnderservice
                 return true;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            LoggingService.Log("CalendarService", string.Format("Table {0} does not exist", tableName), ex);
             return false;
         }
     }
     
-    /// <summary>
-    /// Insert personal calendar event - DSD Schema: CalendarEvents table
-    /// </summary>
-    public void InsertEvent(string title, DateTime date, string time, string notes, string category, int? userId = null)
+    public int InsertEvent(string title, DateTime date, string time, string notes, string category, int? userId = null)
     {
-        // DSD Schema: CalendarEvents table with UserId (required, not nullable)
         if (!userId.HasValue)
         {
             throw new ArgumentException("UserId is required for calendar events");
@@ -83,9 +66,8 @@ public class calnderservice
             EnsureCalendarEventsTable(conn);
         
             string sql = "INSERT INTO CalendarEvents (UserId, Title, EventDate, EventTime, Notes, Category, CreatedDate) VALUES (?, ?, ?, ?, ?, ?, ?)";
-            // #region agent log
-            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"calnderservice.InsertEvent:85\",\"message\":\"INSERT SQL\",\"data\":{\"sql\":\"" + sql.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"placeholderCount\":7,\"userId\":" + (userId.HasValue ? userId.Value.ToString() : "null") + "},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-            // #endregion
+            LoggingService.Log("CalendarService", string.Format("Inserting event: Title={0}, UserId={1}", title, userId.Value));
+            
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {
                 OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.Integer);
@@ -93,7 +75,7 @@ public class calnderservice
                 cmd.Parameters.Add(userIdParam);
                 
                 OleDbParameter titleParam = new OleDbParameter("?", OleDbType.WChar);
-                titleParam.Value = title?.Trim() ?? "";
+                titleParam.Value = title != null ? title.Trim() : "";
                 cmd.Parameters.Add(titleParam);
                 
                 OleDbParameter dateParam = new OleDbParameter("?", OleDbType.Date);
@@ -101,11 +83,11 @@ public class calnderservice
                 cmd.Parameters.Add(dateParam);
                 
                 OleDbParameter timeParam = new OleDbParameter("?", OleDbType.WChar);
-                timeParam.Value = time?.Trim() ?? "";
+                timeParam.Value = time != null ? time.Trim() : "";
                 cmd.Parameters.Add(timeParam);
                 
                 OleDbParameter notesParam = new OleDbParameter("?", OleDbType.WChar);
-                notesParam.Value = notes?.Trim() ?? "";
+                notesParam.Value = notes != null ? notes.Trim() : "";
                 cmd.Parameters.Add(notesParam);
                 
                 OleDbParameter categoryParam = new OleDbParameter("?", OleDbType.WChar);
@@ -116,31 +98,29 @@ public class calnderservice
                 createdDateParam.Value = DateTime.Now;
                 cmd.Parameters.Add(createdDateParam);
 
-                // #region agent log
-                try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"calnderservice.InsertEvent:BeforeExecute\",\"message\":\"Before ExecuteNonQuery\",\"data\":{\"paramCount\":" + cmd.Parameters.Count + "},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-                // #endregion
                 try
                 {
                     cmd.ExecuteNonQuery();
-                    // #region agent log
-                    try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"calnderservice.InsertEvent:Success\",\"message\":\"ExecuteNonQuery success\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-                    // #endregion
+                    
+                    // Get the inserted event ID
+                    sql = "SELECT @@IDENTITY";
+                    using (OleDbCommand getIdCmd = new OleDbCommand(sql, conn))
+                    {
+                        object result = getIdCmd.ExecuteScalar();
+                        int eventId = Convert.ToInt32(result);
+                        LoggingService.Log("CalendarService", string.Format("Event inserted successfully - EventId: {0}", eventId));
+                        return eventId;
+                    }
                 }
                 catch (Exception ex)
                 {
-                    // #region agent log
-                    try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"calnderservice.InsertEvent:Error\",\"message\":\"ExecuteNonQuery error\",\"data\":{\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + ex.GetType().Name + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-                    // #endregion
+                    LoggingService.Log("CalendarService", "Error inserting event", ex);
                     throw;
                 }
             }
         }
     }
 
-    /// <summary>
-    /// Get all events for a user - DSD Schema: CalendarEvents table
-    /// Also includes shared calendar events the user is a member of
-    /// </summary>
     public DataSet GetAllEvents(int? userId = null)
     {
         DataSet data = new DataSet();
@@ -150,7 +130,6 @@ public class calnderservice
             conn.Open();
             EnsureCalendarEventsTable(conn);
 
-            // DSD Schema: CalendarEvents table with UserId, EventDate, EventTime columns
             string sql = "SELECT * FROM CalendarEvents ORDER BY Id";
 
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
@@ -166,7 +145,6 @@ public class calnderservice
             {
                 foreach (DataRow row in data.Tables["PersonalEvents"].Rows)
                 {
-                    // DSD Schema: Use Title, EventTime, Notes, Category
                     if (row.Table.Columns.Contains("Title"))
                         row["Title"] = Connect.FixEncoding(Convert.ToString(row["Title"]));
                     if (row.Table.Columns.Contains("EventTime"))
@@ -182,8 +160,6 @@ public class calnderservice
             {
                 try
                 {
-                    // DSD Schema: SharedCalendarEvents with EventDate, EventTime columns
-                    // Load all shared events where user is a member
                     string sharedSql = @"
 SELECT *
 FROM SharedCalendarEvents
@@ -212,8 +188,9 @@ ORDER BY Id";
                         }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    LoggingService.Log("CalendarService", "Error loading shared events", ex);
                 }
             }
         }
@@ -221,12 +198,8 @@ ORDER BY Id";
         return data;
     }
 
-    /// <summary>
-    /// Delete calendar event - DSD Schema: CalendarEvents table
-    /// </summary>
     public void DeleteEvent(int eventId, int? userId = null)
     {
-        // DSD Schema: CalendarEvents table with UserId column
         string sql = "DELETE FROM CalendarEvents WHERE Id = ?";
         if (userId.HasValue)
         {

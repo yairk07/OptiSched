@@ -25,29 +25,34 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">שם פרטי</label>
-                        <asp:TextBox ID="TextBox1" runat="server" CssClass="form-input" placeholder="הזן שם פרטי"></asp:TextBox>
+                        <asp:TextBox ID="txtFirstName" runat="server" CssClass="form-input" placeholder="הזן שם פרטי"></asp:TextBox>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">שם משפחה</label>
-                        <asp:TextBox ID="TextBox2" runat="server" CssClass="form-input" placeholder="הזן שם משפחה"></asp:TextBox>
+                        <asp:TextBox ID="txtLastName" runat="server" CssClass="form-input" placeholder="הזן שם משפחה"></asp:TextBox>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">אימייל</label>
-                    <asp:TextBox ID="TextBoxEmail" runat="server" CssClass="form-input" TextMode="Email" placeholder="your.email@example.com"></asp:TextBox>
+                    <asp:TextBox ID="txtEmail" runat="server" CssClass="form-input" TextMode="Email" placeholder="your.email@example.com"></asp:TextBox>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">נושא</label>
+                    <asp:TextBox ID="txtSubject" runat="server" CssClass="form-input" placeholder="נושא הפנייה"></asp:TextBox>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">תוכן הפנייה</label>
-                    <asp:TextBox ID="TextBox4" runat="server" CssClass="form-input form-textarea" TextMode="MultiLine" Rows="8" placeholder="כתוב כאן את הודעתך..."></asp:TextBox>
+                    <asp:TextBox ID="txtMessage" runat="server" CssClass="form-input form-textarea" TextMode="MultiLine" Rows="8" placeholder="כתוב כאן את הודעתך..."></asp:TextBox>
                 </div>
 
                 <asp:Label ID="lblMessage" runat="server" CssClass="form-message"></asp:Label>
 
                 <div class="form-actions">
-                    <asp:Button ID="btnSubmit" runat="server" Text="שלח הודעה" CssClass="btn-submit" />
+                    <asp:Button ID="btnSubmit" runat="server" Text="שלח הודעה" CssClass="btn-submit" OnClick="btnSubmit_Click" />
                 </div>
             </div>
         </div>

@@ -27,7 +27,7 @@
                                     <span class="meta-item">אימייל: <%# Eval("RequesterEmail") ?? "" %></span>
                                     <span class="meta-item">תאריך בקשה: <%# Eval("RequestDate") != DBNull.Value ? Convert.ToDateTime(Eval("RequestDate")).ToString("dd/MM/yyyy HH:mm") : "" %></span>
                                 </div>
-                                <%# !string.IsNullOrEmpty(Eval("Message")?.ToString()) ? "<p class='request-message'>" + Eval("Message") + "</p>" : "" %>
+                                <%# Eval("Message") != null && !string.IsNullOrEmpty(Eval("Message").ToString()) ? "<p class='request-message'>" + HttpUtility.HtmlEncode(Eval("Message").ToString()) + "</p>" : "" %>
                             </div>
                             <div class="request-card-footer">
                                 <div class="permission-selector">

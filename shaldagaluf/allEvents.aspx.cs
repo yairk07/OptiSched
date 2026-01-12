@@ -10,33 +10,24 @@ public partial class allEvents : System.Web.UI.Page
 
     private DataTable LoadEventsData()
     {
-        string cacheKey = "AllEventsData_" + (Session["userId"]?.ToString() ?? "all");
+        string userIdStr = Session["userId"] != null ? Session["userId"].ToString() : null;
+        string cacheKey = "AllEventsData_" + (userIdStr ?? "all");
         
         DataTable cachedData = Session[cacheKey] as DataTable;
         if (cachedData != null && cachedData.Rows.Count > 0)
             return cachedData;
 
         int? userId = null;
-        string role = Session["Role"]?.ToString();
+        string role = Session["Role"] != null ? Session["Role"].ToString() : null;
         
         if (Session["userId"] != null)
             userId = Convert.ToInt32(Session["userId"]);
         
-        try
-        {
-            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                "{\"location\":\"allEvents.LoadEventsData:BEFORE_QUERY\",\"message\":\"Before calling GetAllEvents\",\"data\":{\"userId\":\"" + (userId?.ToString() ?? "null") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
-        }
-        catch { }
+        LoggingService.Log("ALLEVENTS", string.Format("Before calling GetAllEvents, userId={0}", userId != null ? userId.ToString() : "null"));
         
         DataTable dt = es.GetAllEvents(userId);
         
-        try
-        {
-            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                "{\"location\":\"allEvents.LoadEventsData:AFTER_QUERY\",\"message\":\"After calling GetAllEvents\",\"data\":{\"rowCount\":\"" + (dt?.Rows.Count ?? 0) + "\",\"columnCount\":\"" + (dt?.Columns.Count ?? 0) + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
-        }
-        catch { }
+        LoggingService.Log("ALLEVENTS", string.Format("After calling GetAllEvents, rowCount={0}, columnCount={1}", dt != null ? dt.Rows.Count : 0, dt != null ? dt.Columns.Count : 0));
         
         if (dt == null)
             dt = new DataTable();
@@ -137,7 +128,8 @@ public partial class allEvents : System.Web.UI.Page
     
     private void ClearEventsCache()
     {
-        string cacheKey = "AllEventsData_" + (Session["userId"]?.ToString() ?? "all");
+        string userIdStr = Session["userId"] != null ? Session["userId"].ToString() : null;
+        string cacheKey = "AllEventsData_" + (userIdStr ?? "all");
         Session.Remove(cacheKey);
     }
 
@@ -159,10 +151,11 @@ public partial class allEvents : System.Web.UI.Page
 
         if (!IsPostBack)
         {
+            BindUsers();
             string viewMode = Request.QueryString["view"] ?? "table";
             SetViewMode(viewMode);
             
-            BindData();
+            BindData("", "", "");
             if (viewMode == "calendar")
             {
                 BindCalendar();
@@ -198,7 +191,44 @@ public partial class allEvents : System.Web.UI.Page
         }
     }
 
-    private void BindData(string filter = "", string categoryFilter = "")
+    private void BindUsers()
+    {
+        try
+        {
+            var us = new UsersService();
+            var ds = us.getallusers();
+            
+            ddlUserFilter.Items.Clear();
+            ddlUserFilter.Items.Add(new ListItem("כל המשתמשים", ""));
+            
+            if (ds != null && ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
+            {
+                DataTable usersTable = ds.Tables[0];
+                var uniqueUsers = new System.Collections.Generic.Dictionary<string, string>();
+                
+                foreach (DataRow row in usersTable.Rows)
+                {
+                    string userName = "";
+                    if (row.Table.Columns.Contains("UserName") && row["UserName"] != DBNull.Value && row["UserName"] != null)
+                        userName = Connect.FixEncoding(row["UserName"].ToString());
+                    else if (row.Table.Columns.Contains("userName") && row["userName"] != DBNull.Value && row["userName"] != null)
+                        userName = Connect.FixEncoding(row["userName"].ToString());
+                    
+                    if (!string.IsNullOrWhiteSpace(userName) && !uniqueUsers.ContainsKey(userName))
+                    {
+                        uniqueUsers[userName] = userName;
+                        ddlUserFilter.Items.Add(new ListItem(userName, userName));
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("ALLEVENTS", "Error binding users to dropdown", ex);
+        }
+    }
+
+    private void BindData(string filter = "", string categoryFilter = "", string userFilter = "")
     {
         DataTable dt = LoadEventsData();
         
@@ -224,12 +254,13 @@ public partial class allEvents : System.Web.UI.Page
             {
                 bool matchesFilter = true;
                 bool matchesCategory = true;
+                bool matchesUser = true;
 
                 if (!string.IsNullOrWhiteSpace(filter))
                 {
-                    string title = row.Table.Columns.Contains("Title") ? (row["Title"]?.ToString() ?? "") : "";
-                    string userName = row.Table.Columns.Contains("UserName") ? (row["UserName"]?.ToString() ?? "") : "";
-                    string notes = row.Table.Columns.Contains("Notes") ? (row["Notes"]?.ToString() ?? "") : "";
+                    string title = row.Table.Columns.Contains("Title") ? (row["Title"] != null && row["Title"] != DBNull.Value ? row["Title"].ToString() : "") : "";
+                    string userName = row.Table.Columns.Contains("UserName") ? (row["UserName"] != null && row["UserName"] != DBNull.Value ? row["UserName"].ToString() : "") : "";
+                    string notes = row.Table.Columns.Contains("Notes") ? (row["Notes"] != null && row["Notes"] != DBNull.Value ? row["Notes"].ToString() : "") : "";
                     
                     string searchLower = filter.ToLower();
                     matchesFilter = title.ToLower().Contains(searchLower) ||
@@ -239,11 +270,21 @@ public partial class allEvents : System.Web.UI.Page
 
                 if (!string.IsNullOrWhiteSpace(categoryFilter))
                 {
-                    string category = row.Table.Columns.Contains("Category") ? (row["Category"]?.ToString() ?? "אחר") : "אחר";
+                    string category = row.Table.Columns.Contains("Category") ? (row["Category"] != null && row["Category"] != DBNull.Value ? row["Category"].ToString() : "אחר") : "אחר";
                     matchesCategory = category == categoryFilter;
                 }
 
-                if (matchesFilter && matchesCategory)
+                if (!string.IsNullOrWhiteSpace(userFilter))
+                {
+                    string userName = row.Table.Columns.Contains("UserName") ? (row["UserName"] != null && row["UserName"] != DBNull.Value ? row["UserName"].ToString() : "") : "";
+                    if (row.Table.Columns.Contains("userName") && (userName == null || userName == ""))
+                    {
+                        userName = row["userName"] != null && row["userName"] != DBNull.Value ? row["userName"].ToString() : "";
+                    }
+                    matchesUser = !string.IsNullOrWhiteSpace(userName) && userName == userFilter;
+                }
+
+                if (matchesFilter && matchesCategory && matchesUser)
                 {
                     DataRow newRow = filteredDt.NewRow();
                     foreach (DataColumn col in filteredDt.Columns)
@@ -283,7 +324,7 @@ public partial class allEvents : System.Web.UI.Page
             {
                 try
                 {
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                    LoggingService.Log("ALLEVENTS", 
                         "{\"location\":\"allEvents.BindData:IMPORT_ERROR\",\"message\":\"Error importing row\",\"data\":{\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                 }
                 catch { }
@@ -291,12 +332,7 @@ public partial class allEvents : System.Web.UI.Page
             }
         }
 
-        try
-        {
-            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                "{\"location\":\"allEvents.BindData:BEFORE_BIND\",\"message\":\"Before DataBind\",\"data\":{\"rowCount\":\"" + filteredDt.Rows.Count + "\",\"columnCount\":\"" + filteredDt.Columns.Count + "\",\"columns\":\"" + string.Join(",", filteredDt.Columns.Cast<DataColumn>().Select(c => c.ColumnName)) + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
-        }
-        catch { }
+        LoggingService.Log("ALLEVENTS", string.Format("Before DataBind, rowCount={0}, columnCount={1}, columns={2}", filteredDt.Rows.Count, filteredDt.Columns.Count, string.Join(",", filteredDt.Columns.Cast<DataColumn>().Select(c => c.ColumnName))));
 
         EnsureRequiredColumns(filteredDt);
 
@@ -304,53 +340,43 @@ public partial class allEvents : System.Web.UI.Page
         {
             if (filteredDt.Rows.Count > 0)
             {
-                try
+                DataRow sampleRow = filteredDt.Rows[0];
+                string sampleData = "";
+                foreach (DataColumn col in filteredDt.Columns)
                 {
-                    DataRow sampleRow = filteredDt.Rows[0];
-                    string sampleData = "";
-                    foreach (DataColumn col in filteredDt.Columns)
-                    {
-                        if (sampleRow[col.ColumnName] != DBNull.Value && sampleRow[col.ColumnName] != null)
-                            sampleData += col.ColumnName + "=" + sampleRow[col.ColumnName].ToString().Substring(0, Math.Min(50, sampleRow[col.ColumnName].ToString().Length)) + ";";
-                    }
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                        "{\"location\":\"allEvents.BindData:SAMPLE_DATA\",\"message\":\"Sample row data\",\"data\":{\"sample\":\"" + sampleData.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
+                    if (sampleRow[col.ColumnName] != DBNull.Value && sampleRow[col.ColumnName] != null)
+                        sampleData += col.ColumnName + "=" + sampleRow[col.ColumnName].ToString().Substring(0, Math.Min(50, sampleRow[col.ColumnName].ToString().Length)) + ";";
                 }
-                catch { }
+                LoggingService.Log("ALLEVENTS", string.Format("Sample row data: {0}", sampleData));
             }
             
             dlEvents.DataSource = filteredDt;
             dlEvents.DataBind();
             
-            try
-            {
-                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                    "{\"location\":\"allEvents.BindData:AFTER_BIND\",\"message\":\"After DataBind\",\"data\":{\"itemsCount\":\"" + dlEvents.Items.Count + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
-            }
-            catch { }
+            LoggingService.Log("ALLEVENTS", string.Format("After DataBind, itemsCount={0}", dlEvents.Items.Count));
         }
         catch (Exception bindEx)
         {
-            try
-            {
-                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                    "{\"location\":\"allEvents.BindData:BIND_ERROR\",\"message\":\"DataBind error\",\"data\":{\"error\":\"" + bindEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + bindEx.GetType().Name + "\",\"stackTrace\":\"" + bindEx.StackTrace?.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
-            }
-            catch { }
+            LoggingService.Log("ALLEVENTS", "DataBind error", bindEx);
         }
 
         string resultMessage = "";
-        if (!string.IsNullOrWhiteSpace(filter) && !string.IsNullOrWhiteSpace(categoryFilter))
+        int filterCount = 0;
+        if (!string.IsNullOrWhiteSpace(filter)) filterCount++;
+        if (!string.IsNullOrWhiteSpace(categoryFilter)) filterCount++;
+        if (!string.IsNullOrWhiteSpace(userFilter)) filterCount++;
+        
+        if (filterCount > 0)
         {
-            resultMessage = $"נמצאו {filteredDt.Rows.Count} תוצאות עבור: \"{filter}\" בקטגוריה \"{categoryFilter}\"";
-        }
-        else if (!string.IsNullOrWhiteSpace(filter))
-        {
-            resultMessage = $"נמצאו {filteredDt.Rows.Count} תוצאות עבור: \"{filter}\"";
-        }
-        else if (!string.IsNullOrWhiteSpace(categoryFilter))
-        {
-            resultMessage = $"נמצאו {filteredDt.Rows.Count} תוצאות בקטגוריה: \"{categoryFilter}\"";
+            System.Collections.Generic.List<string> filters = new System.Collections.Generic.List<string>();
+            if (!string.IsNullOrWhiteSpace(filter))
+                filters.Add(string.Format("חיפוש: \"{0}\"", filter));
+            if (!string.IsNullOrWhiteSpace(categoryFilter))
+                filters.Add(string.Format("קטגוריה: \"{0}\"", categoryFilter));
+            if (!string.IsNullOrWhiteSpace(userFilter))
+                filters.Add(string.Format("משתמש: \"{0}\"", userFilter));
+            
+            resultMessage = string.Format("נמצאו {0} תוצאות עבור: {1}", filteredDt.Rows.Count, string.Join(", ", filters));
         }
 
         lblResult.Text = resultMessage;
@@ -358,12 +384,7 @@ public partial class allEvents : System.Web.UI.Page
 
     private void BindCalendar()
     {
-        try
-        {
-            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                "{\"location\":\"allEvents.BindCalendar:ENTRY\",\"message\":\"BindCalendar called\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
-        }
-        catch { }
+        LoggingService.Log("ALLEVENTS", "BindCalendar called");
         
         DateTime currentDate = calEvents.VisibleDate;
         
@@ -377,12 +398,7 @@ public partial class allEvents : System.Web.UI.Page
         
         DataTable eventsData = LoadEventsData();
         
-        try
-        {
-            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                "{\"location\":\"allEvents.BindCalendar:LOADED_DATA\",\"message\":\"Events data loaded\",\"data\":{\"rowCount\":\"" + (eventsData?.Rows.Count ?? 0) + "\",\"columnCount\":\"" + (eventsData?.Columns.Count ?? 0) + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
-        }
-        catch { }
+        LoggingService.Log("ALLEVENTS", string.Format("Events data loaded, rowCount={0}, columnCount={1}", eventsData != null ? eventsData.Rows.Count : 0, eventsData != null ? eventsData.Columns.Count : 0));
         
         if (eventsData == null || eventsData.Rows.Count == 0)
         {
@@ -418,7 +434,7 @@ public partial class allEvents : System.Web.UI.Page
                         {
                             try
                             {
-                                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                                LoggingService.Log("ALLEVENTS", 
                                     "{\"location\":\"allEvents.BindCalendar:DATE_ERROR\",\"message\":\"Error parsing date\",\"data\":{\"error\":\"" + dateEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                             }
                             catch { }
@@ -429,7 +445,7 @@ public partial class allEvents : System.Web.UI.Page
                 {
                     try
                     {
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                        LoggingService.Log("ALLEVENTS", 
                             "{\"location\":\"allEvents.BindCalendar:ROW_ERROR\",\"message\":\"Error processing row\",\"data\":{\"error\":\"" + rowEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + rowEx.GetType().Name + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
                     catch { }
@@ -437,7 +453,7 @@ public partial class allEvents : System.Web.UI.Page
                 }
             }
             
-            lblCalendarMessage.Text = $"נמצאו {eventsData.Rows.Count} אירועים בסך הכל ({eventsInMonth} בחודש זה)";
+            lblCalendarMessage.Text = string.Format("נמצאו {0} אירועים בסך הכל ({1} בחודש זה)", eventsData.Rows.Count, eventsInMonth);
             lblCalendarMessage.ForeColor = System.Drawing.Color.Green;
         }
     }
@@ -446,20 +462,30 @@ public partial class allEvents : System.Web.UI.Page
     {
         string search = txtSearch.Text.Trim();
         string categoryFilter = ddlCategoryFilter.SelectedValue;
+        string userFilter = ddlUserFilter.SelectedValue;
         
-        if (string.IsNullOrWhiteSpace(search) && string.IsNullOrWhiteSpace(categoryFilter))
+        if (string.IsNullOrWhiteSpace(search) && string.IsNullOrWhiteSpace(categoryFilter) && string.IsNullOrWhiteSpace(userFilter))
         {
             ClearEventsCache();
         }
         
-        BindData(search, categoryFilter);
+        BindData(search, categoryFilter, userFilter);
     }
 
     protected void ddlCategoryFilter_SelectedIndexChanged(object sender, EventArgs e)
     {
         string search = txtSearch.Text.Trim();
         string categoryFilter = ddlCategoryFilter.SelectedValue;
-        BindData(search, categoryFilter);
+        string userFilter = ddlUserFilter.SelectedValue;
+        BindData(search, categoryFilter, userFilter);
+    }
+
+    protected void ddlUserFilter_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        string search = txtSearch.Text.Trim();
+        string categoryFilter = ddlCategoryFilter.SelectedValue;
+        string userFilter = ddlUserFilter.SelectedValue;
+        BindData(search, categoryFilter, userFilter);
     }
 
     protected void btnViewToggle_Click(object sender, EventArgs e)
@@ -475,7 +501,7 @@ public partial class allEvents : System.Web.UI.Page
         }
         else
         {
-            BindData();
+            BindData("", "", "");
         }
     }
 
@@ -544,7 +570,7 @@ public partial class allEvents : System.Web.UI.Page
             e.Cell.CssClass = "day-cell";
             e.Cell.Controls.Clear();
 
-            LiteralControl dayNumber = new LiteralControl($"<div class='day-number'>{e.Day.Date.Day}</div>");
+            LiteralControl dayNumber = new LiteralControl(string.Format("<div class='day-number'>{0}</div>", e.Day.Date.Day));
             e.Cell.Controls.Add(dayNumber);
 
             if (!e.Day.IsOtherMonth)
@@ -555,8 +581,8 @@ public partial class allEvents : System.Web.UI.Page
                     
                     try
                     {
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                            "{\"location\":\"allEvents.calEvents_DayRender:LOADED_DATA\",\"message\":\"Events data loaded\",\"data\":{\"rowCount\":\"" + (eventsData?.Rows.Count ?? 0) + "\",\"columnCount\":\"" + (eventsData?.Columns.Count ?? 0) + "\",\"day\":\"" + e.Day.Date.ToString("yyyy-MM-dd") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
+                        LoggingService.Log("ALLEVENTS", 
+                            "{\"location\":\"allEvents.calEvents_DayRender:LOADED_DATA\",\"message\":\"Events data loaded\",\"data\":{\"rowCount\":\"" + (eventsData != null ? eventsData.Rows.Count : 0) + "\",\"columnCount\":\"" + (eventsData != null ? eventsData.Columns.Count : 0) + "\",\"day\":\"" + e.Day.Date.ToString("yyyy-MM-dd") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
                     catch { }
                 
@@ -573,7 +599,7 @@ public partial class allEvents : System.Web.UI.Page
                     {
                         try
                         {
-                            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                            LoggingService.Log("ALLEVENTS", 
                                 "{\"location\":\"allEvents.calEvents_DayRender:NO_DATE_COLUMN\",\"message\":\"Date column not found\",\"data\":{\"dateColumn\":\"" + dateColumn + "\",\"availableColumns\":\"" + string.Join(",", eventsData.Columns.Cast<DataColumn>().Select(c => c.ColumnName)) + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                         }
                         catch { }
@@ -635,16 +661,16 @@ public partial class allEvents : System.Web.UI.Page
                                 
                                 string displayText = title;
                                 if (!string.IsNullOrEmpty(userName) && userName.Trim() != "" && userName != "ללא שם")
-                                    displayText = $"{title} - {userName}";
+                                    displayText = string.Format("{0} - {1}", title, userName);
                                 
                                 if (displayText.Length > 18)
                                     displayText = displayText.Substring(0, 18) + "...";
                                 
                                 HyperLink eventLink = new HyperLink();
-                                eventLink.CssClass = $"event-badge {eventType}";
+                                eventLink.CssClass = string.Format("event-badge {0}", eventType);
                                 eventLink.Text = displayText;
-                                eventLink.NavigateUrl = $"editEvent.aspx?id={eventId}";
-                                eventLink.ToolTip = $"{title}\nמשתמש: {userName}\n{eventTime}";
+                                eventLink.NavigateUrl = string.Format("editEvent.aspx?id={0}", eventId);
+                                eventLink.ToolTip = string.Format("{0}\nמשתמש: {1}\n{2}", title, userName, eventTime);
                                 
                                 eventsPanel.Controls.Add(eventLink);
                             }
@@ -653,7 +679,7 @@ public partial class allEvents : System.Web.UI.Page
                         {
                             try
                             {
-                                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                                LoggingService.Log("ALLEVENTS", 
                                     "{\"location\":\"allEvents.calEvents_DayRender:ROW_ERROR\",\"message\":\"Error processing row\",\"data\":{\"error\":\"" + rowEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + rowEx.GetType().Name + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                             }
                             catch { }
@@ -669,8 +695,8 @@ public partial class allEvents : System.Web.UI.Page
                 {
                     try
                     {
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                            "{\"location\":\"allEvents.calEvents_DayRender:ERROR\",\"message\":\"Error in DayRender\",\"data\":{\"error\":\"" + dayEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + dayEx.GetType().Name + "\",\"stackTrace\":\"" + dayEx.StackTrace?.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
+                        LoggingService.Log("ALLEVENTS", 
+                            "{\"location\":\"allEvents.calEvents_DayRender:ERROR\",\"message\":\"Error in DayRender\",\"data\":{\"error\":\"" + dayEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + dayEx.GetType().Name + "\",\"stackTrace\":\"" + (dayEx.StackTrace != null ? dayEx.StackTrace.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ") : "") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
                     catch { }
                 }
@@ -680,8 +706,8 @@ public partial class allEvents : System.Web.UI.Page
         {
             try
             {
-                System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                    "{\"location\":\"allEvents.calEvents_DayRender:OUTER_ERROR\",\"message\":\"Outer error in DayRender\",\"data\":{\"error\":\"" + outerEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + outerEx.GetType().Name + "\",\"stackTrace\":\"" + outerEx.StackTrace?.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
+                LoggingService.Log("ALLEVENTS", 
+                    "{\"location\":\"allEvents.calEvents_DayRender:OUTER_ERROR\",\"message\":\"Outer error in DayRender\",\"data\":{\"error\":\"" + outerEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + outerEx.GetType().Name + "\",\"stackTrace\":\"" + (outerEx.StackTrace != null ? outerEx.StackTrace.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ") : "") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
             }
             catch { }
         }
@@ -691,7 +717,7 @@ public partial class allEvents : System.Web.UI.Page
     {
         try
         {
-            System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+            LoggingService.Log("ALLEVENTS", 
                 "{\"location\":\"allEvents.dlEvents_ItemDataBound:ENTRY\",\"message\":\"ItemDataBound called\",\"data\":{\"itemType\":\"" + e.Item.ItemType.ToString() + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
         }
         catch { }
@@ -705,8 +731,8 @@ public partial class allEvents : System.Web.UI.Page
                 {
                     try
                     {
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                            "{\"location\":\"allEvents.dlEvents_ItemDataBound:NULL_ROWVIEW\",\"message\":\"DataItem is not DataRowView\",\"data\":{\"dataItemType\":\"" + (e.Item.DataItem?.GetType().Name ?? "null") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
+                        LoggingService.Log("ALLEVENTS", 
+                            "{\"location\":\"allEvents.dlEvents_ItemDataBound:NULL_ROWVIEW\",\"message\":\"DataItem is not DataRowView\",\"data\":{\"dataItemType\":\"" + (e.Item.DataItem != null ? e.Item.DataItem.GetType().Name : "null") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
                     catch { }
                     return;
@@ -716,7 +742,7 @@ public partial class allEvents : System.Web.UI.Page
                 {
                     try
                     {
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                        LoggingService.Log("ALLEVENTS", 
                             "{\"location\":\"allEvents.dlEvents_ItemDataBound:NULL_ROW\",\"message\":\"rowView.Row is null\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
                     catch { }
@@ -728,7 +754,7 @@ public partial class allEvents : System.Web.UI.Page
                 {
                     try
                     {
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                        LoggingService.Log("ALLEVENTS", 
                             "{\"location\":\"allEvents.dlEvents_ItemDataBound:NULL_TABLE\",\"message\":\"row.Table is null\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
                     catch { }
@@ -739,7 +765,7 @@ public partial class allEvents : System.Web.UI.Page
                     
                     try
                     {
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                        LoggingService.Log("ALLEVENTS", 
                             "{\"location\":\"allEvents.dlEvents_ItemDataBound:PROCESSING\",\"message\":\"Processing row\",\"data\":{\"rowColumns\":\"" + string.Join(",", table.Columns.Cast<DataColumn>().Select(c => c.ColumnName)) + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
                     catch { }
@@ -750,11 +776,12 @@ public partial class allEvents : System.Web.UI.Page
                     Literal litEventTime = (Literal)e.Item.FindControl("litEventTime");
                     Literal litCategory = (Literal)e.Item.FindControl("litCategory");
                     Literal litNotes = (Literal)e.Item.FindControl("litNotes");
+                    HyperLink lnkDetails = (HyperLink)e.Item.FindControl("lnkDetails");
                     HyperLink lnkEdit = (HyperLink)e.Item.FindControl("lnkEdit");
                     
                     try
                     {
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
+                        LoggingService.Log("ALLEVENTS", 
                             "{\"location\":\"allEvents.dlEvents_ItemDataBound:FIND_CONTROLS\",\"message\":\"Controls found\",\"data\":{\"litTitle\":\"" + (litTitle != null ? "found" : "null") + "\",\"litUserName\":\"" + (litUserName != null ? "found" : "null") + "\",\"litEventDate\":\"" + (litEventDate != null ? "found" : "null") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
                     catch { }
@@ -832,6 +859,14 @@ public partial class allEvents : System.Web.UI.Page
                             litNotes.Text = "";
                     }
                     
+                    if (lnkDetails != null)
+                    {
+                        if (table.Columns.Contains("Id") && row["Id"] != DBNull.Value && row["Id"] != null)
+                            lnkDetails.NavigateUrl = "eventDetails.aspx?id=" + row["Id"].ToString();
+                        else
+                            lnkDetails.Visible = false;
+                    }
+                    
                     if (lnkEdit != null)
                     {
                         if (table.Columns.Contains("Id") && row["Id"] != DBNull.Value && row["Id"] != null)
@@ -842,8 +877,8 @@ public partial class allEvents : System.Web.UI.Page
                     
                     try
                     {
-                        System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                            "{\"location\":\"allEvents.dlEvents_ItemDataBound:SUCCESS\",\"message\":\"Row processed successfully\",\"data\":{\"title\":\"" + (litTitle?.Text ?? "null") + "\",\"userName\":\"" + (litUserName?.Text ?? "null") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
+                        LoggingService.Log("ALLEVENTS", 
+                            "{\"location\":\"allEvents.dlEvents_ItemDataBound:SUCCESS\",\"message\":\"Row processed successfully\",\"data\":{\"title\":\"" + (litTitle != null ? litTitle.Text : "null") + "\",\"userName\":\"" + (litUserName != null ? litUserName.Text : "null") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                     }
                     catch { }
             }
@@ -851,8 +886,8 @@ public partial class allEvents : System.Web.UI.Page
             {
                 try
                 {
-                    System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", 
-                        "{\"location\":\"allEvents.dlEvents_ItemDataBound:ERROR\",\"message\":\"Error in ItemDataBound\",\"data\":{\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + ex.GetType().Name + "\",\"stackTrace\":\"" + ex.StackTrace?.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
+                    LoggingService.Log("ALLEVENTS", 
+                        "{\"location\":\"allEvents.dlEvents_ItemDataBound:ERROR\",\"message\":\"Error in ItemDataBound\",\"data\":{\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + ex.GetType().Name + "\",\"stackTrace\":\"" + (ex.StackTrace != null ? ex.StackTrace.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ") : "") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n");
                 }
                 catch { }
             }

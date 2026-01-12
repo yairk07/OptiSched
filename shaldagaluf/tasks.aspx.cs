@@ -8,7 +8,7 @@ using System.Collections.Generic;
 
 public partial class tasks : System.Web.UI.Page
 {
-    calnderservice calnderService = new calnderservice();
+    CalendarService calnderService = new CalendarService();
     private DataSet allEvents;
 
     protected void Page_Load(object sender, EventArgs e)
@@ -19,7 +19,8 @@ public partial class tasks : System.Web.UI.Page
         Response.HeaderEncoding = System.Text.Encoding.UTF8;
         
         string deleteEventId = Request.Form["deleteEventId"];
-        if (!string.IsNullOrEmpty(deleteEventId) && int.TryParse(deleteEventId, out int eventId))
+        int eventId;
+        if (!string.IsNullOrEmpty(deleteEventId) && int.TryParse(deleteEventId, out eventId))
         {
             DeleteEvent(eventId);
             Response.Redirect(Request.Url.AbsolutePath, false);
@@ -43,7 +44,7 @@ public partial class tasks : System.Web.UI.Page
             ViewState["EventsSaved"] = null;
             
             int? userId = null;
-            string role = Session["Role"]?.ToString();
+            string role = Session["Role"] != null ? Session["Role"].ToString() : null;
             
             if (role != "owner" && Session["userId"] != null)
             {
@@ -64,17 +65,18 @@ public partial class tasks : System.Web.UI.Page
             ShowEvents(DateTime.Today);
 
             string saved = Request.QueryString["saved"];
-            if (!string.IsNullOrEmpty(saved) && int.TryParse(saved, out int count))
+            int count;
+            if (!string.IsNullOrEmpty(saved) && int.TryParse(saved, out count))
             {
                 ClientScript.RegisterStartupScript(this.GetType(), "showSaved", 
-                    $"alert('נשמרו {count} אירועים בהצלחה!');", true);
+                    string.Format("alert('נשמרו {0} אירועים בהצלחה!');", count), true);
             }
 
             string error = Request.QueryString["error"];
             if (!string.IsNullOrEmpty(error))
             {
                 ClientScript.RegisterStartupScript(this.GetType(), "showError", 
-                    $"alert('שגיאה: {HttpUtility.JavaScriptStringEncode(error)}');", true);
+                    string.Format("alert('שגיאה: {0}');", HttpUtility.JavaScriptStringEncode(error)), true);
             }
         }
         else
@@ -113,12 +115,13 @@ public partial class tasks : System.Web.UI.Page
                         title = "אירוע";
                     }
 
-                    if (!string.IsNullOrEmpty(dateStr) && DateTime.TryParse(dateStr, out DateTime eventDate))
+                    DateTime eventDate;
+                    if (!string.IsNullOrEmpty(dateStr) && DateTime.TryParse(dateStr, out eventDate))
                     {
                         string time = "";
                         if (!string.IsNullOrEmpty(startTime) && !string.IsNullOrEmpty(endTime))
                         {
-                            time = $"{startTime} - {endTime}";
+                            time = string.Format("{0} - {1}", startTime, endTime);
                         }
                         else if (!string.IsNullOrEmpty(startTime))
                         {
@@ -128,11 +131,11 @@ public partial class tasks : System.Web.UI.Page
                         string fullDescription = "";
                         if (!string.IsNullOrEmpty(location) && !string.IsNullOrEmpty(description))
                         {
-                            fullDescription = $"מיקום: {location}\n{description}";
+                            fullDescription = string.Format("מיקום: {0}\n{1}", location, description);
                         }
                         else if (!string.IsNullOrEmpty(location))
                         {
-                            fullDescription = $"מיקום: {location}";
+                            fullDescription = string.Format("מיקום: {0}", location);
                         }
                         else if (!string.IsNullOrEmpty(description))
                         {
@@ -148,7 +151,7 @@ public partial class tasks : System.Web.UI.Page
                 }
             }
 
-            string role = Session["Role"]?.ToString();
+            string role = Session["Role"] != null ? Session["Role"].ToString() : null;
             int? filterUserId = null;
             if (role != "owner" && userId.HasValue)
             {
@@ -179,7 +182,7 @@ public partial class tasks : System.Web.UI.Page
     protected void DeleteEvent(int eventId)
     {
         int? userId = null;
-        string role = Session["Role"]?.ToString();
+        string role = Session["Role"] != null ? Session["Role"].ToString() : null;
         
         if (role != "owner" && Session["userId"] != null)
         {
@@ -215,14 +218,42 @@ public partial class tasks : System.Web.UI.Page
                 userId = Convert.ToInt32(Session["userId"]);
             }
 
-            calnderService.InsertEvent(title, selectedDate, time, note, category, userId);
+            int eventId = calnderService.InsertEvent(title, selectedDate, time, note, category, userId);
+
+            // Handle file upload
+            if (fileUpload.HasFile)
+            {
+                try
+                {
+                    FileService fileService = new FileService();
+                    fileService.SaveFile(fileUpload.PostedFile, eventId, userId.Value);
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Log("tasks", "Error uploading file", ex);
+                }
+            }
+
+            // Handle image upload
+            if (imageUpload.HasFile)
+            {
+                try
+                {
+                    ImageService imageService = new ImageService();
+                    imageService.SaveImage(imageUpload.PostedFile, eventId, userId.Value);
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Log("tasks", "Error uploading image", ex);
+                }
+            }
 
             txtTitle.Text = "";
             txtTime.Text = "";
             txtNote.Text = "";
             ddlCategory.SelectedIndex = 0;
 
-            string role = Session["Role"]?.ToString();
+            string role = Session["Role"] != null ? Session["Role"].ToString() : null;
             int? filterUserId = null;
             if (role != "owner" && userId.HasValue)
             {
@@ -286,12 +317,12 @@ public partial class tasks : System.Web.UI.Page
                         ? HttpUtility.HtmlEncode(Connect.FixEncoding(row[categoryColumn].ToString())) : "אחר";
                     string eventType = table.TableName == "SharedEvents" ? "טבלה משותפת" : "אישי";
 
-                    string eventId = row["Id"]?.ToString() ?? "";
+                    string eventId = row["Id"] != null && row["Id"] != DBNull.Value ? row["Id"].ToString() : "";
                     bool canDelete = false;
 
                     if (table.TableName == "PersonalEvents" && !string.IsNullOrEmpty(eventId))
                     {
-                        string currentRole = Session["Role"]?.ToString();
+                        string currentRole = Session["Role"] != null ? Session["Role"].ToString() : null;
                         int? currentUserId = null;
                         if (Session["userId"] != null)
                         {
@@ -384,7 +415,7 @@ public partial class tasks : System.Web.UI.Page
         {
             e.Cell.Controls.Add(new Literal
             {
-                Text = $"<span class='task-day-count'>{dayCount} אירועים</span>"
+                Text = string.Format("<span class='task-day-count'>{0} אירועים</span>", dayCount)
             });
         }
     }

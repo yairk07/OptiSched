@@ -1,19 +1,15 @@
 using System;
-using System.Data;
-using System.Data.OleDb;
 using System.Web.UI;
 
 public partial class login_with_code : System.Web.UI.Page
 {
-    private string currentEmail = "";
-
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";
         Response.Charset = "utf-8";
         Response.ContentEncoding = System.Text.Encoding.UTF8;
-        Response.AppendHeader("Content-Type", "text/html; charset=utf-8");
-        
+        Response.HeaderEncoding = System.Text.Encoding.UTF8;
+
         if (Session["username"] != null)
         {
             Response.Redirect("home.aspx");
@@ -23,236 +19,157 @@ public partial class login_with_code : System.Web.UI.Page
         if (!IsPostBack)
         {
             InitializeUI();
-        }
-        else
-        {
-            if (Session["LoginCodeEmail"] != null)
-            {
-                currentEmail = Session["LoginCodeEmail"].ToString();
-            }
+            pnlRequestCode.Visible = true;
+            pnlVerifyCode.Visible = false;
         }
     }
 
     private void InitializeUI()
     {
         h2Title.InnerText = "התחברות ללא סיסמה";
-        pDescription.InnerText = "הזן את כתובת האימייל שלך ונשלח לך קוד התחברות";
+        pDescription.InnerText = "קבל קוד התחברות באימייל שלך";
         h3Title.InnerText = "התחברות עם קוד";
-        pSupport.InnerText = "הזן את כתובת האימייל שלך ונשלח לך קוד התחברות חד-פעמי";
+        pSupport.InnerText = "הזן את כתובת האימייל שלך ונשלח לך קוד התחברות";
         lblEmail.InnerText = "כתובת אימייל";
         btnSendCode.Text = "שלח קוד";
-        lblCode.InnerText = "קוד התחברות";
-        btnVerifyCode.Text = "אימות קוד";
-        pCodeInfo.InnerText = "הזן את הקוד בן 6 הספרות שנשלח לכתובת האימייל שלך";
-        lnkResendCode.Text = "שלח קוד מחדש";
+        lblCode.InnerText = "קוד אימות";
+        btnVerifyCode.Text = "אמת קוד";
+        pCodeInfo.InnerText = "הזן את הקוד בן 6 הספרות שנשלח לאימייל שלך";
+        lnkResendCode.Text = "שלח קוד חדש";
         lnkBack.InnerText = "חזור להתחברות רגילה";
-        spanNotRegistered.InnerText = "עדיין לא נרשמת?";
+        spanNotRegistered.InnerText = "עדיין לא רשום?";
         lnkRegister.InnerText = "הירשם עכשיו";
     }
 
     protected void btnSendCode_Click(object sender, EventArgs e)
     {
+        string email = txtEmail.Text.Trim().ToLower();
+
+        if (string.IsNullOrEmpty(email))
+        {
+            lblMessage.Text = "אנא הזן כתובת אימייל";
+            lblMessage.CssClass = "auth-error";
+            return;
+        }
+
         try
         {
-            string email = txtEmail.Text.Trim().ToLower();
-
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                lblMessage.Text = "אנא הזן כתובת אימייל";
-                lblMessage.Visible = true;
-                return;
-            }
-
-            if (!IsValidEmail(email))
-            {
-                lblMessage.Text = "כתובת אימייל לא תקינה";
-                lblMessage.Visible = true;
-                return;
-            }
-
-            LoggingService.Log("LOGIN_CODE_SEND_START", string.Format("Starting send code process - Email: {0}", email));
-
-            UsersService userService = new UsersService();
-            LoggingService.Log("LOGIN_CODE_GET_USER", string.Format("Calling GetUserByEmail - Email: {0}", email));
-            
-            DataRow user = userService.GetUserByEmail(email);
-
-            if (user == null)
-            {
-                LoggingService.Log("LOGIN_CODE_USER_NOT_FOUND", string.Format("User not found - Email: {0}", email));
-                lblMessage.Text = "כתובת אימייל זו לא רשומה במערכת. אנא הירשם תחילה.";
-                lblMessage.Visible = true;
-                return;
-            }
-
-            LoggingService.Log("LOGIN_CODE_USER_FOUND", string.Format("User found - Email: {0}", email));
-
-            LoggingService.Log("LOGIN_CODE_GENERATE", string.Format("Calling GenerateCode - Email: {0}", email));
             string code = LoginCodeService.GenerateCode(email);
-            LoggingService.Log("LOGIN_CODE_GENERATED", string.Format("Code generated - Email: {0}, Code: {1}", email, code));
+            
+            EmailService emailService = new EmailService();
+            emailService.SendLoginCode(email, code);
 
-            try
-            {
-                EmailService.SendLoginCodeEmail(email, code);
-                Session["LoginCodeEmail"] = email;
-                pnlRequestCode.Visible = false;
-                pnlVerifyCode.Visible = true;
-                lblCodeMessage.Text = "קוד נשלח בהצלחה לכתובת האימייל שלך. אנא הזן את הקוד.";
-                lblCodeMessage.CssClass = "auth-error";
-                lblCodeMessage.Style["color"] = "green";
-                lblCodeMessage.Visible = true;
-            }
-            catch (Exception emailEx)
-            {
-                LoggingService.Log("EMAIL_SEND_FAILED", string.Format("Failed to send login code email - Email: {0}, Error: {1}", email, emailEx.Message), emailEx);
-                lblMessage.Text = "שגיאה בשליחת האימייל. אנא נסה שוב מאוחר יותר או השתמש בהתחברות רגילה.";
-                lblMessage.Visible = true;
-            }
+            ViewState["Email"] = email;
+            pnlRequestCode.Visible = false;
+            pnlVerifyCode.Visible = true;
+            lblCodeMessage.Text = "קוד נשלח לאימייל שלך. אנא בדוק את תיבת הדואר הנכנס.";
+            lblCodeMessage.CssClass = "auth-success";
         }
         catch (InvalidOperationException ex)
         {
             lblMessage.Text = ex.Message;
-            lblMessage.Visible = true;
+            lblMessage.CssClass = "auth-error";
         }
         catch (Exception ex)
         {
-            LoggingService.Log("LOGIN_CODE_ERROR", string.Format("Error in btnSendCode_Click - {0}", ex.Message), ex);
-            lblMessage.Text = "אירעה שגיאה. אנא נסה שוב מאוחר יותר.";
-            lblMessage.Visible = true;
+            LoggingService.Log("login-with-code", "Error sending code", ex);
+            lblMessage.Text = "אירעה שגיאה בשליחת הקוד. אנא נסה שוב מאוחר יותר.";
+            lblMessage.CssClass = "auth-error";
         }
     }
 
     protected void btnVerifyCode_Click(object sender, EventArgs e)
     {
+        string email = ViewState["Email"] != null ? ViewState["Email"].ToString() : txtEmail.Text.Trim().ToLower();
+        string code = txtCode.Text.Trim();
+
+        if (string.IsNullOrEmpty(email))
+        {
+            lblCodeMessage.Text = "שגיאה: כתובת אימייל לא נמצאה";
+            lblCodeMessage.CssClass = "auth-error";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(code) || code.Length != 6)
+        {
+            lblCodeMessage.Text = "אנא הזן קוד בן 6 ספרות";
+            lblCodeMessage.CssClass = "auth-error";
+            return;
+        }
+
         try
         {
-            string email = Session["LoginCodeEmail"]?.ToString() ?? "";
-            string code = txtCode.Text.Trim();
-
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                lblCodeMessage.Text = "שגיאה: לא נמצא אימייל. אנא התחל מחדש.";
-                lblCodeMessage.Visible = true;
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(code))
-            {
-                lblCodeMessage.Text = "אנא הזן את קוד ההתחברות";
-                lblCodeMessage.Visible = true;
-                return;
-            }
-
-            if (code.Length != 6)
-            {
-                lblCodeMessage.Text = "קוד ההתחברות חייב להיות בן 6 ספרות";
-                lblCodeMessage.Visible = true;
-                return;
-            }
-
-            LoggingService.Log("LOGIN_CODE_VERIFY_START", string.Format("Starting code verification - Email: {0}, Code: {1}", email, code));
-            
             bool isValid = LoginCodeService.ValidateCode(email, code);
-            LoggingService.Log("LOGIN_CODE_VERIFY_RESULT", string.Format("Code validation result - Email: {0}, Code: {1}, IsValid: {2}", email, code, isValid));
 
             if (isValid)
             {
-                LoggingService.Log("LOGIN_CODE_VERIFY_SUCCESS", string.Format("Code is valid, getting user - Email: {0}", email));
-                UsersService userService = new UsersService();
-                DataRow user = userService.GetUserByEmail(email);
-                LoggingService.Log("LOGIN_CODE_VERIFY_USER", string.Format("User retrieved - Email: {0}, User is null: {1}", email, user == null));
+                UsersService us = new UsersService();
+                System.Data.DataRow user = us.GetUserByEmail(email);
 
                 if (user != null)
                 {
-                    string userNameCol = user.Table.Columns.Contains("UserName") ? "UserName" : "userName";
-                    string roleCol = user.Table.Columns.Contains("Role") ? "Role" : "role";
-                    string idCol = user.Table.Columns.Contains("Id") ? "Id" : "id";
+                    int userId = Convert.ToInt32(user["id"]);
+                    string username = user["userName"] != null ? user["userName"].ToString() : email;
+                    string role = user["Role"] != null ? user["Role"].ToString() : "user";
 
-                    Session["username"] = user[userNameCol]?.ToString() ?? "";
-                    Session["Role"] = user[roleCol]?.ToString() ?? "user";
-                    Session["userId"] = user[idCol]?.ToString() ?? "";
-                    Session["loggedIn"] = true;
-                    Session.Remove("LoginCodeEmail");
-
-                    LoggingService.Log("LOGIN_CODE_SUCCESS", string.Format("User logged in with code - Email: {0}, Username: {1}", email, Session["username"]));
+                    Session["username"] = username;
+                    Session["userId"] = userId;
+                    Session["Role"] = role;
 
                     Response.Redirect("home.aspx");
-                    return;
                 }
                 else
                 {
-                    lblCodeMessage.Text = "שגיאה: משתמש לא נמצא במערכת";
-                    lblCodeMessage.Visible = true;
+                    lblCodeMessage.Text = "משתמש לא נמצא במערכת";
+                    lblCodeMessage.CssClass = "auth-error";
                 }
             }
             else
             {
-                lblCodeMessage.Text = "קוד שגוי או שפג תוקפו. אנא נסה שוב או בקש קוד חדש.";
-                lblCodeMessage.Visible = true;
+                lblCodeMessage.Text = "קוד לא תקין או שפג תוקפו. אנא נסה שוב או בקש קוד חדש.";
+                lblCodeMessage.CssClass = "auth-error";
             }
         }
         catch (Exception ex)
         {
-            LoggingService.Log("LOGIN_CODE_VERIFY_ERROR", string.Format("Error in btnVerifyCode_Click - {0}", ex.Message), ex);
-            lblCodeMessage.Text = "אירעה שגיאה באימות הקוד. אנא נסה שוב.";
-            lblCodeMessage.Visible = true;
+            LoggingService.Log("login-with-code", "Error verifying code", ex);
+            lblCodeMessage.Text = "אירעה שגיאה באימות הקוד. אנא נסה שוב מאוחר יותר.";
+            lblCodeMessage.CssClass = "auth-error";
         }
     }
 
     protected void lnkResendCode_Click(object sender, EventArgs e)
     {
+        string email = ViewState["Email"] != null ? ViewState["Email"].ToString() : txtEmail.Text.Trim().ToLower();
+
+        if (string.IsNullOrEmpty(email))
+        {
+            lblCodeMessage.Text = "שגיאה: כתובת אימייל לא נמצאה";
+            lblCodeMessage.CssClass = "auth-error";
+            return;
+        }
+
         try
         {
-            string email = Session["LoginCodeEmail"]?.ToString() ?? "";
-
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                lblCodeMessage.Text = "שגיאה: לא נמצא אימייל. אנא התחל מחדש.";
-                lblCodeMessage.Visible = true;
-                return;
-            }
-
             string code = LoginCodeService.GenerateCode(email);
+            
+            EmailService emailService = new EmailService();
+            emailService.SendLoginCode(email, code);
 
-            try
-            {
-                EmailService.SendLoginCodeEmail(email, code);
-                lblCodeMessage.Text = "קוד חדש נשלח בהצלחה לכתובת האימייל שלך.";
-                lblCodeMessage.CssClass = "auth-error";
-                lblCodeMessage.Style["color"] = "green";
-                lblCodeMessage.Visible = true;
-                txtCode.Text = "";
-            }
-            catch (Exception emailEx)
-            {
-                LoggingService.Log("EMAIL_RESEND_FAILED", string.Format("Failed to resend login code email - Email: {0}, Error: {1}", email, emailEx.Message), emailEx);
-                lblCodeMessage.Text = "שגיאה בשליחת האימייל. אנא נסה שוב מאוחר יותר.";
-                lblCodeMessage.Visible = true;
-            }
+            lblCodeMessage.Text = "קוד חדש נשלח לאימייל שלך.";
+            lblCodeMessage.CssClass = "auth-success";
+            txtCode.Text = "";
         }
         catch (InvalidOperationException ex)
         {
             lblCodeMessage.Text = ex.Message;
-            lblCodeMessage.Visible = true;
+            lblCodeMessage.CssClass = "auth-error";
         }
         catch (Exception ex)
         {
-            LoggingService.Log("LOGIN_CODE_RESEND_ERROR", string.Format("Error in lnkResendCode_Click - {0}", ex.Message), ex);
-            lblCodeMessage.Text = "אירעה שגיאה. אנא נסה שוב מאוחר יותר.";
-            lblCodeMessage.Visible = true;
-        }
-    }
-
-    private bool IsValidEmail(string email)
-    {
-        try
-        {
-            var addr = new System.Net.Mail.MailAddress(email);
-            return addr.Address == email;
-        }
-        catch
-        {
-            return false;
+            LoggingService.Log("login-with-code", "Error resending code", ex);
+            lblCodeMessage.Text = "אירעה שגיאה בשליחת הקוד. אנא נסה שוב מאוחר יותר.";
+            lblCodeMessage.CssClass = "auth-error";
         }
     }
 }

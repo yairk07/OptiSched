@@ -86,8 +86,8 @@ public class UsersService
             string sSql = "INSERT INTO Users (" + string.Join(", ", columns) + ") VALUES(" + string.Join(", ", values) + ")";
             
             // #region agent log
-            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"UsersService.insertIntoDB:SCHEMA_CHECK\",\"message\":\"Checking column schema\",\"data\":{\"hasPasswordHash\":\"" + hasPasswordHash + "\",\"hasPassword\":\"" + hasPassword + "\",\"hasUserIdNumber\":\"" + hasUserIdNumber + "\",\"hasUserId\":\"" + hasUserId + "\",\"hasPhoneNumber\":\"" + hasPhoneNumber + "\",\"hasPhonenum\":\"" + hasPhonenum + "\",\"hasCityId\":\"" + hasCityId + "\",\"hasCity\":\"" + hasCity + "\",\"hasRole\":\"" + hasRole + "\",\"hasCreatedDate\":\"" + hasCreatedDate + "\",\"passwordCol\":\"" + passwordCol + "\",\"userIdCol\":\"" + userIdCol + "\",\"phoneCol\":\"" + phoneCol + "\",\"cityCol\":\"" + cityCol + "\",\"roleCol\":\"" + roleCol + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"UsersService.insertIntoDB:INSERT_SQL\",\"message\":\"INSERT SQL with schema detection\",\"data\":{\"sql\":\"" + sSql.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"placeholderCount\":" + values.Count + ",\"userName\":\"" + (userName ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+            try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:SCHEMA_CHECK\",\"message\":\"Checking column schema\",\"data\":{\"hasPasswordHash\":\"" + hasPasswordHash + "\",\"hasPassword\":\"" + hasPassword + "\",\"hasUserIdNumber\":\"" + hasUserIdNumber + "\",\"hasUserId\":\"" + hasUserId + "\",\"hasPhoneNumber\":\"" + hasPhoneNumber + "\",\"hasPhonenum\":\"" + hasPhonenum + "\",\"hasCityId\":\"" + hasCityId + "\",\"hasCity\":\"" + hasCity + "\",\"hasRole\":\"" + hasRole + "\",\"hasCreatedDate\":\"" + hasCreatedDate + "\",\"passwordCol\":\"" + passwordCol + "\",\"userIdCol\":\"" + userIdCol + "\",\"phoneCol\":\"" + phoneCol + "\",\"cityCol\":\"" + cityCol + "\",\"roleCol\":\"" + roleCol + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+            try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:INSERT_SQL\",\"message\":\"INSERT SQL with schema detection\",\"data\":{\"sql\":\"" + sSql.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"placeholderCount\":" + values.Count + ",\"userName\":\"" + (userName ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
             // #endregion
             
             using (OleDbCommand cmd = new OleDbCommand(sSql, myConnection))
@@ -95,19 +95,19 @@ public class UsersService
                 string hashedPassword = PasswordHelper.HashPassword(password);
 
                 OleDbParameter userNameParam = new OleDbParameter("?", OleDbType.WChar);
-                userNameParam.Value = userName?.Trim() ?? "";
+                userNameParam.Value = userName != null ? userName.Trim() : "";
                 cmd.Parameters.Add(userNameParam);
                 
                 OleDbParameter firstNameParam = new OleDbParameter("?", OleDbType.WChar);
-                firstNameParam.Value = firstName?.Trim() ?? "";
+                firstNameParam.Value = firstName != null ? firstName.Trim() : "";
                 cmd.Parameters.Add(firstNameParam);
                 
                 OleDbParameter lastNameParam = new OleDbParameter("?", OleDbType.WChar);
-                lastNameParam.Value = lastName?.Trim() ?? "";
+                lastNameParam.Value = lastName != null ? lastName.Trim() : "";
                 cmd.Parameters.Add(lastNameParam);
                 
                 OleDbParameter emailParam = new OleDbParameter("?", OleDbType.WChar);
-                emailParam.Value = email?.Trim() ?? "";
+                emailParam.Value = email != null ? email.Trim() : "";
                 cmd.Parameters.Add(emailParam);
                 
                 OleDbParameter passwordParam = new OleDbParameter("?", OleDbType.WChar);
@@ -123,11 +123,11 @@ public class UsersService
                 cmd.Parameters.Add(yearOfBirthParam);
                 
                 OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.WChar);
-                userIdParam.Value = userId?.Trim() ?? "";
+                userIdParam.Value = userId != null ? userId.Trim() : "";
                 cmd.Parameters.Add(userIdParam);
                 
                 OleDbParameter phonenumParam = new OleDbParameter("?", OleDbType.WChar);
-                phonenumParam.Value = phonenum?.Trim() ?? "";
+                phonenumParam.Value = phonenum != null ? phonenum.Trim() : "";
                 cmd.Parameters.Add(phonenumParam);
                 
                 OleDbParameter cityParam = new OleDbParameter("?", OleDbType.Integer);
@@ -149,13 +149,13 @@ public class UsersService
                 }
 
                 // #region agent log
-                try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"UsersService.insertIntoDB:BEFORE_EXECUTE\",\"message\":\"Before ExecuteNonQuery\",\"data\":{\"paramCount\":\"" + cmd.Parameters.Count + "\",\"expectedCount\":\"" + values.Count + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+                try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:BEFORE_EXECUTE\",\"message\":\"Before ExecuteNonQuery\",\"data\":{\"paramCount\":\"" + cmd.Parameters.Count + "\",\"expectedCount\":\"" + values.Count + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
                 // #endregion
                 try
                 {
                     cmd.ExecuteNonQuery();
                     // #region agent log
-                    try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"UsersService.insertIntoDB:EXECUTE_SUCCESS\",\"message\":\"ExecuteNonQuery success\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+                    try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:EXECUTE_SUCCESS\",\"message\":\"ExecuteNonQuery success\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
                     // #endregion
                     
                     cmd.CommandText = "SELECT @@IDENTITY";
@@ -169,7 +169,7 @@ public class UsersService
                 catch (Exception ex)
                 {
                     // #region agent log
-                    try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"UsersService.insertIntoDB:EXECUTE_ERROR\",\"message\":\"ExecuteNonQuery error\",\"data\":{\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + ex.GetType().Name + "\",\"sql\":\"" + sSql.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"paramCount\":\"" + cmd.Parameters.Count + "\",\"expectedCount\":\"" + values.Count + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+                    try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:EXECUTE_ERROR\",\"message\":\"ExecuteNonQuery error\",\"data\":{\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + ex.GetType().Name + "\",\"sql\":\"" + sSql.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"paramCount\":\"" + cmd.Parameters.Count + "\",\"expectedCount\":\"" + values.Count + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
                     // #endregion
                     
                     if (ex.Message.Contains("You must enter a value in the 'Users.id' field") || ex.Message.Contains("Users.id") || ex.Message.Contains("Id field"))
@@ -183,7 +183,7 @@ public class UsersService
                                 if (identityResult != null && identityResult != DBNull.Value)
                                 {
                                     // #region agent log
-                                    try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"UsersService.insertIntoDB:IDENTITY_CHECK\",\"message\":\"Checking @@IDENTITY after failed insert\",\"data\":{\"identity\":\"" + identityResult.ToString() + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+                                    try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:IDENTITY_CHECK\",\"message\":\"Checking @@IDENTITY after failed insert\",\"data\":{\"identity\":\"" + identityResult.ToString() + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
                                     // #endregion
                                 }
                             }
@@ -192,7 +192,7 @@ public class UsersService
                             string sSqlWithId = "INSERT INTO Users (" + idCol + ", " + string.Join(", ", columns) + ") VALUES(0, " + string.Join(", ", values) + ")";
                             
                             // #region agent log
-                            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"UsersService.insertIntoDB:RETRY_WITH_ID\",\"message\":\"Retrying INSERT with Id=0\",\"data\":{\"sql\":\"" + sSqlWithId.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+                            try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:RETRY_WITH_ID\",\"message\":\"Retrying INSERT with Id=0\",\"data\":{\"sql\":\"" + sSqlWithId.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
                             // #endregion
                             
                             using (OleDbCommand cmd2 = new OleDbCommand(sSqlWithId, myConnection))
@@ -206,7 +206,7 @@ public class UsersService
                                 
                                 cmd2.ExecuteNonQuery();
                                 // #region agent log
-                                try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"UsersService.insertIntoDB:RETRY_SUCCESS\",\"message\":\"Retry with Id=0 success\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+                                try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:RETRY_SUCCESS\",\"message\":\"Retry with Id=0 success\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
                                 // #endregion
                                 
                                 cmd2.CommandText = "SELECT @@IDENTITY";
@@ -221,7 +221,7 @@ public class UsersService
                         catch (Exception retryEx)
                         {
                             // #region agent log
-                            try { System.IO.File.AppendAllText(@"c:\Users\yairk\source\repos\OptiSched1\.cursor\debug.log", "{\"location\":\"UsersService.insertIntoDB:RETRY_FAILED\",\"message\":\"Retry with Id=0 also failed\",\"data\":{\"error\":\"" + retryEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
+                            try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:RETRY_FAILED\",\"message\":\"Retry with Id=0 also failed\",\"data\":{\"error\":\"" + retryEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
                             // #endregion
                             throw new Exception("Failed to insert user: " + ex.Message + " (Retry also failed: " + retryEx.Message + ")", ex);
                         }
@@ -312,7 +312,8 @@ public class UsersService
                     {
                         string idCol = r.Table.Columns.Contains("Id") ? "Id" : "id";
                         string nameCol = r.Table.Columns.Contains("CityName") ? "CityName" : "cityname";
-                        if (int.TryParse(Convert.ToString(r[idCol]).Trim(), out int id))
+                        int id;
+                        if (int.TryParse(Convert.ToString(r[idCol]).Trim(), out id))
                             dict[id] = Connect.FixEncoding(Convert.ToString(r[nameCol]));
                     }
 
@@ -326,7 +327,8 @@ public class UsersService
                         if (u.Table.Columns.Contains(cityCol))
                         {
                             string raw = Convert.ToString(u[cityCol]).Trim();
-                            if (int.TryParse(raw, out int code) && dict.ContainsKey(code))
+                            int code;
+                            if (int.TryParse(raw, out code) && dict.ContainsKey(code))
                                 u["CityName"] = dict[code];
                             else
                                 u["CityName"] = "";
@@ -365,11 +367,11 @@ public class UsersService
             using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
             {
                 OleDbParameter userNameParam1 = new OleDbParameter("?", OleDbType.WChar);
-                userNameParam1.Value = userName?.Trim() ?? "";
+                userNameParam1.Value = userName != null ? userName.Trim() : "";
                 cmd.Parameters.Add(userNameParam1);
                 
                 OleDbParameter userNameParam2 = new OleDbParameter("?", OleDbType.WChar);
-                userNameParam2.Value = userName?.Trim() ?? "";
+                userNameParam2.Value = userName != null ? userName.Trim() : "";
                 cmd.Parameters.Add(userNameParam2);
                 
                 OleDbParameter passwordParam1 = new OleDbParameter("?", OleDbType.WChar);
@@ -390,136 +392,48 @@ public class UsersService
 
     public DataRow GetUserByEmail(string email)
     {
-        LoggingService.Log("GET_USER_BY_EMAIL_START", string.Format("Starting GetUserByEmail - Email: {0}", email));
-        
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            LoggingService.Log("GET_USER_BY_EMAIL_EMPTY", "Email is null or empty");
-            return null;
-        }
-
         DataSet ds = new DataSet();
         string connectionString = Connect.GetConnectionString();
-        string emailLower = email.Trim().ToLower();
-
-        LoggingService.Log("GET_USER_BY_EMAIL_CONNECTION", string.Format("Connection string length: {0}", connectionString != null ? connectionString.Length : 0));
 
         using (OleDbConnection myConnection = new OleDbConnection(connectionString))
         {
-            try
-            {
-                myConnection.Open();
-                LoggingService.Log("GET_USER_BY_EMAIL_CONNECTION_OPEN", "Connection opened successfully");
-            }
-            catch (Exception ex)
-            {
-                LoggingService.Log("GET_USER_BY_EMAIL_CONNECTION_ERROR", string.Format("Failed to open connection - Error: {0}", ex.Message), ex);
-                return null;
-            }
+            myConnection.Open();
 
+            // DSD Schema: Use Email column (try new first, fallback to old during migration)
+            string sql = "SELECT * FROM Users WHERE CStr(Email)=?";
+            bool useOldColumn = false;
+            
             try
             {
-                string sql = "SELECT * FROM Users WHERE LCase([Email])=?";
-                LoggingService.Log("GET_USER_BY_EMAIL_QUERY1", string.Format("Trying query 1 - SQL: {0}, Email: {1}", sql, emailLower));
-                
                 using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
                 {
-                    cmd.Parameters.AddWithValue("?", emailLower);
-                    LoggingService.Log("GET_USER_BY_EMAIL_QUERY1_PARAMS", string.Format("Query 1 params - ParamCount: {0}, ParamValue: {1}", cmd.Parameters.Count, emailLower));
-                    
+                    OleDbParameter emailParam = new OleDbParameter("?", OleDbType.WChar);
+                    emailParam.Value = email != null ? email.Trim() : "";
+                    cmd.Parameters.Add(emailParam);
+
                     var adp = new OleDbDataAdapter(cmd);
                     adp.Fill(ds, "Users");
-                    LoggingService.Log("GET_USER_BY_EMAIL_QUERY1_SUCCESS", string.Format("Query 1 successful - Rows: {0}", ds.Tables.Count > 0 ? ds.Tables[0].Rows.Count : 0));
                 }
             }
-            catch (Exception ex1)
+            catch
             {
-                LoggingService.Log("GET_USER_BY_EMAIL_QUERY1_ERROR", string.Format("Query 1 failed - Error: {0}", ex1.Message), ex1);
-                
-                try
+                // Fallback to old column name during migration
+                useOldColumn = true;
+                sql = "SELECT * FROM Users WHERE CStr(email)=?";
+                using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
                 {
-                    ds = new DataSet();
-                    string sql = "SELECT * FROM Users WHERE LCase([email])=?";
-                    LoggingService.Log("GET_USER_BY_EMAIL_QUERY2", string.Format("Trying query 2 - SQL: {0}, Email: {1}", sql, emailLower));
-                    
-                    using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
-                    {
-                        cmd.Parameters.AddWithValue("?", emailLower);
-                        LoggingService.Log("GET_USER_BY_EMAIL_QUERY2_PARAMS", string.Format("Query 2 params - ParamCount: {0}, ParamValue: {1}", cmd.Parameters.Count, emailLower));
-                        
-                        var adp = new OleDbDataAdapter(cmd);
-                        adp.Fill(ds, "Users");
-                        LoggingService.Log("GET_USER_BY_EMAIL_QUERY2_SUCCESS", string.Format("Query 2 successful - Rows: {0}", ds.Tables.Count > 0 ? ds.Tables[0].Rows.Count : 0));
-                    }
-                }
-                catch (Exception ex2)
-                {
-                    LoggingService.Log("GET_USER_BY_EMAIL_QUERY2_ERROR", string.Format("Query 2 failed - Error: {0}", ex2.Message), ex2);
-                    
-                    try
-                    {
-                        ds = new DataSet();
-                        string sql = "SELECT * FROM Users WHERE [Email]=?";
-                        LoggingService.Log("GET_USER_BY_EMAIL_QUERY3", string.Format("Trying query 3 - SQL: {0}, Email: {1}", sql, emailLower));
-                        
-                        using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
-                        {
-                            cmd.Parameters.AddWithValue("?", emailLower);
-                            LoggingService.Log("GET_USER_BY_EMAIL_QUERY3_PARAMS", string.Format("Query 3 params - ParamCount: {0}, ParamValue: {1}", cmd.Parameters.Count, emailLower));
-                            
-                            var adp = new OleDbDataAdapter(cmd);
-                            adp.Fill(ds, "Users");
-                            LoggingService.Log("GET_USER_BY_EMAIL_QUERY3_SUCCESS", string.Format("Query 3 successful - Rows: {0}", ds.Tables.Count > 0 ? ds.Tables[0].Rows.Count : 0));
-                        }
-                    }
-                    catch (Exception ex3)
-                    {
-                        LoggingService.Log("GET_USER_BY_EMAIL_QUERY3_ERROR", string.Format("Query 3 failed - Error: {0}", ex3.Message), ex3);
-                        
-                        try
-                        {
-                            ds = new DataSet();
-                            string sql = "SELECT * FROM Users WHERE [email]=?";
-                            LoggingService.Log("GET_USER_BY_EMAIL_QUERY4", string.Format("Trying query 4 - SQL: {0}, Email: {1}", sql, emailLower));
-                            
-                            using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
-                            {
-                                cmd.Parameters.AddWithValue("?", emailLower);
-                                LoggingService.Log("GET_USER_BY_EMAIL_QUERY4_PARAMS", string.Format("Query 4 params - ParamCount: {0}, ParamValue: {1}", cmd.Parameters.Count, emailLower));
-                                
-                                var adp = new OleDbDataAdapter(cmd);
-                                adp.Fill(ds, "Users");
-                                LoggingService.Log("GET_USER_BY_EMAIL_QUERY4_SUCCESS", string.Format("Query 4 successful - Rows: {0}", ds.Tables.Count > 0 ? ds.Tables[0].Rows.Count : 0));
-                            }
-                        }
-                        catch (Exception ex4)
-                        {
-                            LoggingService.Log("GET_USER_BY_EMAIL_ERROR", string.Format("All queries failed - Email: {0}, Error1: {1}, Error2: {2}, Error3: {3}, Error4: {4}", 
-                                email, ex1.Message, ex2.Message, ex3.Message, ex4.Message), ex4);
-                            return null;
-                        }
-                    }
+                    OleDbParameter emailParam = new OleDbParameter("?", OleDbType.WChar);
+                    emailParam.Value = email != null ? email.Trim() : "";
+                    cmd.Parameters.Add(emailParam);
+
+                    var adp = new OleDbDataAdapter(cmd);
+                    adp.Fill(ds, "Users");
                 }
             }
         }
 
         if (ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
-        {
-            DataRow row = ds.Tables[0].Rows[0];
-            
-            if (row.Table.Columns.Contains("UserName") || row.Table.Columns.Contains("userName"))
-            {
-                string colName = row.Table.Columns.Contains("UserName") ? "UserName" : "userName";
-                row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
-            }
-            if (row.Table.Columns.Contains("Email") || row.Table.Columns.Contains("email"))
-            {
-                string colName = row.Table.Columns.Contains("Email") ? "Email" : "email";
-                row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
-            }
-            
-            return row;
-        }
+            return ds.Tables[0].Rows[0];
         return null;
     }
 
@@ -592,7 +506,7 @@ public class UsersService
             using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
             {
                 OleDbParameter googleIdParam = new OleDbParameter("?", OleDbType.WChar);
-                googleIdParam.Value = googleId?.Trim() ?? "";
+                googleIdParam.Value = googleId != null ? googleId.Trim() : "";
                 cmd.Parameters.Add(googleIdParam);
                 var adp = new OleDbDataAdapter(cmd);
                 adp.Fill(ds, "Users");

@@ -6,12 +6,9 @@ public partial class danimaster : System.Web.UI.MasterPage
 {
     protected void Page_Load(object sender, EventArgs e)
     {
-        // Set UTF-8 encoding - MUST be first, before any output
         Response.ContentType = "text/html; charset=utf-8";
         Response.Charset = "utf-8";
         Response.ContentEncoding = System.Text.Encoding.UTF8;
-        Response.HeaderEncoding = System.Text.Encoding.UTF8;
-        Response.AppendHeader("Content-Type", "text/html; charset=utf-8");
         
         string pageName = System.IO.Path.GetFileNameWithoutExtension(Request.Url.AbsolutePath);
         Body.Attributes["class"] = "page-" + pageName.ToLower();
@@ -43,9 +40,6 @@ public partial class danimaster : System.Web.UI.MasterPage
 
         if (linkAllEvents != null)
             linkAllEvents.Visible = isOwner;
-
-        if (linkEditEvent != null)
-            linkEditEvent.Visible = isOwner;
 
         if (lnkUserName != null)
             lnkUserName.Visible = isLoggedIn;

@@ -44,7 +44,6 @@
 
                     <a href="exusers.aspx" id="linkUsers" runat="server">משתמשים</a>
                     <a href="allEvents.aspx" id="linkAllEvents" runat="server">כל האירועים</a>
-                    <a href="editEvent.aspx" id="linkEditEvent" runat="server">עריכת אירוע</a>
 
                     <asp:LinkButton ID="lnkUserName" runat="server" CssClass="logout-btn"
                         OnClick="lnkUserName_Click">התנתק</asp:LinkButton>

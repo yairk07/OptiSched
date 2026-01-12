@@ -27,18 +27,20 @@ public partial class login : System.Web.UI.Page
             LoggingService.Log("GOOGLE_LOGIN_CLICK", "Google login button clicked");
             
             string clientId = System.Configuration.ConfigurationManager.AppSettings["GoogleOAuth:ClientId"];
-            LoggingService.Log("GOOGLE_LOGIN_CHECK_CLIENT_ID", string.Format("Checking ClientId - IsEmpty: {0}, Length: {1}", string.IsNullOrWhiteSpace(clientId), clientId?.Length ?? 0));
+            int clientIdLength = clientId != null ? clientId.Length : 0;
+            LoggingService.Log("GOOGLE_LOGIN_CHECK_CLIENT_ID", string.Format("Checking ClientId - IsEmpty: {0}, Length: {1}", string.IsNullOrWhiteSpace(clientId), clientIdLength));
             
             if (string.IsNullOrWhiteSpace(clientId))
             {
                 LoggingService.Log("GOOGLE_LOGIN_NO_CLIENT_ID", "ClientId is empty - cannot proceed with Google login");
-                lblError.Text = "Google OAuth לא מוגדר. אנא פנה למנהל המערכת.";
+                lblError.Text = "Google OAuth לא מוגדר. כדי להפעיל התחברות עם Google:<br/>1. היכנס ל-Google Cloud Console (https://console.cloud.google.com/)<br/>2. צור OAuth 2.0 Client ID<br/>3. הוסף את הערכים ב-Web.config תחת GoogleOAuth:ClientId ו-GoogleOAuth:ClientSecret<br/>4. הוסף Authorized redirect URI: " + Request.Url.Scheme + "://" + Request.Url.Authority + "/google-oauth-callback.aspx";
                 lblError.Visible = true;
                 return;
             }
             
             string redirectUrl = GoogleOAuthService.GetAuthorizationUrl();
-            LoggingService.Log("GOOGLE_LOGIN_REDIRECT", string.Format("Redirecting to Google OAuth - URL length: {0}", redirectUrl?.Length ?? 0));
+            int redirectUrlLength = redirectUrl != null ? redirectUrl.Length : 0;
+            LoggingService.Log("GOOGLE_LOGIN_REDIRECT", string.Format("Redirecting to Google OAuth - URL length: {0}", redirectUrlLength));
             Response.Redirect(redirectUrl);
         }
         catch (Exception ex)
@@ -84,7 +86,7 @@ public partial class login : System.Web.UI.Page
 
             if (dr.Read())
             {
-                string dbPassword = dr["password"]?.ToString() ?? "";
+                string dbPassword = dr["password"] != null && dr["password"] != DBNull.Value ? dr["password"].ToString() : "";
                 
                 bool passwordMatch = false;
                 
@@ -109,7 +111,7 @@ public partial class login : System.Web.UI.Page
                 if (passwordMatch)
                 {
                     Session["username"] = dr["userName"].ToString();
-                    Session["Role"] = dr["role"]?.ToString() ?? "user";
+                    Session["Role"] = dr["role"] != null && dr["role"] != DBNull.Value ? dr["role"].ToString() : "user";
                     Session["userId"] = dr["id"].ToString();
                     Session["loggedIn"] = true;
 

@@ -367,7 +367,7 @@ public static class DatabaseMigration
     {
         try
         {
-            using (OleDbCommand cmd = new OleDbCommand($"SELECT TOP 1 * FROM [{tableName}]", conn))
+            using (OleDbCommand cmd = new OleDbCommand(string.Format("SELECT TOP 1 * FROM [{0}]", tableName), conn))
             {
                 cmd.ExecuteScalar();
                 return true;
@@ -383,7 +383,7 @@ public static class DatabaseMigration
     {
         try
         {
-            using (OleDbCommand cmd = new OleDbCommand($"SELECT TOP 1 [{columnName}] FROM [{tableName}]", conn))
+            using (OleDbCommand cmd = new OleDbCommand(string.Format("SELECT TOP 1 [{0}] FROM [{1}]", columnName, tableName), conn))
             {
                 cmd.ExecuteScalar();
                 return true;

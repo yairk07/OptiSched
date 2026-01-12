@@ -34,7 +34,26 @@
 
             <asp:Label ID="lblMessage" runat="server" CssClass="form-message"></asp:Label>
 
+            <asp:Panel ID="pnlPendingRequests" runat="server" Visible="false" CssClass="pending-requests-section">
+                <h3 class="section-title">בקשות הצטרפות ממתינות</h3>
+                <asp:DataList ID="dlPendingRequests" runat="server" RepeatLayout="Flow" CssClass="requests-list">
+                    <ItemTemplate>
+                        <div class="request-item">
+                            <div class="request-info">
+                                <strong><%# Eval("CalendarName") ?? "ללא שם" %></strong>
+                                <span class="request-date">תאריך בקשה: <%# Convert.ToDateTime(Eval("RequestDate")).ToString("dd/MM/yyyy HH:mm") %></span>
+                            </div>
+                            <div class="request-status">
+                                <span class="status-badge pending">ממתין לאישור</span>
+                            </div>
+                        </div>
+                    </ItemTemplate>
+                </asp:DataList>
+                <asp:Label ID="lblNoRequests" runat="server" Text="אין בקשות הצטרפות ממתינות" CssClass="no-requests-message" Visible="false" />
+            </asp:Panel>
+
             <div class="calendars-grid">
+                <h3 class="section-title">הטבלאות שלי</h3>
                 <asp:Label ID="lblNoCalendars" runat="server" Visible="true" CssClass="no-calendars-message" Text="אין טבלאות משותפות להצגה. לחץ על 'צור טבלה משותפת חדשה' כדי להתחיל." />
                 <asp:DataList ID="dlCalendars" runat="server" RepeatLayout="Flow" CssClass="calendars-list">
                     <ItemTemplate>
@@ -44,6 +63,8 @@
                                 <div class="calendar-badges">
                                     <%# Convert.ToInt32(Eval("IsAdmin") ?? 0) == 1 ? "<span class='badge admin'>מנהל</span>" : "" %>
                                     <%# Convert.ToInt32(Eval("IsMember") ?? 0) == 1 ? "<span class='badge member'>חבר</span>" : "" %>
+                                    <%# Convert.ToInt32(Eval("IsMember") ?? 0) == 1 && Eval("Permission") != null && Eval("Permission").ToString() == "ReadWrite" ? "<span class='badge permission'>עריכה</span>" : "" %>
+                                    <%# Convert.ToInt32(Eval("IsMember") ?? 0) == 1 && Eval("Permission") != null && Eval("Permission").ToString() == "Read" ? "<span class='badge permission read-only'>ראיה בלבד</span>" : "" %>
                                 </div>
                             </div>
                             <div class="calendar-card-body">
@@ -197,23 +218,123 @@
             min-height: 24px;
         }
 
-        .calendars-grid {
-            margin-top: 40px;
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--heading);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
         }
 
-        .calendars-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 24px;
-        }
-
-        .calendar-card {
+        .pending-requests-section {
+            margin-bottom: 40px;
             background: var(--surface);
             border-radius: 16px;
             padding: 24px;
             box-shadow: var(--shadow-md);
             border: 1px solid var(--border);
+        }
+
+        .requests-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .request-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: var(--bg);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .request-info {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .request-info strong {
+            font-size: 16px;
+            color: var(--heading);
+        }
+
+        .request-date {
+            font-size: 13px;
+            color: var(--text);
+            opacity: 0.7;
+        }
+
+        .request-status {
+            display: flex;
+            align-items: center;
+        }
+
+        .status-badge {
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-badge.pending {
+            background: #ffa726;
+            color: #fff;
+        }
+
+        .no-requests-message {
+            text-align: center;
+            padding: 20px;
+            color: var(--text);
+            opacity: 0.6;
+            font-size: 14px;
+        }
+
+        .calendars-grid {
+            margin-top: 40px;
+            width: 100%;
+        }
+
+        .calendars-grid .section-title {
+            margin-bottom: 24px;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--heading);
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .calendars-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 28px;
+            margin-top: 24px;
+            align-items: stretch;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .calendars-list {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        .calendar-card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
             transition: transform .2s ease, box-shadow .2s ease;
+            display: flex;
+            flex-direction: column;
+            min-height: 280px;
+            height: 100%;
         }
 
         .calendar-card:hover {
@@ -225,19 +346,24 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 16px;
+            margin-bottom: 18px;
+            gap: 12px;
         }
 
         .calendar-name {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 700;
             color: var(--heading);
             margin: 0;
+            line-height: 1.3;
+            flex: 1;
         }
 
         .calendar-badges {
             display: flex;
             gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
         .badge {
@@ -257,24 +383,45 @@
             color: #fff;
         }
 
+        .badge.permission {
+            background: #4a90e2;
+            color: #fff;
+        }
+
+        .badge.permission.read-only {
+            background: #95a5a6;
+            color: #fff;
+        }
+
         .calendar-card-body {
             margin-bottom: 20px;
+            flex: 1;
         }
 
         .calendar-description {
             color: var(--text);
             opacity: 0.8;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
             font-size: 14px;
+            line-height: 1.6;
+            min-height: 40px;
         }
 
         .calendar-meta {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
             font-size: 13px;
             color: var(--text);
-            opacity: 0.6;
+            opacity: 0.7;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .no-calendars-message {
@@ -290,6 +437,7 @@
         .calendar-card-footer {
             padding-top: 16px;
             border-top: 1px solid var(--border);
+            margin-top: auto;
         }
 
         .btn-view, .btn-join {

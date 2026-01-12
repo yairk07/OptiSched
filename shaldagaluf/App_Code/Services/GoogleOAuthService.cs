@@ -15,7 +15,8 @@ public class GoogleOAuthService
         try
         {
             string clientId = ConfigurationManager.AppSettings["GoogleOAuth:ClientId"] ?? "";
-            LoggingService.Log("GOOGLE_OAUTH_GET_CLIENT_ID", string.Format("ClientId from config - Length: {0}, IsEmpty: {1}", clientId?.Length ?? 0, string.IsNullOrEmpty(clientId)));
+            int length = clientId != null ? clientId.Length : 0;
+            LoggingService.Log("GOOGLE_OAUTH_GET_CLIENT_ID", string.Format("ClientId from config - Length: {0}, IsEmpty: {1}", length, string.IsNullOrEmpty(clientId)));
             return clientId;
         }
         catch (Exception ex)
@@ -30,7 +31,8 @@ public class GoogleOAuthService
         try
         {
             string clientSecret = ConfigurationManager.AppSettings["GoogleOAuth:ClientSecret"] ?? "";
-            LoggingService.Log("GOOGLE_OAUTH_GET_CLIENT_SECRET", string.Format("ClientSecret from config - Length: {0}, IsEmpty: {1}", clientSecret?.Length ?? 0, string.IsNullOrEmpty(clientSecret)));
+            int length = clientSecret != null ? clientSecret.Length : 0;
+            LoggingService.Log("GOOGLE_OAUTH_GET_CLIENT_SECRET", string.Format("ClientSecret from config - Length: {0}, IsEmpty: {1}", length, string.IsNullOrEmpty(clientSecret)));
             return clientSecret;
         }
         catch (Exception ex)
@@ -56,8 +58,7 @@ public class GoogleOAuthService
         }
         catch (Exception ex)
         {
-            LoggingService.Log("GOOGLE_OAUTH_GET_REDIRECT_URI_ERROR", string.Format("Err" +
-                "or getting RedirectUri: {0}", ex.Message), ex);
+            LoggingService.Log("GOOGLE_OAUTH_GET_REDIRECT_URI_ERROR", string.Format("Error getting RedirectUri: {0}", ex.Message), ex);
             throw;
         }
     }
@@ -69,7 +70,9 @@ public class GoogleOAuthService
             LoggingService.Log("GOOGLE_OAUTH_GET_AUTH_URL_START", "Starting GetAuthorizationUrl");
             
             string clientId = GetClientId();
-            LoggingService.Log("GOOGLE_OAUTH_CLIENT_ID", string.Format("ClientId retrieved - Length: {0}, IsEmpty: {1}, Value: {2}", clientId?.Length ?? 0, string.IsNullOrEmpty(clientId), string.IsNullOrEmpty(clientId) ? "EMPTY" : clientId.Substring(0, Math.Min(10, clientId.Length)) + "..."));
+            int clientIdLength = clientId != null ? clientId.Length : 0;
+            string clientIdPreview = string.IsNullOrEmpty(clientId) ? "EMPTY" : clientId.Substring(0, Math.Min(10, clientId.Length)) + "...";
+            LoggingService.Log("GOOGLE_OAUTH_CLIENT_ID", string.Format("ClientId retrieved - Length: {0}, IsEmpty: {1}, Value: {2}", clientIdLength, string.IsNullOrEmpty(clientId), clientIdPreview));
             
             string redirectUri = GetRedirectUri();
             LoggingService.Log("GOOGLE_OAUTH_REDIRECT_URI", string.Format("RedirectUri: {0}", redirectUri));
@@ -86,7 +89,8 @@ public class GoogleOAuthService
                         if (key.Contains("Google") || key.Contains("OAuth"))
                         {
                             string value = System.Configuration.ConfigurationManager.AppSettings[key];
-                            LoggingService.Log("GOOGLE_OAUTH_KEY_FOUND", string.Format("Found key: {0}, Value length: {1}", key, value?.Length ?? 0));
+                            int valueLength = value != null ? value.Length : 0;
+                            LoggingService.Log("GOOGLE_OAUTH_KEY_FOUND", string.Format("Found key: {0}, Value length: {1}", key, valueLength));
                         }
                     }
                 }
@@ -218,7 +222,8 @@ public class GoogleOAuthService
             string sql = "SELECT [Id] FROM [Users] WHERE [GoogleId]=?";
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {
-                cmd.Parameters.AddWithValue("?", googleId?.Trim() ?? "");
+                string googleIdValue = googleId != null ? googleId.Trim() : "";
+                cmd.Parameters.AddWithValue("?", googleIdValue);
                 object result = cmd.ExecuteScalar();
                 if (result != null && result != DBNull.Value)
                 {
@@ -306,7 +311,7 @@ public class GoogleOAuthService
 
     public static bool CreateOrUpdateUser(GoogleUserInfo userInfo)
     {
-        if (string.IsNullOrEmpty(userInfo?.Id) || string.IsNullOrEmpty(userInfo?.Email))
+        if (userInfo == null || string.IsNullOrEmpty(userInfo.Id) || string.IsNullOrEmpty(userInfo.Email))
         {
             throw new ArgumentException("פרטי משתמש Google לא תקינים");
         }
@@ -323,10 +328,10 @@ public class GoogleOAuthService
                 string sql = "UPDATE [Users] SET [Email]=?, [FirstName]=?, [LastName]=? WHERE [GoogleId]=?";
                 using (OleDbCommand cmd = new OleDbCommand(sql, conn))
                 {
-                    cmd.Parameters.AddWithValue("?", userInfo.Email?.Trim() ?? "");
-                    cmd.Parameters.AddWithValue("?", (userInfo.GivenName ?? "").Trim());
-                    cmd.Parameters.AddWithValue("?", (userInfo.FamilyName ?? "").Trim());
-                    cmd.Parameters.AddWithValue("?", userInfo.Id?.Trim() ?? "");
+                    cmd.Parameters.AddWithValue("?", userInfo.Email != null ? userInfo.Email.Trim() : "");
+                    cmd.Parameters.AddWithValue("?", userInfo.GivenName != null ? userInfo.GivenName.Trim() : "");
+                    cmd.Parameters.AddWithValue("?", userInfo.FamilyName != null ? userInfo.FamilyName.Trim() : "");
+                    cmd.Parameters.AddWithValue("?", userInfo.Id != null ? userInfo.Id.Trim() : "");
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -346,9 +351,9 @@ public class GoogleOAuthService
                         string sql = "UPDATE [Users] SET [GoogleId]=?, [FirstName]=?, [LastName]=? WHERE [Id]=?";
                         using (OleDbCommand cmd = new OleDbCommand(sql, conn))
                         {
-                            cmd.Parameters.AddWithValue("?", userInfo.Id?.Trim() ?? "");
-                            cmd.Parameters.AddWithValue("?", (userInfo.GivenName ?? "").Trim());
-                            cmd.Parameters.AddWithValue("?", (userInfo.FamilyName ?? "").Trim());
+                            cmd.Parameters.AddWithValue("?", userInfo.Id != null ? userInfo.Id.Trim() : "");
+                            cmd.Parameters.AddWithValue("?", userInfo.GivenName != null ? userInfo.GivenName.Trim() : "");
+                            cmd.Parameters.AddWithValue("?", userInfo.FamilyName != null ? userInfo.FamilyName.Trim() : "");
                             cmd.Parameters.AddWithValue("?", emailUserId.Value);
                             cmd.ExecuteNonQuery();
                         }
@@ -412,12 +417,13 @@ public class GoogleOAuthService
                     {
                         conn.Open();
                         bool hasGoogleIdColumn = ColumnExists(conn, "Users", "GoogleId");
-                        if (hasGoogleIdColumn && !string.IsNullOrEmpty(userInfo.Id?.Trim()))
+                        string userInfoIdTrimmed = userInfo.Id != null ? userInfo.Id.Trim() : "";
+                        if (hasGoogleIdColumn && !string.IsNullOrEmpty(userInfoIdTrimmed))
                         {
                             string updateSql = "UPDATE [Users] SET [GoogleId]=? WHERE [Id]=?";
                             using (OleDbCommand updateCmd = new OleDbCommand(updateSql, conn))
                             {
-                                updateCmd.Parameters.AddWithValue("?", userInfo.Id.Trim());
+                                updateCmd.Parameters.AddWithValue("?", userInfoIdTrimmed);
                                 updateCmd.Parameters.AddWithValue("?", newUserId);
                                 updateCmd.ExecuteNonQuery();
                             }
@@ -440,4 +446,3 @@ public class GoogleUserInfo
     public string FamilyName { get; set; }
     public string Picture { get; set; }
 }
-

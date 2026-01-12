@@ -12,7 +12,8 @@ public class ParashaProxy : IHttpHandler
 
         DateTime date = DateTime.Today;
         string dateParam = context.Request["date"];
-        if (!string.IsNullOrEmpty(dateParam) && DateTime.TryParse(dateParam, out DateTime parsed))
+        DateTime parsed;
+        if (!string.IsNullOrEmpty(dateParam) && DateTime.TryParse(dateParam, out parsed))
             date = parsed;
 
         try
@@ -22,11 +23,11 @@ public class ParashaProxy : IHttpHandler
             var payload = new
             {
                 date = date.ToString("yyyy-MM-dd"),
-                hebrewDate = info?.HebrewDate ?? string.Empty,
-                parasha = info?.Parasha ?? string.Empty,
-                holiday = info?.Holiday ?? string.Empty,
-                converterUrl = info?.ConverterUrl ?? string.Empty,
-                eventsUrl = info?.EventsUrl ?? string.Empty
+                hebrewDate = info != null ? (info.HebrewDate ?? string.Empty) : string.Empty,
+                parasha = info != null ? (info.Parasha ?? string.Empty) : string.Empty,
+                holiday = info != null ? (info.Holiday ?? string.Empty) : string.Empty,
+                converterUrl = info != null ? (info.ConverterUrl ?? string.Empty) : string.Empty,
+                eventsUrl = info != null ? (info.EventsUrl ?? string.Empty) : string.Empty
             };
 
             context.Response.Write(serializer.Serialize(payload));
@@ -38,6 +39,9 @@ public class ParashaProxy : IHttpHandler
         }
     }
 
-    public bool IsReusable => false;
+    public bool IsReusable
+    {
+        get { return false; }
+    }
 }
 

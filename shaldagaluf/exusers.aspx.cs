@@ -42,7 +42,7 @@ public partial class exusers : System.Web.UI.Page
             var view = new DataView(t);
             string q = search.Replace("'", "''");
             view.RowFilter =
-                $"userName LIKE '%{q}%' OR email LIKE '%{q}%' OR firstName LIKE '%{q}%' OR lastName LIKE '%{q}%' OR phonenum LIKE '%{q}%' OR CityName LIKE '%{q}%'";
+                string.Format("userName LIKE '%{0}%' OR email LIKE '%{0}%' OR firstName LIKE '%{0}%' OR lastName LIKE '%{0}%' OR phonenum LIKE '%{0}%' OR CityName LIKE '%{0}%'", q);
 
             gvUsers.DataSource = view;
         }
@@ -108,7 +108,8 @@ public partial class exusers : System.Web.UI.Page
     {
         DataRowView drv = null;
         
-        if (container is GridViewRow row && row.DataItem is DataRowView)
+        GridViewRow row = container as GridViewRow;
+        if (row != null && row.DataItem is DataRowView)
         {
             drv = (DataRowView)row.DataItem;
         }
@@ -140,7 +141,8 @@ public partial class exusers : System.Web.UI.Page
     {
         DataRowView drv = null;
         
-        if (container is GridViewRow row && row.DataItem is DataRowView)
+        GridViewRow row = container as GridViewRow;
+        if (row != null && row.DataItem is DataRowView)
         {
             drv = (DataRowView)row.DataItem;
         }
@@ -151,7 +153,7 @@ public partial class exusers : System.Web.UI.Page
         
         if (drv == null) return string.Empty;
 
-        var table = drv.DataView?.Table;
+        var table = drv.DataView != null ? drv.DataView.Table : null;
         if (table == null) return string.Empty;
 
         string[] names = { "CityName", "cityname", "citys.cityname", "c.cityname", "city" };
@@ -166,7 +168,7 @@ public partial class exusers : System.Web.UI.Page
 
     protected bool IsOwner()
     {
-        string role = Session["Role"]?.ToString() ?? "";
+        string role = Session["Role"] != null ? Session["Role"].ToString() : "";
         return role.ToLower() == "owner";
     }
 
@@ -181,7 +183,8 @@ public partial class exusers : System.Web.UI.Page
         if (btn == null) return;
 
         string userIdStr = btn.CommandArgument;
-        if (!int.TryParse(userIdStr, out int userId))
+        int userId;
+        if (!int.TryParse(userIdStr, out userId))
         {
             return;
         }
@@ -206,7 +209,8 @@ public partial class exusers : System.Web.UI.Page
         if (btn == null) return;
 
         string userIdStr = btn.CommandArgument;
-        if (!int.TryParse(userIdStr, out int userId))
+        int userId;
+        if (!int.TryParse(userIdStr, out userId))
         {
             return;
         }

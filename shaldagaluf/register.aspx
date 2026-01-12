@@ -95,6 +95,18 @@
                 </div>
 
                 <div class="form-actions">
+                    <div class="form-field">
+                        <asp:Button ID="btnGoogleRegister" runat="server" Text="הירשם עם Google" OnClick="btnGoogleRegister_Click" 
+                            CssClass="google-button" />
+                    </div>
+
+                    <div style="margin: 24px 0; text-align: center; position: relative;">
+                        <div style="position: relative; text-align: center;">
+                            <span style="background: var(--surface); padding: 0 16px; color: var(--text); font-size: 14px; position: relative; z-index: 1;">או</span>
+                            <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--border); z-index: 0;"></div>
+                        </div>
+                    </div>
+
                     <asp:Button ID="btnRegister" runat="server" Text="הירשם" OnClick="btnRegister_Click" CssClass="btn-register" />
                 </div>
 

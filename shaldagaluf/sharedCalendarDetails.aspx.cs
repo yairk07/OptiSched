@@ -44,6 +44,26 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
 
         currentUserId = Convert.ToInt32(Session["userId"]);
 
+        string deleteEventId = Request.QueryString["deleteEvent"];
+        if (!string.IsNullOrEmpty(deleteEventId))
+        {
+            int eventId;
+            if (int.TryParse(deleteEventId, out eventId))
+            {
+                string role = Session["Role"] != null ? Session["Role"].ToString() : "";
+                bool isOwner = string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase);
+                bool userIsAdmin = isAdmin || isOwner;
+                bool canEdit = userIsAdmin || service.CanUserEdit(calendarId, currentUserId);
+                
+                if (canEdit)
+                {
+                    service.DeleteSharedCalendarEvent(eventId);
+                }
+                Response.Redirect("sharedCalendarDetails.aspx?id=" + calendarId);
+                return;
+            }
+        }
+
         string parsedEventsJson = Request.Form["parsedEventsJson"];
         if (!string.IsNullOrEmpty(parsedEventsJson))
         {
@@ -96,7 +116,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
             return;
         }
 
-        string role = Session["Role"]?.ToString() ?? "";
+        string role = Session["Role"] != null ? Session["Role"].ToString() : "";
         bool isOwner = string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase);
         
         isAdmin = service.IsCalendarAdmin(calendarId, currentUserId) || isOwner;
@@ -124,12 +144,26 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
             pnlEvents.Visible = true;
             pnlRequests.Visible = false;
             btnTabRequests.Visible = isAdmin;
-            btnAddEvent.Visible = isAdmin;
+            
+            string userRole = Session["Role"] != null ? Session["Role"].ToString() : "";
+            bool userIsOwner = string.Equals(userRole, "owner", StringComparison.OrdinalIgnoreCase);
+            bool canEdit = isAdmin || userIsOwner || service.CanUserEdit(calendarId, currentUserId);
+            
+            BindCalendar();
+            
             if (!IsPostBack)
             {
-                pnlAddEvent.Visible = false;
+                calEvents.SelectedDate = DateTime.Today;
+                txtEventDate.Text = DateTime.Today.ToString("yyyy-MM-dd");
+                ShowEvents(DateTime.Today);
             }
-            LoadEvents();
+            else
+            {
+                if (calEvents.SelectedDate != DateTime.MinValue)
+                {
+                    ShowEvents(calEvents.SelectedDate);
+                }
+            }
         }
     }
 
@@ -140,7 +174,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
             var serializer = new JavaScriptSerializer();
             var events = serializer.Deserialize<List<Dictionary<string, object>>>(json);
 
-            string role = Session["Role"]?.ToString() ?? "";
+            string role = Session["Role"] != null ? Session["Role"].ToString() : "";
             bool isOwner = string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase);
             bool userIsAdmin = isAdmin || isOwner;
 
@@ -167,7 +201,8 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
                         title = "אירוע";
                     }
 
-                    if (!string.IsNullOrEmpty(dateStr) && DateTime.TryParse(dateStr, out DateTime eventDate))
+                    DateTime eventDate;
+                    if (!string.IsNullOrEmpty(dateStr) && DateTime.TryParse(dateStr, out eventDate))
                     {
                         string time = "";
                         if (!string.IsNullOrEmpty(startTime) && !string.IsNullOrEmpty(endTime))
@@ -231,11 +266,42 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
 
     protected void btnSendJoinRequest_Click(object sender, EventArgs e)
     {
-        string message = txtJoinMessage.Text.Trim();
-        service.CreateJoinRequest(calendarId, currentUserId, message);
-        lblJoinMessage.Text = "בקשתך נשלחה בהצלחה! המנהל יקבל התראה.";
-        lblJoinMessage.ForeColor = System.Drawing.Color.Green;
-        txtJoinMessage.Text = "";
+        try
+        {
+            string message = txtJoinMessage.Text.Trim();
+            
+            if (calendarId <= 0)
+            {
+                lblJoinMessage.Text = "שגיאה: לא ניתן לזהות את הטבלה.";
+                lblJoinMessage.ForeColor = System.Drawing.Color.Red;
+                lblJoinMessage.Visible = true;
+                return;
+            }
+            
+            if (currentUserId <= 0)
+            {
+                lblJoinMessage.Text = "שגיאה: לא ניתן לזהות את המשתמש.";
+                lblJoinMessage.ForeColor = System.Drawing.Color.Red;
+                lblJoinMessage.Visible = true;
+                return;
+            }
+            
+            service.CreateJoinRequest(calendarId, currentUserId, message);
+            lblJoinMessage.Text = "בקשתך נשלחה בהצלחה! המנהל יקבל התראה.";
+            lblJoinMessage.ForeColor = System.Drawing.Color.Green;
+            lblJoinMessage.Visible = true;
+            txtJoinMessage.Text = "";
+            
+            Response.Redirect(Request.Url.AbsolutePath + "?id=" + calendarId, false);
+            Context.ApplicationInstance.CompleteRequest();
+        }
+        catch (Exception ex)
+        {
+            lblJoinMessage.Text = "שגיאה בשליחת הבקשה: " + ex.Message;
+            lblJoinMessage.ForeColor = System.Drawing.Color.Red;
+            lblJoinMessage.Visible = true;
+            System.Diagnostics.Debug.WriteLine("Error sending join request: " + ex.Message);
+        }
     }
 
     protected void btnTabEvents_Click(object sender, EventArgs e)
@@ -244,7 +310,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         pnlRequests.Visible = false;
         btnTabEvents.CssClass = "tab-button active";
         btnTabRequests.CssClass = "tab-button";
-        LoadEvents();
+        BindCalendar();
     }
 
     protected void btnTabRequests_Click(object sender, EventArgs e)
@@ -267,136 +333,16 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
                (trimmed.Length <= 1 && (trimmed == "." || trimmed == "؟"));
     }
 
-    private void LoadEvents()
-    {
-        try
-        {
-            DataTable dt = service.GetSharedCalendarEvents(calendarId, currentUserId);
-            
-            if (dt == null)
-                dt = new DataTable();
-            
-            if (dt.Columns.Count == 0 && dt.Rows.Count == 0)
-            {
-                dt.Columns.Add("Id", typeof(int));
-                dt.Columns.Add("Title", typeof(string));
-                dt.Columns.Add("EventDate", typeof(DateTime));
-                dt.Columns.Add("EventTime", typeof(string));
-                dt.Columns.Add("Category", typeof(string));
-                dt.Columns.Add("Notes", typeof(string));
-                dt.Columns.Add("CreatedByName", typeof(string));
-            }
-            else
-            {
-                if (!dt.Columns.Contains("Id"))
-                    dt.Columns.Add("Id", typeof(int));
-                if (!dt.Columns.Contains("Title"))
-                    dt.Columns.Add("Title", typeof(string));
-                if (!dt.Columns.Contains("EventDate"))
-                    dt.Columns.Add("EventDate", typeof(DateTime));
-                if (!dt.Columns.Contains("EventTime"))
-                    dt.Columns.Add("EventTime", typeof(string));
-                if (!dt.Columns.Contains("Category"))
-                    dt.Columns.Add("Category", typeof(string));
-                if (!dt.Columns.Contains("Notes"))
-                    dt.Columns.Add("Notes", typeof(string));
-                if (!dt.Columns.Contains("CreatedByName"))
-                    dt.Columns.Add("CreatedByName", typeof(string));
-                
-                foreach (DataRow row in dt.Rows)
-                {
-                    try
-                    {
-                        if (dt.Columns.Contains("Title"))
-                        {
-                            if (row["Title"] == DBNull.Value || row["Title"] == null || string.IsNullOrWhiteSpace(row["Title"].ToString()))
-                            {
-                                row["Title"] = "ללא כותרת";
-                            }
-                            else
-                            {
-                                row["Title"] = Connect.FixEncoding(row["Title"].ToString());
-                            }
-                        }
-                        if (dt.Columns.Contains("EventTime") && row["EventTime"] != DBNull.Value && row["EventTime"] != null && !string.IsNullOrWhiteSpace(row["EventTime"].ToString()))
-                        {
-                            row["EventTime"] = Connect.FixEncoding(row["EventTime"].ToString());
-                        }
-                        if (dt.Columns.Contains("Notes") && row["Notes"] != DBNull.Value && row["Notes"] != null && !string.IsNullOrWhiteSpace(row["Notes"].ToString()))
-                        {
-                            row["Notes"] = Connect.FixEncoding(row["Notes"].ToString());
-                        }
-                        if (dt.Columns.Contains("Category"))
-                        {
-                            if (row["Category"] == DBNull.Value || row["Category"] == null || string.IsNullOrWhiteSpace(row["Category"].ToString()))
-                            {
-                                row["Category"] = "אחר";
-                            }
-                            else
-                            {
-                                row["Category"] = Connect.FixEncoding(row["Category"].ToString());
-                            }
-                        }
-                        if (dt.Columns.Contains("CreatedByName"))
-                        {
-                            if (row["CreatedByName"] == DBNull.Value || row["CreatedByName"] == null || string.IsNullOrWhiteSpace(row["CreatedByName"].ToString()))
-                            {
-                                row["CreatedByName"] = "ללא שם";
-                            }
-                            else
-                            {
-                                row["CreatedByName"] = Connect.FixEncoding(row["CreatedByName"].ToString());
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        continue;
-                    }
-                }
-            }
-            
-            if (dt == null || dt.Rows.Count == 0)
-            {
-                dlEvents.Visible = false;
-                lblNoEvents.Visible = true;
-            }
-            else
-            {
-                dlEvents.Visible = true;
-                lblNoEvents.Visible = false;
-                dlEvents.DataSource = dt;
-                dlEvents.DataBind();
-            }
-            
-            foreach (RepeaterItem item in dlEvents.Items)
-            {
-                try
-                {
-                    LinkButton lnkEdit = item.FindControl("lnkEdit") as LinkButton;
-                    LinkButton lnkDelete = item.FindControl("lnkDelete") as LinkButton;
-                    
-                    if (lnkEdit != null)
-                        lnkEdit.Visible = isAdmin;
-                    if (lnkDelete != null)
-                        lnkDelete.Visible = isAdmin;
-                }
-                catch
-                {
-                    continue;
-                }
-            }
-        }
-        catch
-        {
-        }
-    }
 
     private void LoadRequests()
     {
         DataTable dt = service.GetJoinRequests(calendarId, currentUserId);
-        if (dt == null)
+        if (dt == null || dt.Rows.Count == 0)
+        {
+            lblNoRequests.Visible = true;
+            dlRequests.Visible = false;
             return;
+        }
         
         foreach (DataRow row in dt.Rows)
         {
@@ -414,23 +360,26 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
                 row["Message"] = Connect.FixEncoding(row["Message"].ToString());
         }
         
+        lblNoRequests.Visible = false;
+        dlRequests.Visible = true;
         dlRequests.DataSource = dt;
         dlRequests.DataBind();
     }
 
     protected void btnAddEvent_Click(object sender, EventArgs e)
     {
-        pnlAddEvent.Visible = true;
-        btnAddEvent.Visible = false;
         ViewState["EditingEventId"] = null;
         ClearEventForm();
-    }
-
-    protected void btnCancelEvent_Click(object sender, EventArgs e)
-    {
-        pnlAddEvent.Visible = false;
-        btnAddEvent.Visible = true;
-        ClearEventForm();
+        if (calEvents.SelectedDate != DateTime.MinValue)
+        {
+            txtEventDate.Text = calEvents.SelectedDate.ToString("yyyy-MM-dd");
+        }
+        else
+        {
+            txtEventDate.Text = DateTime.Today.ToString("yyyy-MM-dd");
+            calEvents.SelectedDate = DateTime.Today;
+        }
+        ShowEvents(calEvents.SelectedDate);
     }
 
     protected void btnSaveEvent_Click(object sender, EventArgs e)
@@ -438,11 +387,12 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         lblSaveError.Visible = false;
         lblSaveError.Text = "";
         
-        string role = Session["Role"]?.ToString() ?? "";
+        string role = Session["Role"] != null ? Session["Role"].ToString() : "";
         bool isOwner = string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase);
         bool userIsAdmin = isAdmin || isOwner;
+        bool canEdit = userIsAdmin || service.CanUserEdit(calendarId, currentUserId);
 
-        if (!userIsAdmin)
+        if (!canEdit)
         {
             lblSaveError.Text = "אין לך הרשאה לשמור אירועים";
             lblSaveError.Visible = true;
@@ -451,11 +401,15 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
 
         try
         {
-            string title = Connect.FixEncoding(txtEventTitle.Text?.Trim() ?? "");
+            string titleText = txtEventTitle.Text != null ? txtEventTitle.Text.Trim() : "";
+            string title = Connect.FixEncoding(titleText);
             string dateStr = txtEventDate.Text;
-            string time = Connect.FixEncoding(txtEventTime.Text?.Trim() ?? "");
-            string notes = Connect.FixEncoding(txtEventNotes.Text?.Trim() ?? "");
-            string category = Connect.FixEncoding(ddlEventCategory.SelectedValue?.Trim() ?? "אחר");
+            string timeText = txtEventTime.Text != null ? txtEventTime.Text.Trim() : "";
+            string time = Connect.FixEncoding(timeText);
+            string notesText = txtEventNotes.Text != null ? txtEventNotes.Text.Trim() : "";
+            string notes = Connect.FixEncoding(notesText);
+            string categoryValue = ddlEventCategory.SelectedValue != null ? ddlEventCategory.SelectedValue.Trim() : "אחר";
+            string category = Connect.FixEncoding(categoryValue);
 
             if (string.IsNullOrWhiteSpace(title) || IsInvalidValue(title))
             {
@@ -499,11 +453,10 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
                 service.AddSharedCalendarEvent(calendarId, title, eventDate, time, notes, category, currentUserId);
             }
 
-            pnlAddEvent.Visible = false;
-            btnAddEvent.Visible = true;
             ViewState["EditingEventId"] = null;
             ClearEventForm();
-            LoadEvents();
+            BindCalendar();
+            ShowEvents(calEvents.SelectedDate != DateTime.MinValue ? calEvents.SelectedDate : DateTime.Today);
         }
         catch (Exception ex)
         {
@@ -515,9 +468,12 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
 
     protected void lnkEdit_Click(object sender, EventArgs e)
     {
-        string role = Session["Role"]?.ToString() ?? "";
+        string role = Session["Role"] != null ? Session["Role"].ToString() : "";
         bool isOwner = string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase);
-        if (!isAdmin && !isOwner)
+        bool userIsAdmin = isAdmin || isOwner;
+        bool canEdit = userIsAdmin || service.CanUserEdit(calendarId, currentUserId);
+        
+        if (!canEdit)
             return;
 
         LinkButton btn = sender as LinkButton;
@@ -527,7 +483,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         if (dt == null)
             return;
             
-        DataRow[] rows = dt.Select($"Id = {eventId}");
+        DataRow[] rows = dt.Select(string.Format("Id = {0}", eventId));
         if (rows.Length > 0)
         {
             DataRow row = rows[0];
@@ -569,27 +525,47 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
                     ddlEventCategory.SelectedValue = category;
             }
             ViewState["EditingEventId"] = eventId;
-            pnlAddEvent.Visible = true;
-            btnAddEvent.Visible = false;
+            if (row.Table.Columns.Contains("EventDate") && row["EventDate"] != DBNull.Value && row["EventDate"] != null)
+            {
+                DateTime eventDate = Convert.ToDateTime(row["EventDate"]);
+                calEvents.SelectedDate = eventDate;
+                txtEventDate.Text = eventDate.ToString("yyyy-MM-dd");
+                ShowEvents(eventDate);
+            }
         }
     }
 
     protected void lnkDelete_Click(object sender, EventArgs e)
     {
-        string role = Session["Role"]?.ToString() ?? "";
+        string role = Session["Role"] != null ? Session["Role"].ToString() : "";
         bool isOwner = string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase);
-        if (!isAdmin && !isOwner)
+        bool userIsAdmin = isAdmin || isOwner;
+        bool canEdit = userIsAdmin || service.CanUserEdit(calendarId, currentUserId);
+        
+        if (!canEdit)
             return;
 
         LinkButton btn = sender as LinkButton;
         int eventId = Convert.ToInt32(btn.CommandArgument);
         service.DeleteSharedCalendarEvent(eventId);
-        LoadEvents();
+        BindCalendar();
+    }
+
+    protected void dlRequests_ItemDataBound(object sender, DataListItemEventArgs e)
+    {
+        if (e.Item.ItemType == ListItemType.Item || e.Item.ItemType == ListItemType.AlternatingItem)
+        {
+            DropDownList ddlPermission = (DropDownList)e.Item.FindControl("ddlPermission");
+            if (ddlPermission != null)
+            {
+                ddlPermission.SelectedValue = "Read";
+            }
+        }
     }
 
     protected void btnApprove_Click(object sender, EventArgs e)
     {
-        string role = Session["Role"]?.ToString() ?? "";
+        string role = Session["Role"] != null ? Session["Role"].ToString() : "";
         bool isOwner = string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase);
         if (!isAdmin && !isOwner)
             return;
@@ -597,18 +573,26 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         Button btn = sender as Button;
         int requestId = Convert.ToInt32(btn.CommandArgument);
 
+        DataListItem item = (DataListItem)btn.NamingContainer;
+        DropDownList ddlPermission = (DropDownList)item.FindControl("ddlPermission");
+        string permission = "Read";
+        if (ddlPermission != null)
+        {
+            permission = ddlPermission.SelectedValue;
+        }
+
         DataTable dt = service.GetJoinRequests(calendarId, currentUserId);
         if (dt == null)
             return;
             
-        DataRow[] rows = dt.Select($"RequestId = {requestId}");
+        DataRow[] rows = dt.Select(string.Format("RequestId = {0}", requestId));
         if (rows.Length > 0)
         {
             DataRow row = rows[0];
             if (row.Table.Columns.Contains("UserId") && row["UserId"] != DBNull.Value && row["UserId"] != null)
             {
                 int userId = Convert.ToInt32(row["UserId"]);
-                service.ApproveJoinRequest(requestId, calendarId, userId);
+                service.ApproveJoinRequest(requestId, calendarId, userId, permission);
                 LoadRequests();
             }
         }
@@ -616,7 +600,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
 
     protected void btnReject_Click(object sender, EventArgs e)
     {
-        string role = Session["Role"]?.ToString() ?? "";
+        string role = Session["Role"] != null ? Session["Role"].ToString() : "";
         bool isOwner = string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase);
         if (!isAdmin && !isOwner)
             return;
@@ -672,5 +656,291 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         {
             return "";
         }
+    }
+
+    private void BindCalendar()
+    {
+        try
+        {
+            DateTime currentDate = calEvents.VisibleDate;
+            if (currentDate == DateTime.MinValue || currentDate == DateTime.MaxValue || currentDate.Year < 1 || currentDate.Year > 9999)
+            {
+                currentDate = DateTime.Now;
+                calEvents.VisibleDate = currentDate;
+            }
+            
+            lblCurrentMonth.Text = currentDate.ToString("MMMM yyyy", new System.Globalization.CultureInfo("he-IL"));
+            
+            DataTable eventsData = service.GetSharedCalendarEvents(calendarId, currentUserId);
+            if (eventsData == null || eventsData.Rows.Count == 0)
+            {
+                ViewState["EventsData"] = new DataTable();
+            }
+            else
+            {
+                ViewState["EventsData"] = eventsData;
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    protected void btnMonthChange_Click(object sender, EventArgs e)
+    {
+        LinkButton btn = sender as LinkButton;
+        DateTime currentDate = calEvents.VisibleDate;
+        
+        if (currentDate == DateTime.MinValue || currentDate == DateTime.MaxValue)
+        {
+            currentDate = DateTime.Now;
+        }
+        
+        try
+        {
+            if (btn.CommandArgument == "prev")
+            {
+                DateTime newDate = currentDate.AddMonths(-1);
+                if (newDate.Year >= 1 && newDate.Year <= 9999)
+                {
+                    calEvents.VisibleDate = newDate;
+                }
+            }
+            else
+            {
+                DateTime newDate = currentDate.AddMonths(1);
+                if (newDate.Year >= 1 && newDate.Year <= 9999)
+                {
+                    calEvents.VisibleDate = newDate;
+                }
+            }
+        }
+        catch
+        {
+            calEvents.VisibleDate = DateTime.Now;
+        }
+        
+        BindCalendar();
+    }
+
+    protected void calEvents_VisibleMonthChanged(object sender, MonthChangedEventArgs e)
+    {
+        try
+        {
+            if (e.NewDate.Year >= 1 && e.NewDate.Year <= 9999)
+            {
+                calEvents.VisibleDate = e.NewDate;
+            }
+            else
+            {
+                calEvents.VisibleDate = DateTime.Now;
+            }
+        }
+        catch
+        {
+            calEvents.VisibleDate = DateTime.Now;
+        }
+        
+        BindCalendar();
+    }
+
+    protected void calEvents_DayRender(object sender, DayRenderEventArgs e)
+    {
+        try
+        {
+            e.Cell.CssClass = "day-cell";
+            e.Cell.Controls.Clear();
+
+            LiteralControl dayNumber = new LiteralControl(string.Format("<div class='day-number'>{0}</div>", e.Day.Date.Day));
+            e.Cell.Controls.Add(dayNumber);
+
+            if (!e.Day.IsOtherMonth)
+            {
+                DataTable eventsData = ViewState["EventsData"] as DataTable;
+                if (eventsData != null && eventsData.Rows.Count > 0)
+                {
+                    Panel eventsPanel = new Panel();
+                    eventsPanel.CssClass = "day-events";
+                    
+                    DateTime targetDate = e.Day.Date.Date;
+                    
+                    foreach (DataRow row in eventsData.Rows)
+                    {
+                        try
+                        {
+                            if (row.Table.Columns.Contains("EventDate") && row["EventDate"] != DBNull.Value && row["EventDate"] != null)
+                            {
+                                DateTime eventDate = Convert.ToDateTime(row["EventDate"]).Date;
+                                if (eventDate == targetDate)
+                                {
+                                    string title = "";
+                                    if (row.Table.Columns.Contains("Title") && row["Title"] != DBNull.Value && row["Title"] != null)
+                                    {
+                                        title = Connect.FixEncoding(row["Title"].ToString());
+                                    }
+                                    
+                                    string time = "";
+                                    if (row.Table.Columns.Contains("EventTime") && row["EventTime"] != DBNull.Value && row["EventTime"] != null)
+                                    {
+                                        time = Connect.FixEncoding(row["EventTime"].ToString());
+                                    }
+                                    
+                                    string eventId = "";
+                                    if (row.Table.Columns.Contains("Id") && row["Id"] != DBNull.Value && row["Id"] != null)
+                                    {
+                                        eventId = row["Id"].ToString();
+                                    }
+                                    
+                                    string createdByName = "";
+                                    if (row.Table.Columns.Contains("CreatedByName") && row["CreatedByName"] != DBNull.Value && row["CreatedByName"] != null)
+                                    {
+                                        createdByName = Connect.FixEncoding(row["CreatedByName"].ToString());
+                                    }
+                                    
+                                    if (string.IsNullOrEmpty(title))
+                                        continue;
+                                    
+                                    string displayText = title;
+                                    if (displayText.Length > 18)
+                                        displayText = displayText.Substring(0, 18) + "...";
+                                    
+                                    HyperLink eventLink = new HyperLink();
+                                    eventLink.CssClass = "event-badge";
+                                    eventLink.Text = displayText;
+                                    eventLink.NavigateUrl = string.Format("eventDetails.aspx?id={0}", eventId);
+                                    eventLink.ToolTip = string.Format("{0}\nמשתמש: {1}\n{2}", title, createdByName, time);
+                                    
+                                    eventsPanel.Controls.Add(eventLink);
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            continue;
+                        }
+                    }
+                    
+                    if (eventsPanel.Controls.Count > 0)
+                        e.Cell.Controls.Add(eventsPanel);
+                }
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    protected void calEvents_SelectionChanged(object sender, EventArgs e)
+    {
+        DateTime selectedDate = calEvents.SelectedDate;
+        if (selectedDate != DateTime.MinValue)
+        {
+            txtEventDate.Text = selectedDate.ToString("yyyy-MM-dd");
+            ViewState["EditingEventId"] = null;
+            ClearEventForm();
+            txtEventDate.Text = selectedDate.ToString("yyyy-MM-dd");
+            ShowEvents(selectedDate);
+        }
+    }
+
+    private void ShowEvents(DateTime date)
+    {
+        var builder = new StringBuilder();
+        int count = 0;
+
+        DataTable eventsData = ViewState["EventsData"] as DataTable;
+        if (eventsData != null && eventsData.Rows.Count > 0)
+        {
+            builder.Append("<div class='events-table-container'>");
+            builder.Append("<table class='events-table'>");
+            builder.Append("<thead>");
+            builder.Append("<tr>");
+            builder.Append("<th>כותרת</th>");
+            builder.Append("<th>קטגוריה</th>");
+            builder.Append("<th>שעה</th>");
+            builder.Append("<th>הערות</th>");
+            builder.Append("<th>נוצר על ידי</th>");
+            builder.Append("<th>פעולות</th>");
+            builder.Append("</tr>");
+            builder.Append("</thead>");
+            builder.Append("<tbody>");
+
+            foreach (DataRow row in eventsData.Rows)
+            {
+                try
+                {
+                    if (row.Table.Columns.Contains("EventDate") && row["EventDate"] != DBNull.Value && row["EventDate"] != null)
+                    {
+                        DateTime eventDate = Convert.ToDateTime(row["EventDate"]).Date;
+                        if (eventDate == date.Date)
+                        {
+                            string title = "";
+                            if (row.Table.Columns.Contains("Title") && row["Title"] != DBNull.Value && row["Title"] != null)
+                                title = Connect.FixEncoding(row["Title"].ToString());
+
+                            string category = "";
+                            if (row.Table.Columns.Contains("Category") && row["Category"] != DBNull.Value && row["Category"] != null)
+                                category = Connect.FixEncoding(row["Category"].ToString());
+
+                            string time = "";
+                            if (row.Table.Columns.Contains("EventTime") && row["EventTime"] != DBNull.Value && row["EventTime"] != null)
+                                time = Connect.FixEncoding(row["EventTime"].ToString());
+
+                            string notes = "";
+                            if (row.Table.Columns.Contains("Notes") && row["Notes"] != DBNull.Value && row["Notes"] != null)
+                                notes = Connect.FixEncoding(row["Notes"].ToString());
+
+                            string createdByName = "";
+                            if (row.Table.Columns.Contains("CreatedByName") && row["CreatedByName"] != DBNull.Value && row["CreatedByName"] != null)
+                                createdByName = Connect.FixEncoding(row["CreatedByName"].ToString());
+
+                            string eventId = "";
+                            if (row.Table.Columns.Contains("Id") && row["Id"] != DBNull.Value && row["Id"] != null)
+                                eventId = row["Id"].ToString();
+
+                            if (string.IsNullOrEmpty(title))
+                                title = "ללא כותרת";
+
+                            string role = Session["Role"] != null ? Session["Role"].ToString() : "";
+                            bool isOwner = string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase);
+                            bool userIsAdmin = isAdmin || isOwner;
+                            bool canEdit = userIsAdmin || service.CanUserEdit(calendarId, currentUserId);
+
+                            builder.Append("<tr>");
+                            builder.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(title));
+                            builder.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(category));
+                            builder.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(time));
+                            builder.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(notes));
+                            builder.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(createdByName));
+                            
+                            builder.Append("<td>");
+                            if (canEdit)
+                            {
+                                builder.AppendFormat("<a href='editEvent.aspx?id={0}' class='edit-link'>ערוך</a> ", eventId);
+                                builder.AppendFormat("<a href='javascript:void(0)' onclick='if(confirm(\"האם אתה בטוח שברצונך למחוק את האירוע?\")) window.location.href=\"sharedCalendarDetails.aspx?id={0}&deleteEvent={1}\"' class='delete-link'>מחק</a>", calendarId, eventId);
+                            }
+                            builder.Append("</td>");
+                            builder.Append("</tr>");
+                            count++;
+                        }
+                    }
+                }
+                catch
+                {
+                    continue;
+                }
+            }
+
+            builder.Append("</tbody>");
+            builder.Append("</table>");
+            builder.Append("</div>");
+        }
+
+        if (count == 0)
+        {
+            builder.Append("<div class='calendar-event empty'>אין אירועים לתאריך הזה.</div>");
+        }
+
+        lblEvents.Text = builder.ToString();
     }
 }

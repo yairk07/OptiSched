@@ -29,6 +29,9 @@
                 <asp:ListItem Text="מטלה" Value="מטלה"></asp:ListItem>
                 <asp:ListItem Text="אחר" Value="אחר"></asp:ListItem>
             </asp:DropDownList>
+            <asp:DropDownList ID="ddlUserFilter" runat="server" CssClass="category-filter" AutoPostBack="true" OnSelectedIndexChanged="ddlUserFilter_SelectedIndexChanged">
+                <asp:ListItem Text="כל המשתמשים" Value="" Selected="True"></asp:ListItem>
+            </asp:DropDownList>
             <asp:Button ID="btnSearch" runat="server" Text="חפש" CssClass="search-btn"
                         OnClick="btnSearch_Click" />
         </div>
@@ -66,7 +69,10 @@
                                 <td><asp:Literal ID="litEventTime" runat="server" /></td>
                                 <td><asp:Literal ID="litCategory" runat="server" /></td>
                                 <td><asp:Literal ID="litNotes" runat="server" /></td>
-                                <td><asp:HyperLink ID="lnkEdit" runat="server" CssClass="edit-link" Text="ערוך" /></td>
+                                <td>
+                                    <asp:HyperLink ID="lnkDetails" runat="server" CssClass="edit-link" Text="פרטים" />
+                                    <asp:HyperLink ID="lnkEdit" runat="server" CssClass="edit-link" Text="ערוך" />
+                                </td>
                             </tr>
                 </ItemTemplate>
                 <FooterTemplate>
@@ -369,6 +375,72 @@
             margin: 20px 0;
             font-size: 14px;
             font-weight: 600;
+        }
+
+        .events-table-container {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .events-table {
+            width: 100%;
+            border-collapse: collapse;
+            direction: rtl;
+        }
+
+        .events-table thead {
+            background: var(--bg);
+            border-bottom: 2px solid var(--border);
+        }
+
+        .events-table th {
+            padding: 12px 16px;
+            text-align: right;
+            font-weight: 600;
+            color: var(--heading);
+            font-size: 15px;
+        }
+
+        .events-table td {
+            padding: 12px 16px;
+            text-align: right;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .events-table tbody tr:hover {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .events-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .edit-link {
+            margin-left: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            display: inline-block;
+            color: var(--brand);
+            border: 1px solid var(--brand);
+            background: var(--surface);
+        }
+
+        .edit-link:hover {
+            background: var(--brand);
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .edit-link:first-child {
+            margin-left: 0;
         }
 
         @media (max-width: 768px) {
