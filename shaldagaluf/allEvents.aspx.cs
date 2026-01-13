@@ -8,8 +8,10 @@ public partial class allEvents : System.Web.UI.Page
 {
     EventService es = new EventService();
 
+    // Loads events from database with caching, normalizes column names, and ensures required columns exist
     private DataTable LoadEventsData()
     {
+        // Check session cache first to avoid repeated database queries
         string userIdStr = Session["userId"] != null ? Session["userId"].ToString() : null;
         string cacheKey = "AllEventsData_" + (userIdStr ?? "all");
         
@@ -17,6 +19,7 @@ public partial class allEvents : System.Web.UI.Page
         if (cachedData != null && cachedData.Rows.Count > 0)
             return cachedData;
 
+        // Get user ID for filtering (non-owners only see their own events)
         int? userId = null;
         string role = Session["Role"] != null ? Session["Role"].ToString() : null;
         
@@ -25,6 +28,7 @@ public partial class allEvents : System.Web.UI.Page
         
         LoggingService.Log("ALLEVENTS", string.Format("Before calling GetAllEvents, userId={0}", userId != null ? userId.ToString() : "null"));
         
+        // Load events from service
         DataTable dt = es.GetAllEvents(userId);
         
         LoggingService.Log("ALLEVENTS", string.Format("After calling GetAllEvents, rowCount={0}, columnCount={1}", dt != null ? dt.Rows.Count : 0, dt != null ? dt.Columns.Count : 0));
@@ -32,6 +36,7 @@ public partial class allEvents : System.Web.UI.Page
         if (dt == null)
             dt = new DataTable();
         
+        // Normalize column names (handle case variations: date->EventDate, title->Title, time->EventTime)
         if (dt.Rows.Count > 0)
         {
             if (!dt.Columns.Contains("EventDate") && dt.Columns.Contains("date"))
@@ -68,6 +73,7 @@ public partial class allEvents : System.Web.UI.Page
                 }
             }
             
+            // Ensure all required columns exist with default values
             if (!dt.Columns.Contains("Category"))
                 dt.Columns.Add("Category", typeof(string));
             if (!dt.Columns.Contains("UserName"))
@@ -97,7 +103,7 @@ public partial class allEvents : System.Web.UI.Page
     {
         if (dt == null) return;
 
-        string[] requiredColumns = { "Id", "Title", "UserName", "UserId", "EventDate", "EventTime", "Category", "Notes", "EventType" };
+        string[] requiredColumns = { "Id", "Title", "UserName", "UserId", "EventDate", "EventTime", "Category", "Notes" };
         
         foreach (string colName in requiredColumns)
         {
@@ -133,6 +139,7 @@ public partial class allEvents : System.Web.UI.Page
         Session.Remove(cacheKey);
     }
 
+    // Initializes page, loads events, sets up filters, and binds data to controls
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";
@@ -228,6 +235,7 @@ public partial class allEvents : System.Web.UI.Page
         }
     }
 
+    // Filters events by search text, category, and user, then binds to DataList with encoding fixes
     private void BindData(string filter = "", string categoryFilter = "", string userFilter = "")
     {
         DataTable dt = LoadEventsData();
@@ -458,6 +466,7 @@ public partial class allEvents : System.Web.UI.Page
         }
     }
 
+    // Handles search button click, applies filters, and refreshes event display
     protected void btnSearch_Click(object sender, EventArgs e)
     {
         string search = txtSearch.Text.Trim();
@@ -632,10 +641,6 @@ public partial class allEvents : System.Web.UI.Page
                                 eventDate.Month == targetDate.Month && 
                                 eventDate.Day == targetDate.Day)
                             {
-                                string eventType = "personal";
-                                if (eventsData.Columns.Contains("EventType") && row.Table.Columns.Contains("EventType") && row["EventType"] != DBNull.Value && row["EventType"] != null)
-                                    eventType = row["EventType"].ToString();
-                                
                                 string title = "";
                                 if (eventsData.Columns.Contains("Title") && row.Table.Columns.Contains("Title") && row["Title"] != DBNull.Value && row["Title"] != null)
                                     title = Connect.FixEncoding(row["Title"].ToString());
@@ -667,7 +672,7 @@ public partial class allEvents : System.Web.UI.Page
                                     displayText = displayText.Substring(0, 18) + "...";
                                 
                                 HyperLink eventLink = new HyperLink();
-                                eventLink.CssClass = string.Format("event-badge {0}", eventType);
+                                eventLink.CssClass = "event-badge";
                                 eventLink.Text = displayText;
                                 eventLink.NavigateUrl = string.Format("editEvent.aspx?id={0}", eventId);
                                 eventLink.ToolTip = string.Format("{0}\nמשתמש: {1}\n{2}", title, userName, eventTime);
@@ -713,6 +718,7 @@ public partial class allEvents : System.Web.UI.Page
         }
     }
 
+    // Sets up edit and details links for each event item in the DataList
     protected void dlEvents_ItemDataBound(object sender, DataListItemEventArgs e)
     {
         try

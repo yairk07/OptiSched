@@ -11,13 +11,16 @@ public partial class tasks : System.Web.UI.Page
     CalendarService calnderService = new CalendarService();
     private DataSet allEvents;
 
+    // Initializes page, handles event deletion, parses events from JSON, loads events, and displays calendar
     protected void Page_Load(object sender, EventArgs e)
     {
+        // Set UTF-8 encoding for Hebrew text
         Response.ContentType = "text/html; charset=utf-8";
         Response.Charset = "utf-8";
         Response.ContentEncoding = System.Text.Encoding.UTF8;
         Response.HeaderEncoding = System.Text.Encoding.UTF8;
         
+        // Handle event deletion from form post
         string deleteEventId = Request.Form["deleteEventId"];
         int eventId;
         if (!string.IsNullOrEmpty(deleteEventId) && int.TryParse(deleteEventId, out eventId))
@@ -28,9 +31,11 @@ public partial class tasks : System.Web.UI.Page
             return;
         }
 
+        // Handle parsed events JSON from JavaScript text parser
         string parsedEventsJson = Request.Form["parsedEventsJson"];
         if (!string.IsNullOrEmpty(parsedEventsJson))
         {
+            // Prevent duplicate saves on postback
             if (!IsPostBack || ViewState["EventsSaved"] == null)
             {
                 SaveParsedEvents(parsedEventsJson);
@@ -39,10 +44,12 @@ public partial class tasks : System.Web.UI.Page
             return;
         }
 
+        // Initial page load (not postback)
         if (!IsPostBack)
         {
             ViewState["EventsSaved"] = null;
             
+            // Get user ID for filtering (non-owners only see their own events)
             int? userId = null;
             string role = Session["Role"] != null ? Session["Role"].ToString() : null;
             
@@ -51,9 +58,11 @@ public partial class tasks : System.Web.UI.Page
                 userId = Convert.ToInt32(Session["userId"]);
             }
 
+            // Load all events and store in ViewState
             allEvents = calnderService.GetAllEvents(userId);
             ViewState["AllEvents"] = allEvents;
 
+            // Initialize calendar to today's date
             if (calendar != null)
             {
                 calendar.SelectedDate = DateTime.Today;
@@ -64,6 +73,7 @@ public partial class tasks : System.Web.UI.Page
             }
             ShowEvents(DateTime.Today);
 
+            // Show success message if events were saved
             string saved = Request.QueryString["saved"];
             int count;
             if (!string.IsNullOrEmpty(saved) && int.TryParse(saved, out count))
@@ -72,6 +82,7 @@ public partial class tasks : System.Web.UI.Page
                     string.Format("alert('נשמרו {0} אירועים בהצלחה!');", count), true);
             }
 
+            // Show error message if save failed
             string error = Request.QueryString["error"];
             if (!string.IsNullOrEmpty(error))
             {
@@ -81,28 +92,34 @@ public partial class tasks : System.Web.UI.Page
         }
         else
         {
+            // Restore events from ViewState on postback
             allEvents = (DataSet)ViewState["AllEvents"];
         }
     }
 
+    // Parses JSON events from text parser, saves them to database, and redirects with result
     private void SaveParsedEvents(string json)
     {
         try
         {
+            // Deserialize JSON array of events
             var serializer = new JavaScriptSerializer();
             var events = serializer.Deserialize<List<Dictionary<string, object>>>(json);
 
+            // Get user ID from session
             int? userId = null;
             if (Session["userId"] != null)
             {
                 userId = Convert.ToInt32(Session["userId"]);
             }
 
+            // Process each event from JSON
             int savedCount = 0;
             foreach (var eventData in events)
             {
                 try
                 {
+                    // Extract event fields from dictionary
                     string dateStr = eventData.ContainsKey("date") ? eventData["date"].ToString() : "";
                     string title = eventData.ContainsKey("title") ? eventData["title"].ToString().Trim() : "";
                     string startTime = eventData.ContainsKey("startTime") ? eventData["startTime"].ToString().Trim() : "";
@@ -110,14 +127,17 @@ public partial class tasks : System.Web.UI.Page
                     string location = eventData.ContainsKey("location") ? eventData["location"].ToString().Trim() : "";
                     string description = eventData.ContainsKey("description") ? eventData["description"].ToString().Trim() : "";
 
+                    // Use default title if empty
                     if (string.IsNullOrEmpty(title))
                     {
                         title = "אירוע";
                     }
 
+                    // Parse date and create event if valid
                     DateTime eventDate;
                     if (!string.IsNullOrEmpty(dateStr) && DateTime.TryParse(dateStr, out eventDate))
                     {
+                        // Combine start and end time if both exist
                         string time = "";
                         if (!string.IsNullOrEmpty(startTime) && !string.IsNullOrEmpty(endTime))
                         {
@@ -128,6 +148,7 @@ public partial class tasks : System.Web.UI.Page
                             time = startTime;
                         }
 
+                        // Combine location and description into notes
                         string fullDescription = "";
                         if (!string.IsNullOrEmpty(location) && !string.IsNullOrEmpty(description))
                         {
@@ -142,12 +163,14 @@ public partial class tasks : System.Web.UI.Page
                             fullDescription = description;
                         }
 
+                        // Insert event into database
                         calnderService.InsertEvent(title, eventDate, time, fullDescription, "אירוע", userId);
                         savedCount++;
                     }
                 }
                 catch
                 {
+                    // Skip invalid events and continue
                 }
             }
 
@@ -172,6 +195,7 @@ public partial class tasks : System.Web.UI.Page
         }
     }
 
+    // Updates selected date label and displays events when calendar date is selected
     protected void calendar_SelectionChanged(object sender, EventArgs e)
     {
         DateTime selectedDate = calendar.SelectedDate;
@@ -179,8 +203,10 @@ public partial class tasks : System.Web.UI.Page
         ShowEvents(selectedDate);
     }
 
+    // Deletes an event from database and refreshes the event list
     protected void DeleteEvent(int eventId)
     {
+        // Get user ID for permission check (non-owners can only delete their own events)
         int? userId = null;
         string role = Session["Role"] != null ? Session["Role"].ToString() : null;
         
@@ -189,8 +215,10 @@ public partial class tasks : System.Web.UI.Page
             userId = Convert.ToInt32(Session["userId"]);
         }
 
+        // Delete event (service enforces user permission)
         calnderService.DeleteEvent(eventId, userId);
 
+        // Reload events and update ViewState
         int? filterUserId = null;
         if (role != "owner" && userId.HasValue)
         {
@@ -199,9 +227,11 @@ public partial class tasks : System.Web.UI.Page
         allEvents = calnderService.GetAllEvents(filterUserId);
         ViewState["AllEvents"] = allEvents;
 
+        // Refresh event display for selected date
         ShowEvents(calendar.SelectedDate);
     }
 
+    // Creates a new event from form inputs, handles file/image uploads, and refreshes the display
     protected void AddEvent(object sender, EventArgs e)
     {
         DateTime selectedDate = calendar.SelectedDate.Date;
@@ -218,9 +248,10 @@ public partial class tasks : System.Web.UI.Page
                 userId = Convert.ToInt32(Session["userId"]);
             }
 
+            // Insert event and get the new event ID
             int eventId = calnderService.InsertEvent(title, selectedDate, time, note, category, userId);
 
-            // Handle file upload
+            // Handle file upload if file was provided
             if (fileUpload.HasFile)
             {
                 try
@@ -230,11 +261,12 @@ public partial class tasks : System.Web.UI.Page
                 }
                 catch (Exception ex)
                 {
+                    // Log file upload errors but don't fail the event creation
                     LoggingService.Log("tasks", "Error uploading file", ex);
                 }
             }
 
-            // Handle image upload
+            // Handle image upload if image was provided
             if (imageUpload.HasFile)
             {
                 try
@@ -266,11 +298,13 @@ public partial class tasks : System.Web.UI.Page
         }
     }
 
+    // Displays events for a specific date in an HTML table, including edit/delete links
     private void ShowEvents(DateTime date)
     {
         var builder = new StringBuilder();
         int count = 0;
 
+        // Build HTML table structure
         builder.Append("<div class='events-table-container'>");
         builder.Append("<table class='events-table'>");
         builder.Append("<thead>");
@@ -384,6 +418,7 @@ public partial class tasks : System.Web.UI.Page
         lblEvents.Text = builder.ToString();
     }
 
+    // Renders calendar days with event indicators and styling
     protected void calendar_DayRender(object sender, DayRenderEventArgs e)
     {
         DateTime currentDay = e.Day.Date;

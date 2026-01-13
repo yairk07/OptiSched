@@ -13,11 +13,14 @@ public class FileService
     /// <summary>
     /// Saves uploaded file to server and creates database record
     /// </summary>
+    // Saves uploaded file to server, creates database record, and links it to an event
     public int SaveFile(HttpPostedFile file, int eventId, int uploadedBy)
     {
+        // Validate file exists and has content
         if (file == null || file.ContentLength == 0)
             throw new ArgumentException("קובץ לא תקין");
 
+        // Check file size limit (5MB)
         if (file.ContentLength > MAX_FILE_SIZE)
             throw new ArgumentException("גודל הקובץ חורג מהמותר (5MB)");
 
@@ -30,7 +33,7 @@ public class FileService
             Directory.CreateDirectory(uploadPath);
         }
 
-        // Generate unique filename
+        // Generate unique filename using event ID and timestamp to prevent conflicts
         string originalFileName = Path.GetFileName(file.FileName);
         string fileExtension = Path.GetExtension(originalFileName);
         string uniqueFileName = string.Format("{0}_{1}_{2}", eventId, DateTime.Now.Ticks, originalFileName);
@@ -39,7 +42,7 @@ public class FileService
         // Save file to server
         file.SaveAs(filePath);
 
-        // Get relative path for database
+        // Get relative path for database storage (without ~/)
         string relativePath = UPLOAD_FOLDER.Replace("~/", "") + uniqueFileName;
 
         // Save to database
@@ -59,14 +62,14 @@ public class FileService
                 cmd.ExecuteNonQuery();
             }
 
-            // Get the inserted file ID
+            // Get the inserted file ID using Access identity function
             sql = "SELECT @@IDENTITY";
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {
                 object result = cmd.ExecuteScalar();
                 int fileId = Convert.ToInt32(result);
 
-                // Link file to event
+                // Link file to event in junction table
                 sql = "INSERT INTO EventFiles (event_id, file_id) VALUES (?, ?)";
                 using (OleDbCommand linkCmd = new OleDbCommand(sql, conn))
                 {
@@ -84,6 +87,7 @@ public class FileService
     /// <summary>
     /// Gets all files for an event
     /// </summary>
+    // Retrieves all files linked to a specific event, ordered by upload date (newest first)
     public DataTable GetFilesByEvent(int eventId)
     {
         string connectionString = Connect.GetConnectionString();
@@ -93,6 +97,7 @@ public class FileService
         {
             conn.Open();
 
+            // Join Files and EventFiles tables to get files for this event
             string sql = @"
                 SELECT F.Id, F.file_name, F.file_path, F.file_type, F.uploaded_at, F.uploaded_by
                 FROM Files F
@@ -161,6 +166,7 @@ public class FileService
     /// <summary>
     /// Deletes file from server and database
     /// </summary>
+    // Deletes file from server and database after checking user permissions (owner or file uploader only)
     public bool DeleteFile(int fileId, int userId, string userRole)
     {
         string connectionString = Connect.GetConnectionString();
@@ -169,19 +175,19 @@ public class FileService
         {
             conn.Open();
 
-            // Get file info first
+            // Get file info first to check permissions
             DataRow fileInfo = GetFileById(fileId);
             if (fileInfo == null)
                 return false;
 
-            // Check permissions - only owner or admin can delete
+            // Check permissions - only owner role or the user who uploaded the file can delete
             int uploadedBy = Convert.ToInt32(fileInfo["uploaded_by"]);
             if (userRole != "owner" && uploadedBy != userId)
             {
                 throw new UnauthorizedAccessException("אין לך הרשאה למחוק קובץ זה");
             }
 
-            // Delete physical file
+            // Delete physical file from server
             string filePath = fileInfo["file_path"].ToString();
             if (!string.IsNullOrEmpty(filePath))
             {
@@ -194,12 +200,13 @@ public class FileService
                     }
                     catch (Exception ex)
                     {
+                        // Log file deletion errors but continue with database cleanup
                         LoggingService.Log("FileService", "Error deleting physical file", ex);
                     }
                 }
             }
 
-            // Delete from EventFiles junction table
+            // Delete from EventFiles junction table first (foreign key constraint)
             string sql = "DELETE FROM EventFiles WHERE file_id = ?";
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {

@@ -1,5 +1,4 @@
 using System;
-using System.Data;
 using System.Data.OleDb;
 
 /// <summary>
@@ -18,18 +17,18 @@ public static class DatabaseMigration
         using (OleDbConnection conn = new OleDbConnection(connectionString))
         {
             conn.Open();
-            
+
             try
             {
                 // 1. Migrate Users table
                 MigrateUsersTable(conn);
-                
+
                 // 2. Migrate calnder to CalendarEvents
                 MigrateCalendarEventsTable(conn);
-                
+
                 // 3. Ensure SharedCalendars tables are correct
                 EnsureSharedCalendarTables(conn);
-                
+
                 // 4. Migrate OTP and Verification codes to AuthCodes
                 MigrateAuthCodesTable(conn);
             }
@@ -39,7 +38,7 @@ public static class DatabaseMigration
             }
         }
     }
-    
+
     /// <summary>
     /// Migrates Users table to DSD schema:
     /// - Rename password -> PasswordHash
@@ -75,7 +74,7 @@ public static class DatabaseMigration
             ExecuteNonQuery(conn, createSql);
             return;
         }
-        
+
         // Rename columns if they exist with old names
         try
         {
@@ -88,7 +87,7 @@ public static class DatabaseMigration
             }
         }
         catch { }
-        
+
         try
         {
             if (ColumnExists(conn, "Users", "userId"))
@@ -98,7 +97,7 @@ public static class DatabaseMigration
             }
         }
         catch { }
-        
+
         try
         {
             if (ColumnExists(conn, "Users", "phonenum"))
@@ -108,7 +107,7 @@ public static class DatabaseMigration
             }
         }
         catch { }
-        
+
         try
         {
             if (ColumnExists(conn, "Users", "city"))
@@ -118,7 +117,7 @@ public static class DatabaseMigration
             }
         }
         catch { }
-        
+
         // Ensure GoogleId exists
         try
         {
@@ -128,7 +127,7 @@ public static class DatabaseMigration
             }
         }
         catch { }
-        
+
         // Ensure Role exists
         try
         {
@@ -139,7 +138,7 @@ public static class DatabaseMigration
             }
         }
         catch { }
-        
+
         // Ensure CreatedDate exists
         try
         {
@@ -150,7 +149,7 @@ public static class DatabaseMigration
         }
         catch { }
     }
-    
+
     /// <summary>
     /// Migrates calnder table to CalendarEvents with DSD schema
     /// </summary>
@@ -174,7 +173,7 @@ public static class DatabaseMigration
                         CreatedDate DATETIME
                     )";
                 ExecuteNonQuery(conn, createSql);
-                
+
                 // Migrate data from calnder to CalendarEvents
                 string migrateSql = @"
                     INSERT INTO CalendarEvents (Id, UserId, Title, EventDate, EventTime, Notes, Category, CreatedDate)
@@ -201,7 +200,7 @@ public static class DatabaseMigration
             ExecuteNonQuery(conn, createSql);
         }
     }
-    
+
     /// <summary>
     /// Ensures SharedCalendar tables match DSD schema (INTEGER types, correct column names)
     /// </summary>
@@ -220,7 +219,7 @@ public static class DatabaseMigration
                 )";
             ExecuteNonQuery(conn, createSql);
         }
-        
+
         // SharedCalendarMembers table
         if (!TableExists(conn, "SharedCalendarMembers"))
         {
@@ -234,7 +233,7 @@ public static class DatabaseMigration
                 )";
             ExecuteNonQuery(conn, createSql);
         }
-        
+
         // JoinRequests table
         if (!TableExists(conn, "JoinRequests"))
         {
@@ -249,7 +248,7 @@ public static class DatabaseMigration
                 )";
             ExecuteNonQuery(conn, createSql);
         }
-        
+
         // SharedCalendarEvents table - update column names if needed
         if (!TableExists(conn, "SharedCalendarEvents"))
         {
@@ -279,7 +278,7 @@ public static class DatabaseMigration
                 }
             }
             catch { }
-            
+
             try
             {
                 if (ColumnExists(conn, "SharedCalendarEvents", "Time") && !ColumnExists(conn, "SharedCalendarEvents", "EventTime"))
@@ -291,7 +290,7 @@ public static class DatabaseMigration
             catch { }
         }
     }
-    
+
     /// <summary>
     /// Migrates OTPLoginCodes and VerificationCodes to unified AuthCodes table
     /// </summary>
@@ -313,7 +312,7 @@ public static class DatabaseMigration
                 )";
             ExecuteNonQuery(conn, createSql);
         }
-        
+
         // Migrate OTPLoginCodes data (if table exists)
         if (TableExists(conn, "OTPLoginCodes"))
         {
@@ -337,7 +336,7 @@ public static class DatabaseMigration
             }
             catch { }
         }
-        
+
         // Migrate VerificationCodes data (if table exists)
         if (TableExists(conn, "VerificationCodes"))
         {
@@ -361,7 +360,7 @@ public static class DatabaseMigration
             catch { }
         }
     }
-    
+
     // Helper methods
     private static bool TableExists(OleDbConnection conn, string tableName)
     {
@@ -378,7 +377,7 @@ public static class DatabaseMigration
             return false;
         }
     }
-    
+
     private static bool ColumnExists(OleDbConnection conn, string tableName, string columnName)
     {
         try
@@ -394,7 +393,7 @@ public static class DatabaseMigration
             return false;
         }
     }
-    
+
     private static void ExecuteNonQuery(OleDbConnection conn, string sql)
     {
         using (OleDbCommand cmd = new OleDbCommand(sql, conn))

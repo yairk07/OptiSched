@@ -6,13 +6,16 @@ using System.Text;
 
 public partial class login : System.Web.UI.Page
 {
+    // Sets UTF-8 encoding and redirects to home if user is already logged in
     protected void Page_Load(object sender, EventArgs e)
     {
+        // Set UTF-8 encoding for Hebrew text
         Response.ContentType = "text/html; charset=utf-8";
         Response.Charset = "utf-8";
         Response.ContentEncoding = System.Text.Encoding.UTF8;
         Response.HeaderEncoding = System.Text.Encoding.UTF8;
         
+        // Redirect if already logged in
         if (Session["username"] != null)
         {
             Response.Redirect("home.aspx");
@@ -20,6 +23,7 @@ public partial class login : System.Web.UI.Page
         }
     }
 
+    // Initiates Google OAuth login flow by redirecting to Google authorization URL
     protected void btnGoogleLogin_Click(object sender, EventArgs e)
     {
         try
@@ -30,6 +34,7 @@ public partial class login : System.Web.UI.Page
             int clientIdLength = clientId != null ? clientId.Length : 0;
             LoggingService.Log("GOOGLE_LOGIN_CHECK_CLIENT_ID", string.Format("Checking ClientId - IsEmpty: {0}, Length: {1}", string.IsNullOrWhiteSpace(clientId), clientIdLength));
             
+            // Check if Google OAuth is configured
             if (string.IsNullOrWhiteSpace(clientId))
             {
                 LoggingService.Log("GOOGLE_LOGIN_NO_CLIENT_ID", "ClientId is empty - cannot proceed with Google login");
@@ -38,6 +43,7 @@ public partial class login : System.Web.UI.Page
                 return;
             }
             
+            // Get Google OAuth authorization URL and redirect user
             string redirectUrl = GoogleOAuthService.GetAuthorizationUrl();
             int redirectUrlLength = redirectUrl != null ? redirectUrl.Length : 0;
             LoggingService.Log("GOOGLE_LOGIN_REDIRECT", string.Format("Redirecting to Google OAuth - URL length: {0}", redirectUrlLength));
@@ -51,6 +57,7 @@ public partial class login : System.Web.UI.Page
         }
     }
 
+    // Hashes password using SHA256 algorithm and returns hexadecimal string
     private string HashPassword(string password)
     {
         using (SHA256 sha256 = SHA256.Create())
@@ -65,6 +72,7 @@ public partial class login : System.Web.UI.Page
         }
     }
 
+    // Validates username and password, handles both hashed and plain text passwords, and sets session
     protected void btnLogin_Click(object sender, EventArgs e)
     {
         string username = txtUserName.Text.Trim();
@@ -90,14 +98,18 @@ public partial class login : System.Web.UI.Page
                 
                 bool passwordMatch = false;
                 
+                // Check if password is hashed (64 hex characters) or plain text (backward compatibility)
                 if (dbPassword.Length == 64 && System.Text.RegularExpressions.Regex.IsMatch(dbPassword, @"^[a-f0-9]{64}$"))
                 {
+                    // Compare hashed passwords
                     passwordMatch = (dbPassword == hashedPassword);
                 }
                 else
                 {
+                    // Compare plain text passwords (legacy support)
                     passwordMatch = (dbPassword == password);
                     
+                    // Upgrade plain text password to hash if match found
                     if (passwordMatch)
                     {
                         string updateSql = "UPDATE Users SET [password]=? WHERE id=?";
@@ -108,6 +120,7 @@ public partial class login : System.Web.UI.Page
                     }
                 }
 
+                // Set session variables and redirect on successful login
                 if (passwordMatch)
                 {
                     Session["username"] = dr["userName"].ToString();

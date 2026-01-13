@@ -26,7 +26,6 @@ public static class DatabaseSchemaUpdater
                 CreateImagesTable(conn);
                 CreateEventImagesTable(conn);
                 CreateContactMessagesTable(conn);
-                CreateEventTypesTable(conn);
                 CreatePermissionTypesTable(conn);
                 CreateCalendarPermissionsTable(conn);
                 CreateCalendarJoinRequestsTable(conn);
@@ -193,28 +192,6 @@ public static class DatabaseSchemaUpdater
 
         ExecuteNonQuery(conn, sql);
         LoggingService.Log("DatabaseSchemaUpdater", "ContactMessages table created successfully");
-    }
-
-    /// <summary>
-    /// Creates EventTypes lookup table
-    /// </summary>
-    private static void CreateEventTypesTable(OleDbConnection conn)
-    {
-        if (TableExists(conn, "EventTypes"))
-        {
-            LoggingService.Log("DatabaseSchemaUpdater", "EventTypes table already exists, skipping");
-            return;
-        }
-
-        string sql = @"
-            CREATE TABLE EventTypes (
-                Id AUTOINCREMENT PRIMARY KEY,
-                name TEXT(255),
-                description MEMO
-            )";
-
-        ExecuteNonQuery(conn, sql);
-        LoggingService.Log("DatabaseSchemaUpdater", "EventTypes table created successfully");
     }
 
     /// <summary>

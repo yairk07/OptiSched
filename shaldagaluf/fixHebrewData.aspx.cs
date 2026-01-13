@@ -38,61 +38,44 @@ public partial class fixHebrewData : System.Web.UI.Page
         try
         {
             string tableName = ddlTable.SelectedValue;
-            int fixedCount = 0;
             StringBuilder results = new StringBuilder();
+            int fixedCount = 0;
 
             string conStr = Connect.GetConnectionString();
             using (OleDbConnection con = new OleDbConnection(conStr))
             {
                 con.Open();
 
+                DataTable dt = new DataTable();
+                string sql = "SELECT * FROM [" + tableName + "]";
+                using (OleDbCommand cmd = new OleDbCommand(sql, con))
+                {
+                    using (OleDbDataAdapter adapter = new OleDbDataAdapter(cmd))
+                    {
+                        adapter.Fill(dt);
+                    }
+                }
+
+                string[] columnsToFix = null;
+                string[] oldColumnNames = null;
+
                 if (tableName == "Users")
                 {
-                    fixedCount = FixUsersHebrew(con, results);
+                    columnsToFix = new string[] { "firstName", "lastName", "userName", "email" };
+                    oldColumnNames = new string[] { "FirstName", "LastName", "UserName", "Email" };
                 }
-                else if (tableName == "CalendarEvents")
+                else if (tableName == "CalendarEvents" || tableName == "SharedCalendarEvents")
                 {
-                    fixedCount = FixCalendarEventsHebrew(con, results);
-                }
-                else if (tableName == "SharedCalendarEvents")
-                {
-                    fixedCount = FixSharedCalendarEventsHebrew(con, results);
+                    columnsToFix = new string[] { "Title", "EventTime", "Notes", "Category" };
+                    oldColumnNames = new string[] { "title", "time", "notes", "category" };
                 }
                 else
                 {
-                    ShowMessage("טבלה לא ידועה: " + tableName, true);
+                    results.AppendLine("טבלה לא נתמכת: " + tableName);
+                    lblResults.Text = results.ToString();
+                    pnlResults.Visible = true;
                     return;
                 }
-            }
-
-            results.AppendLine("סה\"כ שורות שתוקנו: " + fixedCount);
-            lblResults.Text = results.ToString();
-            pnlResults.Visible = true;
-            ShowMessage("תיקון הושלם בהצלחה! " + fixedCount + " שורות תוקנו.", false);
-        }
-        catch (Exception ex)
-        {
-            ShowMessage("שגיאה בתיקון: " + ex.Message, true);
-        }
-    }
-
-    private int FixUsersHebrew(OleDbConnection con, StringBuilder results)
-    {
-        int fixedCount = 0;
-        results.AppendLine("תיקון טבלת Users:");
-        results.AppendLine("");
-
-        string[] columnsToFix = { "FirstName", "LastName", "UserName", "Email" };
-        string[] oldColumnNames = { "firstName", "lastName", "userName", "email" };
-
-        string sql = "SELECT Id, FirstName, LastName, UserName, Email, firstName, lastName, userName, email FROM Users";
-        
-        using (OleDbCommand cmd = new OleDbCommand(sql, con))
-        {
-            using (OleDbDataAdapter da = new OleDbDataAdapter(cmd))
-            {
-                DataTable dt = new DataTable();
-                da.Fill(dt);
 
                 foreach (DataRow row in dt.Rows)
                 {
@@ -122,7 +105,7 @@ public partial class fixHebrewData : System.Web.UI.Page
                             if (originalValue != fixedValue && !string.IsNullOrEmpty(fixedValue))
                             {
                                 string updateCol = dt.Columns.Contains(newCol) ? newCol : oldCol;
-                                string updateSql = "UPDATE Users SET [" + updateCol + "] = ? WHERE Id = ?";
+                                string updateSql = "UPDATE [" + tableName + "] SET [" + updateCol + "] = ? WHERE Id = ?";
                                 
                                 using (OleDbCommand updateCmd = new OleDbCommand(updateSql, con))
                                 {
@@ -141,126 +124,16 @@ public partial class fixHebrewData : System.Web.UI.Page
                         fixedCount++;
                 }
             }
+
+            results.Insert(0, "סה\"כ תוקנו " + fixedCount + " שורות.\n\n");
+            lblResults.Text = results.ToString();
+            pnlResults.Visible = true;
         }
-
-        return fixedCount;
-    }
-
-    private int FixCalendarEventsHebrew(OleDbConnection con, StringBuilder results)
-    {
-        int fixedCount = 0;
-        results.AppendLine("תיקון טבלת CalendarEvents:");
-        results.AppendLine("");
-
-        string sql = "SELECT Id, Title, Notes, Category FROM CalendarEvents";
-        
-        using (OleDbCommand cmd = new OleDbCommand(sql, con))
+        catch (Exception ex)
         {
-            using (OleDbDataAdapter da = new OleDbDataAdapter(cmd))
-            {
-                DataTable dt = new DataTable();
-                da.Fill(dt);
-
-                foreach (DataRow row in dt.Rows)
-                {
-                    bool rowUpdated = false;
-                    int eventId = Convert.ToInt32(row["Id"]);
-
-                    string[] columnsToFix = { "Title", "Notes", "Category" };
-                    foreach (string col in columnsToFix)
-                    {
-                        if (dt.Columns.Contains(col) && row[col] != DBNull.Value)
-                        {
-                            string originalValue = row[col].ToString();
-                            string fixedValue = Connect.FixEncoding(originalValue);
-
-                            if (originalValue != fixedValue && !string.IsNullOrEmpty(fixedValue))
-                            {
-                                string updateSql = "UPDATE CalendarEvents SET [" + col + "] = ? WHERE Id = ?";
-                                
-                                using (OleDbCommand updateCmd = new OleDbCommand(updateSql, con))
-                                {
-                                    updateCmd.Parameters.AddWithValue("?", fixedValue);
-                                    updateCmd.Parameters.AddWithValue("?", eventId);
-                                    updateCmd.ExecuteNonQuery();
-                                }
-
-                                results.AppendLine("תוקן אירוע ID " + eventId + ", עמודה " + col);
-                                rowUpdated = true;
-                            }
-                        }
-                    }
-
-                    if (rowUpdated)
-                        fixedCount++;
-                }
-            }
+            LoggingService.Log("fixHebrewData", "Error fixing Hebrew data", ex);
+            lblResults.Text = "שגיאה: " + ex.Message;
+            pnlResults.Visible = true;
         }
-
-        return fixedCount;
-    }
-
-    private int FixSharedCalendarEventsHebrew(OleDbConnection con, StringBuilder results)
-    {
-        int fixedCount = 0;
-        results.AppendLine("תיקון טבלת SharedCalendarEvents:");
-        results.AppendLine("");
-
-        string sql = "SELECT Id, Title, Notes, Category FROM SharedCalendarEvents";
-        
-        using (OleDbCommand cmd = new OleDbCommand(sql, con))
-        {
-            using (OleDbDataAdapter da = new OleDbDataAdapter(cmd))
-            {
-                DataTable dt = new DataTable();
-                da.Fill(dt);
-
-                foreach (DataRow row in dt.Rows)
-                {
-                    bool rowUpdated = false;
-                    int eventId = Convert.ToInt32(row["Id"]);
-
-                    string[] columnsToFix = { "Title", "Notes", "Category" };
-                    foreach (string col in columnsToFix)
-                    {
-                        if (dt.Columns.Contains(col) && row[col] != DBNull.Value)
-                        {
-                            string originalValue = row[col].ToString();
-                            string fixedValue = Connect.FixEncoding(originalValue);
-
-                            if (originalValue != fixedValue && !string.IsNullOrEmpty(fixedValue))
-                            {
-                                string updateSql = "UPDATE SharedCalendarEvents SET [" + col + "] = ? WHERE Id = ?";
-                                
-                                using (OleDbCommand updateCmd = new OleDbCommand(updateSql, con))
-                                {
-                                    updateCmd.Parameters.AddWithValue("?", fixedValue);
-                                    updateCmd.Parameters.AddWithValue("?", eventId);
-                                    updateCmd.ExecuteNonQuery();
-                                }
-
-                                results.AppendLine("תוקן אירוע משותף ID " + eventId + ", עמודה " + col);
-                                rowUpdated = true;
-                            }
-                        }
-                    }
-
-                    if (rowUpdated)
-                        fixedCount++;
-                }
-            }
-        }
-
-        return fixedCount;
-    }
-
-    private void ShowMessage(string message, bool isError)
-    {
-        lblMessage.Text = message;
-        lblMessage.Visible = true;
-        lblMessage.CssClass = isError ? "message-label error-message" : "message-label success-message";
     }
 }
-
-
-

@@ -1,152 +1,53 @@
-<%@ Page Title="פרטי אירוע" Language="C#" MasterPageFile="~/danimaster.master"
-    AutoEventWireup="true" CodeFile="eventDetails.aspx.cs" Inherits="eventDetails" ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
+<%@ Page Title="Event Details" Language="C#" MasterPageFile="~/danimaster.master"
+    AutoEventWireup="true" CodeFile="eventDetails.aspx.cs" Inherits="eventDetails"
+    ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
 
-<asp:Content ID="head" ContentPlaceHolderID="head" runat="server"></asp:Content>
-
-<asp:Content ID="body" ContentPlaceHolderID="ContentPlaceHolder1" runat="server">
-
-    <section class="edit-event-shell">
-        <div class="edit-event-container">
-            <div class="edit-event-header">
-                <h2 class="edit-event-title">פרטי האירוע</h2>
-                <p class="edit-event-subtitle">צפייה בפרטי האירוע</p>
-            </div>
-
-            <asp:Panel ID="pnlContent" runat="server" Visible="false">
-                <div class="edit-event-form">
-                    <div class="form-group">
-                        <label class="form-label">כותרת</label>
-                        <div class="form-display-value">
-                            <asp:Label ID="lblTitle" runat="server" />
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">תאריך</label>
-                            <div class="form-display-value">
-                                <asp:Label ID="lblDate" runat="server" />
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">שעה</label>
-                            <div class="form-display-value">
-                                <asp:Label ID="lblTime" runat="server" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">קטגוריה</label>
-                            <div class="form-display-value">
-                                <asp:Label ID="lblCategory" runat="server" />
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">משתמש</label>
-                            <div class="form-display-value">
-                                <asp:Label ID="lblUserName" runat="server" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">סוג אירוע</label>
-                        <div class="form-display-value">
-                            <asp:Label ID="lblEventType" runat="server" />
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">הערות</label>
-                        <div class="form-display-value form-display-textarea">
-                            <asp:Label ID="lblNotes" runat="server" />
-                        </div>
-                    </div>
-
-                    <asp:Panel ID="pnlFiles" runat="server" Visible="false">
-                        <div class="form-group">
-                            <label class="form-label">קבצים מצורפים</label>
-                            <asp:Repeater ID="rptFiles" runat="server">
-                                <ItemTemplate>
-                                    <div style="padding: 8px; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 8px;">
-                                        <a href='<%# "downloadFile.ashx?id=" + Eval("Id") %>' target="_blank" style="color: var(--brand); text-decoration: none;">
-                                            📎 <%# Eval("file_name") %>
-                                        </a>
-                                    </div>
-                                </ItemTemplate>
-                            </asp:Repeater>
-                        </div>
-                    </asp:Panel>
-
-                    <asp:Panel ID="pnlImages" runat="server" Visible="false">
-                        <div class="form-group">
-                            <label class="form-label">תמונות</label>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
-                                <asp:Repeater ID="rptImages" runat="server">
-                                    <ItemTemplate>
-                                        <div style="border: 1px solid var(--border); border-radius: 4px; overflow: hidden;">
-                                            <a href='<%# "showImage.ashx?id=" + Eval("Id") %>' target="_blank">
-                                                <img src='<%# "showImage.ashx?id=" + Eval("Id") %>' alt='<%# Eval("image_name") %>' style="width: 100%; height: 200px; object-fit: cover; cursor: pointer;" />
-                                            </a>
-                                        </div>
-                                    </ItemTemplate>
-                                </asp:Repeater>
-                            </div>
-                        </div>
-                    </asp:Panel>
-
-                    <div class="form-actions">
-                        <asp:HyperLink ID="lnkEdit" runat="server" CssClass="btn-save" Text="ערוך" />
-                        <asp:HyperLink ID="lnkBack" runat="server" Text="חזרה" NavigateUrl="allEvents.aspx" CssClass="btn-cancel" />
-                    </div>
-                </div>
-            </asp:Panel>
-
-            <asp:Panel ID="pnlNotFound" runat="server" Visible="false">
-                <div class="not-found-message">
-                    <h3>אירוע לא נמצא</h3>
-                    <p>האירוע המבוקש לא נמצא במערכת.</p>
-                    <asp:HyperLink ID="lnkBackNotFound" runat="server" Text="חזרה לרשימת האירועים" NavigateUrl="allEvents.aspx" CssClass="btn-save" />
-                </div>
-            </asp:Panel>
-        </div>
-    </section>
-
+<asp:Content ID="head" ContentPlaceHolderID="head" runat="server">
     <style>
-        .edit-event-shell {
+        .event-details-shell {
             width: min(1500px, 95%);
             margin: 40px auto 60px;
             padding: 0 20px;
         }
 
-        .edit-event-container {
+        .event-details-container {
             max-width: 700px;
             margin: 0 auto;
         }
 
-        .edit-event-header {
+        .event-details-header {
             text-align: center;
             margin-bottom: 40px;
         }
 
-        .edit-event-title {
+        .event-details-title {
             font-size: 32px;
             font-weight: 700;
             color: var(--heading);
             margin-bottom: 12px;
         }
 
-        .edit-event-subtitle {
+        .event-details-subtitle {
             font-size: 16px;
             color: var(--text);
             opacity: 0.8;
         }
 
-        .edit-event-form {
+        .back-link {
+            display: inline-block;
+            margin-bottom: 24px;
+            color: var(--brand);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color .2s ease;
+        }
+
+        .back-link:hover {
+            color: var(--brand-dark);
+            text-decoration: none;
+        }
+
+        .event-details-form {
             background: var(--surface);
             border-radius: 20px;
             padding: 40px;
@@ -154,17 +55,11 @@
             border: 1px solid var(--border);
         }
 
-        .form-group {
+        .field {
             margin-bottom: 24px;
         }
 
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .form-label {
+        .field-label {
             display: block;
             font-weight: 600;
             color: var(--heading);
@@ -172,7 +67,7 @@
             font-size: 15px;
         }
 
-        .form-display-value {
+        .field-value {
             width: 100%;
             padding: 12px 16px;
             border: 1px solid var(--border);
@@ -185,9 +80,15 @@
             box-sizing: border-box;
         }
 
-        .form-display-textarea {
+        .field-value-textarea {
             min-height: 120px;
             white-space: pre-wrap;
+        }
+
+        .field-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
         }
 
         .form-actions {
@@ -259,7 +160,7 @@
         }
 
         @media (max-width: 768px) {
-            .form-row {
+            .field-row {
                 grid-template-columns: 1fr;
             }
 
@@ -273,6 +174,113 @@
             }
         }
     </style>
+</asp:Content>
 
+<asp:Content ID="body" ContentPlaceHolderID="ContentPlaceHolder1" runat="server">
+    <section class="event-details-shell">
+        <div class="event-details-container">
+            <a href="allEvents.aspx" class="back-link">&larr; Back to All Events</a>
+
+            <asp:Panel ID="pnlContent" runat="server" Visible="false">
+                <div class="event-details-header">
+                    <h2 class="event-details-title">Event Details</h2>
+                    <p class="event-details-subtitle">View event information</p>
+                </div>
+
+                <div class="event-details-form">
+                    <div class="field">
+                        <span class="field-label">Title:</span>
+                        <div class="field-value">
+                            <asp:Label ID="lblTitle" runat="server" />
+                        </div>
+                    </div>
+
+                    <div class="field-row">
+                        <div class="field">
+                            <span class="field-label">Date:</span>
+                            <div class="field-value">
+                                <asp:Label ID="lblDate" runat="server" />
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <span class="field-label">Time:</span>
+                            <div class="field-value">
+                                <asp:Label ID="lblTime" runat="server" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field-row">
+                        <div class="field">
+                            <span class="field-label">Category:</span>
+                            <div class="field-value">
+                                <asp:Label ID="lblCategory" runat="server" />
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <span class="field-label">User:</span>
+                            <div class="field-value">
+                                <asp:Label ID="lblUserName" runat="server" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <span class="field-label">Notes:</span>
+                        <div class="field-value field-value-textarea">
+                            <asp:Label ID="lblNotes" runat="server" />
+                        </div>
+                    </div>
+
+                    <asp:Panel ID="pnlFiles" runat="server" Visible="false">
+                        <div class="field">
+                            <span class="field-label">Attached Files:</span>
+                            <div class="field-value">
+                                <asp:Repeater ID="rptFiles" runat="server">
+                                    <ItemTemplate>
+                                        <div style="margin-bottom: 8px;">
+                                            <a href='<%# "downloadFile.ashx?id=" + Eval("Id") %>' target="_blank" style="color: #e50914; text-decoration: none;">
+                                                📎 <%# Eval("file_name") %>
+                                            </a>
+                                        </div>
+                                    </ItemTemplate>
+                                </asp:Repeater>
+                            </div>
+                        </div>
+                    </asp:Panel>
+
+                    <asp:Panel ID="pnlImages" runat="server" Visible="false">
+                        <div class="field">
+                            <span class="field-label">Images:</span>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">
+                                <asp:Repeater ID="rptImages" runat="server">
+                                    <ItemTemplate>
+                                        <a href='<%# "showImage.ashx?id=" + Eval("Id") %>' target="_blank">
+                                            <img src='<%# "showImage.ashx?id=" + Eval("Id") %>' alt='<%# Eval("image_name") %>' style="width: 100%; height: 150px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;" />
+                                        </a>
+                                    </ItemTemplate>
+                                </asp:Repeater>
+                            </div>
+                        </div>
+                    </asp:Panel>
+
+                    <div class="form-actions">
+                        <asp:HyperLink ID="lnkEdit" runat="server" CssClass="btn-save" Text="Edit" />
+                        <a href="allEvents.aspx" class="btn-cancel">Back</a>
+                    </div>
+                </div>
+            </asp:Panel>
+
+            <asp:Panel ID="pnlNotFound" runat="server" Visible="false">
+                <div class="not-found-message">
+                    <h3>Event Not Found</h3>
+                    <p>The requested event was not found in the system.</p>
+                    <a href="allEvents.aspx" class="btn-save" style="margin-top: 20px; display: inline-block;">Back to All Events</a>
+                </div>
+            </asp:Panel>
+        </div>
+    </section>
 </asp:Content>
 

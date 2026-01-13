@@ -4,6 +4,7 @@ using System.Data.OleDb;
 
 public class CalendarService
 {
+    // Creates CalendarEvents table if it doesn't exist
     private static void EnsureCalendarEventsTable(OleDbConnection conn)
     {
         if (!TableExists(conn, "CalendarEvents"))
@@ -35,7 +36,8 @@ public class CalendarService
             }
         }
     }
-    
+
+    // Checks if a database table exists by attempting to query it
     private static bool TableExists(OleDbConnection conn, string tableName)
     {
         try
@@ -52,48 +54,51 @@ public class CalendarService
             return false;
         }
     }
-    
+
+    // Inserts a new calendar event and returns the generated event ID
     public int InsertEvent(string title, DateTime date, string time, string notes, string category, int? userId = null)
     {
+        // Validate that userId is provided
         if (!userId.HasValue)
         {
             throw new ArgumentException("UserId is required for calendar events");
         }
-        
+
         using (OleDbConnection conn = new OleDbConnection(Connect.GetConnectionString()))
         {
             conn.Open();
             EnsureCalendarEventsTable(conn);
-        
+
             string sql = "INSERT INTO CalendarEvents (UserId, Title, EventDate, EventTime, Notes, Category, CreatedDate) VALUES (?, ?, ?, ?, ?, ?, ?)";
             LoggingService.Log("CalendarService", string.Format("Inserting event: Title={0}, UserId={1}", title, userId.Value));
-            
+
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {
+                // Add parameters with proper types and trimmed values
                 OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.Integer);
                 userIdParam.Value = userId.Value;
                 cmd.Parameters.Add(userIdParam);
-                
+
                 OleDbParameter titleParam = new OleDbParameter("?", OleDbType.WChar);
                 titleParam.Value = title != null ? title.Trim() : "";
                 cmd.Parameters.Add(titleParam);
-                
+
                 OleDbParameter dateParam = new OleDbParameter("?", OleDbType.Date);
                 dateParam.Value = date;
                 cmd.Parameters.Add(dateParam);
-                
+
                 OleDbParameter timeParam = new OleDbParameter("?", OleDbType.WChar);
                 timeParam.Value = time != null ? time.Trim() : "";
                 cmd.Parameters.Add(timeParam);
-                
+
                 OleDbParameter notesParam = new OleDbParameter("?", OleDbType.WChar);
                 notesParam.Value = notes != null ? notes.Trim() : "";
                 cmd.Parameters.Add(notesParam);
-                
+
                 OleDbParameter categoryParam = new OleDbParameter("?", OleDbType.WChar);
                 categoryParam.Value = (category ?? "אחר").Trim();
                 cmd.Parameters.Add(categoryParam);
-                
+
                 OleDbParameter createdDateParam = new OleDbParameter("?", OleDbType.Date);
                 createdDateParam.Value = DateTime.Now;
                 cmd.Parameters.Add(createdDateParam);
@@ -101,8 +106,8 @@ public class CalendarService
                 try
                 {
                     cmd.ExecuteNonQuery();
-                    
-                    // Get the inserted event ID
+
+                    // Get the inserted event ID using Access identity function
                     sql = "SELECT @@IDENTITY";
                     using (OleDbCommand getIdCmd = new OleDbCommand(sql, conn))
                     {
@@ -121,15 +126,17 @@ public class CalendarService
         }
     }
 
+    // Loads all personal events and optionally shared events, fixes Hebrew encoding, and returns as DataSet
     public DataSet GetAllEvents(int? userId = null)
     {
         DataSet data = new DataSet();
-        
+
         using (OleDbConnection conn = new OleDbConnection(Connect.GetConnectionString()))
         {
             conn.Open();
             EnsureCalendarEventsTable(conn);
 
+            // Load personal events
             string sql = "SELECT * FROM CalendarEvents ORDER BY Id";
 
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
@@ -141,6 +148,7 @@ public class CalendarService
                 }
             }
 
+            // Fix Hebrew encoding for personal events
             if (data.Tables.Contains("PersonalEvents"))
             {
                 foreach (DataRow row in data.Tables["PersonalEvents"].Rows)
@@ -156,6 +164,7 @@ public class CalendarService
                 }
             }
 
+            // Load shared events if userId is provided
             if (userId.HasValue)
             {
                 try
@@ -173,6 +182,7 @@ ORDER BY Id";
                         }
                     }
 
+                    // Fix Hebrew encoding for shared events
                     if (data.Tables.Contains("SharedEvents"))
                     {
                         foreach (DataRow row in data.Tables["SharedEvents"].Rows)
@@ -190,6 +200,7 @@ ORDER BY Id";
                 }
                 catch (Exception ex)
                 {
+                    // Log shared events loading errors but continue without them
                     LoggingService.Log("CalendarService", "Error loading shared events", ex);
                 }
             }
@@ -198,9 +209,11 @@ ORDER BY Id";
         return data;
     }
 
+    // Deletes an event by ID, optionally restricted to a specific user
     public void DeleteEvent(int eventId, int? userId = null)
     {
         string sql = "DELETE FROM CalendarEvents WHERE Id = ?";
+        // Add user restriction if userId is provided (security check)
         if (userId.HasValue)
         {
             sql += " AND UserId = ?";
@@ -210,13 +223,13 @@ ORDER BY Id";
         {
             conn.Open();
             EnsureCalendarEventsTable(conn);
-            
+
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {
                 OleDbParameter idParam = new OleDbParameter("?", OleDbType.Integer);
                 idParam.Value = eventId;
                 cmd.Parameters.Add(idParam);
-                
+
                 if (userId.HasValue)
                 {
                     OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.Integer);

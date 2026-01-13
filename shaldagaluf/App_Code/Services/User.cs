@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-
-
-public class User
+﻿public class User
 {
     public int Id { get; set; }
     public string Username { get; set; }
@@ -47,7 +41,7 @@ public class User
         PhoneNum = "000-0000000";
         City = 8;
     }
-    
+
 
     public User(string username, string firstname, string lastname,
         string email, string password, int gender, int yearofbirth, string userid, string phonenum, int city)

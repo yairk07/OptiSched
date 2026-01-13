@@ -1,5 +1,4 @@
 using System;
-using System.Data;
 using System.Data.OleDb;
 
 public static class LoginCodeService
@@ -23,7 +22,7 @@ public static class LoginCodeService
             }
         }
     }
-    
+
     private static bool TableExists(OleDbConnection conn, string tableName)
     {
         try
@@ -40,7 +39,7 @@ public static class LoginCodeService
             return false;
         }
     }
-    
+
     public static string GenerateCode(string email)
     {
         if (string.IsNullOrWhiteSpace(email))
@@ -56,18 +55,18 @@ public static class LoginCodeService
             EnsureLoginCodesTable(conn);
 
             DateTime now = DateTime.Now;
-            
+
             string deleteOldSql = "DELETE FROM LoginCodes WHERE Email=? AND (ExpiryDate < ? OR Used=1)";
             using (OleDbCommand deleteCmd = new OleDbCommand(deleteOldSql, conn))
             {
                 OleDbParameter emailParam1 = new OleDbParameter("?", OleDbType.WChar);
                 emailParam1.Value = email.Trim().ToLower();
                 deleteCmd.Parameters.Add(emailParam1);
-                
+
                 OleDbParameter nowParam1 = new OleDbParameter("?", OleDbType.Date);
                 nowParam1.Value = now;
                 deleteCmd.Parameters.Add(nowParam1);
-                
+
                 deleteCmd.ExecuteNonQuery();
             }
 
@@ -79,11 +78,11 @@ public static class LoginCodeService
                 OleDbParameter emailParam2 = new OleDbParameter("?", OleDbType.WChar);
                 emailParam2.Value = email.Trim().ToLower();
                 countCmd.Parameters.Add(emailParam2);
-                
+
                 OleDbParameter oneHourAgoParam = new OleDbParameter("?", OleDbType.Date);
                 oneHourAgoParam.Value = oneHourAgo;
                 countCmd.Parameters.Add(oneHourAgoParam);
-                
+
                 object result = countCmd.ExecuteScalar();
                 if (result != null && result != DBNull.Value)
                 {
@@ -101,37 +100,37 @@ public static class LoginCodeService
             string code = random.Next(100000, 999999).ToString();
             DateTime expiryDate = DateTime.Now.AddMinutes(15);
             DateTime createdDate = DateTime.Now;
-            
+
             LoggingService.LogCodeGeneration(email, code, true);
-            
+
             string insertSql = "INSERT INTO LoginCodes (Email, Code, ExpiryDate, Used, CreatedDate) VALUES (?, ?, ?, ?, ?)";
             using (OleDbCommand insertCmd = new OleDbCommand(insertSql, conn))
             {
                 OleDbParameter emailParam3 = new OleDbParameter("?", OleDbType.WChar);
                 emailParam3.Value = email.Trim().ToLower();
                 insertCmd.Parameters.Add(emailParam3);
-                
+
                 OleDbParameter codeParam = new OleDbParameter("?", OleDbType.WChar);
                 codeParam.Value = code;
                 insertCmd.Parameters.Add(codeParam);
-                
+
                 OleDbParameter expiryParam = new OleDbParameter("?", OleDbType.Date);
                 expiryParam.Value = expiryDate;
                 insertCmd.Parameters.Add(expiryParam);
-                
+
                 OleDbParameter usedParam = new OleDbParameter("?", OleDbType.Boolean);
                 usedParam.Value = false;
                 insertCmd.Parameters.Add(usedParam);
-                
+
                 OleDbParameter createdParam = new OleDbParameter("?", OleDbType.Date);
                 createdParam.Value = createdDate;
                 insertCmd.Parameters.Add(createdParam);
-                
+
                 insertCmd.ExecuteNonQuery();
             }
 
             LoggingService.Log("CODE_STORED", string.Format("Code stored in DB - Email: {0}, Code: {1}, Expiry: {2}", email, code, expiryDate));
-            
+
             return code;
         }
     }
@@ -156,7 +155,7 @@ public static class LoginCodeService
                 OleDbParameter emailParam = new OleDbParameter("?", OleDbType.WChar);
                 emailParam.Value = email.Trim().ToLower();
                 cmd.Parameters.Add(emailParam);
-                
+
                 OleDbParameter codeParam = new OleDbParameter("?", OleDbType.WChar);
                 codeParam.Value = code.Trim();
                 cmd.Parameters.Add(codeParam);
@@ -168,12 +167,12 @@ public static class LoginCodeService
                         object usedObj = dr["Used"];
                         object expiryDateObj = dr["ExpiryDate"];
                         object idObj = dr["Id"];
-                        
+
                         if (usedObj == null || usedObj == DBNull.Value || idObj == null || idObj == DBNull.Value)
                         {
                             return false;
                         }
-                        
+
                         bool used = Convert.ToBoolean(usedObj);
                         if (used)
                         {

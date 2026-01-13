@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Web;
 using System.Data;
 using System.Data.OleDb;
 
@@ -12,9 +10,9 @@ public class UsersService
     {
         try
         {
-            string[] variations = { columnName, columnName.ToLower(), columnName.ToUpper(), 
+            string[] variations = { columnName, columnName.ToLower(), columnName.ToUpper(),
                                    char.ToUpper(columnName[0]) + columnName.Substring(1).ToLower() };
-            
+
             foreach (string variant in variations)
             {
                 try
@@ -70,13 +68,13 @@ public class UsersService
 
             List<string> columns = new List<string> { "UserName", "FirstName", "LastName", "Email", passwordCol, "Gender", "YearOfBirth", userIdCol, phoneCol, cityCol };
             List<string> values = new List<string> { "?", "?", "?", "?", "?", "?", "?", "?", "?", "?" };
-            
+
             if (hasRole)
             {
                 columns.Add(roleCol);
                 values.Add("?");
             }
-            
+
             if (hasCreatedDate)
             {
                 columns.Add("CreatedDate");
@@ -84,12 +82,12 @@ public class UsersService
             }
 
             string sSql = "INSERT INTO Users (" + string.Join(", ", columns) + ") VALUES(" + string.Join(", ", values) + ")";
-            
+
             // #region agent log
             try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:SCHEMA_CHECK\",\"message\":\"Checking column schema\",\"data\":{\"hasPasswordHash\":\"" + hasPasswordHash + "\",\"hasPassword\":\"" + hasPassword + "\",\"hasUserIdNumber\":\"" + hasUserIdNumber + "\",\"hasUserId\":\"" + hasUserId + "\",\"hasPhoneNumber\":\"" + hasPhoneNumber + "\",\"hasPhonenum\":\"" + hasPhonenum + "\",\"hasCityId\":\"" + hasCityId + "\",\"hasCity\":\"" + hasCity + "\",\"hasRole\":\"" + hasRole + "\",\"hasCreatedDate\":\"" + hasCreatedDate + "\",\"passwordCol\":\"" + passwordCol + "\",\"userIdCol\":\"" + userIdCol + "\",\"phoneCol\":\"" + phoneCol + "\",\"cityCol\":\"" + cityCol + "\",\"roleCol\":\"" + roleCol + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
             try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:INSERT_SQL\",\"message\":\"INSERT SQL with schema detection\",\"data\":{\"sql\":\"" + sSql.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"placeholderCount\":" + values.Count + ",\"userName\":\"" + (userName ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
             // #endregion
-            
+
             using (OleDbCommand cmd = new OleDbCommand(sSql, myConnection))
             {
                 string hashedPassword = PasswordHelper.HashPassword(password);
@@ -97,50 +95,50 @@ public class UsersService
                 OleDbParameter userNameParam = new OleDbParameter("?", OleDbType.WChar);
                 userNameParam.Value = userName != null ? userName.Trim() : "";
                 cmd.Parameters.Add(userNameParam);
-                
+
                 OleDbParameter firstNameParam = new OleDbParameter("?", OleDbType.WChar);
                 firstNameParam.Value = firstName != null ? firstName.Trim() : "";
                 cmd.Parameters.Add(firstNameParam);
-                
+
                 OleDbParameter lastNameParam = new OleDbParameter("?", OleDbType.WChar);
                 lastNameParam.Value = lastName != null ? lastName.Trim() : "";
                 cmd.Parameters.Add(lastNameParam);
-                
+
                 OleDbParameter emailParam = new OleDbParameter("?", OleDbType.WChar);
                 emailParam.Value = email != null ? email.Trim() : "";
                 cmd.Parameters.Add(emailParam);
-                
+
                 OleDbParameter passwordParam = new OleDbParameter("?", OleDbType.WChar);
                 passwordParam.Value = hashedPassword ?? "";
                 cmd.Parameters.Add(passwordParam);
-                
+
                 OleDbParameter genderParam = new OleDbParameter("?", OleDbType.Integer);
                 genderParam.Value = gender;
                 cmd.Parameters.Add(genderParam);
-                
+
                 OleDbParameter yearOfBirthParam = new OleDbParameter("?", OleDbType.Integer);
                 yearOfBirthParam.Value = yearOfBirth;
                 cmd.Parameters.Add(yearOfBirthParam);
-                
+
                 OleDbParameter userIdParam = new OleDbParameter("?", OleDbType.WChar);
                 userIdParam.Value = userId != null ? userId.Trim() : "";
                 cmd.Parameters.Add(userIdParam);
-                
+
                 OleDbParameter phonenumParam = new OleDbParameter("?", OleDbType.WChar);
                 phonenumParam.Value = phonenum != null ? phonenum.Trim() : "";
                 cmd.Parameters.Add(phonenumParam);
-                
+
                 OleDbParameter cityParam = new OleDbParameter("?", OleDbType.Integer);
                 cityParam.Value = city;
                 cmd.Parameters.Add(cityParam);
-                
+
                 if (hasRole)
                 {
                     OleDbParameter roleParam = new OleDbParameter("?", OleDbType.WChar);
                     roleParam.Value = "user";
                     cmd.Parameters.Add(roleParam);
                 }
-                
+
                 if (hasCreatedDate)
                 {
                     OleDbParameter createdDateParam = new OleDbParameter("?", OleDbType.Date);
@@ -157,7 +155,7 @@ public class UsersService
                     // #region agent log
                     try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:EXECUTE_SUCCESS\",\"message\":\"ExecuteNonQuery success\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
                     // #endregion
-                    
+
                     cmd.CommandText = "SELECT @@IDENTITY";
                     object newId = cmd.ExecuteScalar();
                     if (newId != null && newId != DBNull.Value)
@@ -171,7 +169,7 @@ public class UsersService
                     // #region agent log
                     try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:EXECUTE_ERROR\",\"message\":\"ExecuteNonQuery error\",\"data\":{\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + ex.GetType().Name + "\",\"sql\":\"" + sSql.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"paramCount\":\"" + cmd.Parameters.Count + "\",\"expectedCount\":\"" + values.Count + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
                     // #endregion
-                    
+
                     if (ex.Message.Contains("You must enter a value in the 'Users.id' field") || ex.Message.Contains("Users.id") || ex.Message.Contains("Id field"))
                     {
                         try
@@ -187,14 +185,14 @@ public class UsersService
                                     // #endregion
                                 }
                             }
-                            
+
                             string idCol = ColumnExists(myConnection, "Users", "Id") ? "Id" : (ColumnExists(myConnection, "Users", "id") ? "id" : "Id");
                             string sSqlWithId = "INSERT INTO Users (" + idCol + ", " + string.Join(", ", columns) + ") VALUES(0, " + string.Join(", ", values) + ")";
-                            
+
                             // #region agent log
                             try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:RETRY_WITH_ID\",\"message\":\"Retrying INSERT with Id=0\",\"data\":{\"sql\":\"" + sSqlWithId.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
                             // #endregion
-                            
+
                             using (OleDbCommand cmd2 = new OleDbCommand(sSqlWithId, myConnection))
                             {
                                 foreach (OleDbParameter param in cmd.Parameters)
@@ -203,12 +201,12 @@ public class UsersService
                                     newParam.Value = param.Value;
                                     cmd2.Parameters.Add(newParam);
                                 }
-                                
+
                                 cmd2.ExecuteNonQuery();
                                 // #region agent log
                                 try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:RETRY_SUCCESS\",\"message\":\"Retry with Id=0 success\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
                                 // #endregion
-                                
+
                                 cmd2.CommandText = "SELECT @@IDENTITY";
                                 object newId = cmd2.ExecuteScalar();
                                 if (newId != null && newId != DBNull.Value)
@@ -232,7 +230,7 @@ public class UsersService
                     }
                 }
             }
-            
+
             return -1;
         }
     }
@@ -363,21 +361,21 @@ public class UsersService
             // DSD Schema: Use UserName and PasswordHash columns
             // Support both old and new column names during migration
             string sql = "SELECT * FROM Users WHERE (UserName=? OR userName=?) AND (PasswordHash=? OR [password]=?)";
-            
+
             using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
             {
                 OleDbParameter userNameParam1 = new OleDbParameter("?", OleDbType.WChar);
                 userNameParam1.Value = userName != null ? userName.Trim() : "";
                 cmd.Parameters.Add(userNameParam1);
-                
+
                 OleDbParameter userNameParam2 = new OleDbParameter("?", OleDbType.WChar);
                 userNameParam2.Value = userName != null ? userName.Trim() : "";
                 cmd.Parameters.Add(userNameParam2);
-                
+
                 OleDbParameter passwordParam1 = new OleDbParameter("?", OleDbType.WChar);
                 passwordParam1.Value = hashedPassword ?? "";
                 cmd.Parameters.Add(passwordParam1);
-                
+
                 OleDbParameter passwordParam2 = new OleDbParameter("?", OleDbType.WChar);
                 passwordParam2.Value = hashedPassword ?? "";
                 cmd.Parameters.Add(passwordParam2);
@@ -402,7 +400,7 @@ public class UsersService
             // DSD Schema: Use Email column (try new first, fallback to old during migration)
             string sql = "SELECT * FROM Users WHERE CStr(Email)=?";
             bool useOldColumn = false;
-            
+
             try
             {
                 using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
@@ -446,10 +444,10 @@ public class UsersService
             myConnection.Open();
 
             string hashedPassword = PasswordHelper.HashPassword(newPassword);
-            
+
             bool hasPasswordHash = ColumnExists(myConnection, "Users", "PasswordHash");
             bool hasPassword = ColumnExists(myConnection, "Users", "password");
-            
+
             List<string> updates = new List<string>();
             if (hasPasswordHash)
             {
@@ -459,14 +457,14 @@ public class UsersService
             {
                 updates.Add("[password]=?");
             }
-            
+
             if (updates.Count == 0)
             {
                 throw new InvalidOperationException("No password column found in Users table");
             }
-            
+
             string sql = "UPDATE Users SET " + string.Join(", ", updates) + " WHERE Id=?";
-            
+
             using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
             {
                 if (hasPasswordHash)
@@ -475,14 +473,14 @@ public class UsersService
                     passwordHashParam.Value = hashedPassword ?? "";
                     cmd.Parameters.Add(passwordHashParam);
                 }
-                
+
                 if (hasPassword)
                 {
                     OleDbParameter passwordParam = new OleDbParameter("?", OleDbType.WChar);
                     passwordParam.Value = hashedPassword ?? "";
                     cmd.Parameters.Add(passwordParam);
                 }
-                
+
                 OleDbParameter idParam = new OleDbParameter("?", OleDbType.Integer);
                 idParam.Value = userId;
                 cmd.Parameters.Add(idParam);

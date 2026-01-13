@@ -6,11 +6,6 @@ public partial class exuserdetails : System.Web.UI.Page
 {
     protected void Page_Load(object sender, EventArgs e)
     {
-        Response.ContentType = "text/html; charset=utf-8";
-        Response.Charset = "utf-8";
-        Response.ContentEncoding = System.Text.Encoding.UTF8;
-        Response.HeaderEncoding = System.Text.Encoding.UTF8;
-        
         // אם אין סשן — שולח לכניסה
         if (Session["username"] == null)
         {
@@ -36,49 +31,74 @@ public partial class exuserdetails : System.Web.UI.Page
 
     private void LoadUserById(int userId)
     {
-        var us = new UsersService();
-        var ds = us.getallusers();
-
-        if (ds == null || ds.Tables.Count == 0)
+        try
         {
-            ShowNotFound();
-            return;
-        }
+            var us = new UsersService();
+            var ds = us.getallusers();
 
-        DataTable t = ds.Tables[0];
-
-        // 🎯 קריאה לפי ID בלבד
-        DataRow row = t.AsEnumerable()
-            .FirstOrDefault(r =>
+            if (ds == null || ds.Tables.Count == 0)
             {
-                int id;
-                return int.TryParse(Convert.ToString(r["id"]), out id) &&
-                id == userId;
-            });
+                ShowNotFound();
+                return;
+            }
 
-        if (row == null)
+            DataTable t = ds.Tables[0];
+
+            // 🎯 קריאה לפי ID בלבד
+            DataRow row = t.AsEnumerable()
+                .FirstOrDefault(r =>
+                {
+                    int id;
+                    return int.TryParse(Convert.ToString(r["id"]), out id) &&
+                    id == userId;
+                });
+
+            if (row == null)
+            {
+                ShowNotFound();
+                return;
+            }
+
+            pnlContent.Visible = true;
+            pnlNotFound.Visible = false;
+
+            string userName = SafeGet(row, "userName");
+            lblUserName.Text = userName;
+            lblFirstName.Text = SafeGet(row, "firstName");
+            lblLastName.Text = SafeGet(row, "lastName");
+            lblEmail.Text = SafeGet(row, "email");
+            lblPhone.Text = SafeGet(row, "phonenum");
+            lblCity.Text = GetCity(row);
+
+            lblAccessLevel.Text = SafeGet(row, "Role");
+
+            if (!string.IsNullOrEmpty(userName) && avatarLetter != null)
+            {
+                avatarLetter.InnerText = userName.Substring(0, 1).ToUpper();
+            }
+
+            LoadUserTables(userId);
+            LoadManagedTables(userId);
+        }
+        catch (Exception ex)
         {
+            LoggingService.Log("EXUSERDETAILS", "Error loading user by ID", ex);
             ShowNotFound();
-            return;
         }
+    }
 
-        pnlContent.Visible = true;
-        pnlNotFound.Visible = false;
+    private void LoadUserTables(int userId)
+    {
+        DataTable dt = new DataTable();
+        gvUserTables.DataSource = dt;
+        gvUserTables.DataBind();
+    }
 
-        string userName = SafeGet(row, "userName");
-        lblUserName.Text = userName;
-        lblFirstName.Text = SafeGet(row, "firstName");
-        lblLastName.Text = SafeGet(row, "lastName");
-        lblEmail.Text = SafeGet(row, "email");
-        lblPhone.Text = SafeGet(row, "phonenum");
-        lblCity.Text = GetCity(row);
-
-        lblAccessLevel.Text = SafeGet(row, "Role");
-
-        if (!string.IsNullOrEmpty(userName) && avatarLetter != null)
-        {
-            avatarLetter.InnerText = userName.Substring(0, 1).ToUpper();
-        }
+    private void LoadManagedTables(int userId)
+    {
+        DataTable dt = new DataTable();
+        gvManagedTables.DataSource = dt;
+        gvManagedTables.DataBind();
     }
 
     private void ShowNotFound()

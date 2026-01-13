@@ -43,26 +43,20 @@ Stores contact form submissions.
 - **message** (Long Text/MEMO)
 - **created_at** (Date/Time)
 
-### 6. EventTypes
-Lookup table for event type classifications.
-- **id** (AutoNumber, PK)
-- **name** (Short Text, 255)
-- **description** (Long Text/MEMO)
-
-### 7. PermissionTypes
+### 6. PermissionTypes
 Lookup table for permission type definitions.
 - **id** (AutoNumber, PK)
 - **name** (Short Text, 255)
 - **description** (Long Text/MEMO)
 
-### 8. CalendarPermissions
+### 7. CalendarPermissions
 Stores user permissions for shared calendars.
 - **id** (AutoNumber, PK)
 - **calendar_id** (Number) → Foreign Key to `SharedCalendars.Id`
 - **user_id** (Number) → Foreign Key to `Users.id`
 - **permission_type_id** (Number) → Foreign Key to `PermissionTypes.id`
 
-### 9. CalendarJoinRequests
+### 8. CalendarJoinRequests
 Stores requests to join shared calendars.
 - **id** (AutoNumber, PK)
 - **calendar_id** (Number) → Foreign Key to `SharedCalendars.Id`

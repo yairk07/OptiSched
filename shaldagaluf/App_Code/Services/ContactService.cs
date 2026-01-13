@@ -7,11 +7,14 @@ public class ContactService
     /// <summary>
     /// Saves contact message to database
     /// </summary>
+    // Validates and saves contact message to database with Hebrew encoding fixes
     public int SaveContactMessage(string fullName, string email, string subject, string message)
     {
+        // Validate required fields
         if (string.IsNullOrWhiteSpace(fullName))
             throw new ArgumentException("שם מלא הוא שדה חובה");
         
+        // Basic email validation (must contain @)
         if (string.IsNullOrWhiteSpace(email) || !email.Contains("@"))
             throw new ArgumentException("אימייל לא תקין");
 
@@ -24,6 +27,7 @@ public class ContactService
         {
             conn.Open();
 
+            // Insert contact message with Hebrew encoding fixes and normalized email
             string sql = "INSERT INTO ContactMessages (full_name, email, subject, message, created_at) VALUES (?, ?, ?, ?, ?)";
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {
@@ -35,7 +39,7 @@ public class ContactService
                 cmd.ExecuteNonQuery();
             }
 
-            // Get the inserted message ID
+            // Get the inserted message ID using Access identity function
             sql = "SELECT @@IDENTITY";
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {
@@ -50,6 +54,7 @@ public class ContactService
     /// <summary>
     /// Gets all contact messages (for admins)
     /// </summary>
+    // Retrieves all contact messages ordered by creation date (newest first) for admin viewing
     public DataTable GetAllContactMessages()
     {
         string connectionString = Connect.GetConnectionString();

@@ -23,10 +23,9 @@ public partial class runSchemaUpdate : System.Web.UI.Page
             Response.Write("3. Images<br/>");
             Response.Write("4. EventImages<br/>");
             Response.Write("5. ContactMessages<br/>");
-            Response.Write("6. EventTypes<br/>");
-            Response.Write("7. PermissionTypes<br/>");
-            Response.Write("8. CalendarPermissions<br/>");
-            Response.Write("9. CalendarJoinRequests<br/>");
+            Response.Write("6. PermissionTypes<br/>");
+            Response.Write("7. CalendarPermissions<br/>");
+            Response.Write("8. CalendarJoinRequests<br/>");
             Response.Write("</div>");
         }
         catch (Exception ex)

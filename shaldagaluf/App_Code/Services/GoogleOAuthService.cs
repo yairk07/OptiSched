@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Specialized;
+using System.Configuration;
+using System.Data.OleDb;
 using System.Net;
 using System.Text;
 using System.Web;
 using System.Web.Script.Serialization;
-using System.Data;
-using System.Data.OleDb;
-using System.Configuration;
 
 public class GoogleOAuthService
 {
@@ -68,15 +67,15 @@ public class GoogleOAuthService
         try
         {
             LoggingService.Log("GOOGLE_OAUTH_GET_AUTH_URL_START", "Starting GetAuthorizationUrl");
-            
+
             string clientId = GetClientId();
             int clientIdLength = clientId != null ? clientId.Length : 0;
             string clientIdPreview = string.IsNullOrEmpty(clientId) ? "EMPTY" : clientId.Substring(0, Math.Min(10, clientId.Length)) + "...";
             LoggingService.Log("GOOGLE_OAUTH_CLIENT_ID", string.Format("ClientId retrieved - Length: {0}, IsEmpty: {1}, Value: {2}", clientIdLength, string.IsNullOrEmpty(clientId), clientIdPreview));
-            
+
             string redirectUri = GetRedirectUri();
             LoggingService.Log("GOOGLE_OAUTH_REDIRECT_URI", string.Format("RedirectUri: {0}", redirectUri));
-            
+
             if (string.IsNullOrEmpty(clientId))
             {
                 LoggingService.Log("GOOGLE_OAUTH_NO_CLIENT_ID", "Client ID is empty or null - checking all AppSettings keys");
@@ -100,17 +99,17 @@ public class GoogleOAuthService
                 }
                 throw new Exception("Google OAuth Client ID לא מוגדר ב-Web.config");
             }
-            
+
             if (string.IsNullOrEmpty(redirectUri))
             {
                 LoggingService.Log("GOOGLE_OAUTH_NO_REDIRECT_URI", "Redirect URI is empty or null");
                 throw new Exception("לא ניתן לקבוע כתובת redirect");
             }
-            
+
             string scope = "openid email profile";
             string state = Guid.NewGuid().ToString();
             LoggingService.Log("GOOGLE_OAUTH_STATE", string.Format("Generated state: {0}", state));
-            
+
             if (HttpContext.Current != null && HttpContext.Current.Session != null)
             {
                 HttpContext.Current.Session["OAuthState"] = state;
@@ -147,13 +146,13 @@ public class GoogleOAuthService
         string redirectUri = GetRedirectUri();
 
         string tokenUrl = "https://oauth2.googleapis.com/token";
-        
+
         using (WebClient client = new WebClient())
         {
             client.Encoding = Encoding.UTF8;
             client.Headers[HttpRequestHeader.ContentType] = "application/x-www-form-urlencoded";
             client.Proxy = null;
-            
+
             NameValueCollection postData = new NameValueCollection();
             postData["code"] = code;
             postData["client_id"] = clientId;
@@ -172,7 +171,7 @@ public class GoogleOAuthService
 
             JavaScriptSerializer serializer = new JavaScriptSerializer();
             var tokenResponse = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(response);
-            
+
             string accessToken = tokenResponse.ContainsKey("access_token") ? tokenResponse["access_token"].ToString() : "";
 
             if (string.IsNullOrEmpty(accessToken))
@@ -183,14 +182,14 @@ public class GoogleOAuthService
             }
 
             string userInfoUrl = "https://www.googleapis.com/oauth2/v2/userinfo";
-            
+
             using (WebClient userInfoClient = new WebClient())
             {
                 userInfoClient.Encoding = Encoding.UTF8;
                 userInfoClient.Proxy = null;
                 userInfoClient.Headers.Clear();
                 userInfoClient.Headers[HttpRequestHeader.Authorization] = "Bearer " + accessToken;
-                
+
                 string userInfoJson = userInfoClient.DownloadString(userInfoUrl);
 
                 if (string.IsNullOrEmpty(userInfoJson))
@@ -283,9 +282,9 @@ public class GoogleOAuthService
     {
         try
         {
-            string[] variations = { columnName, columnName.ToLower(), columnName.ToUpper(), 
+            string[] variations = { columnName, columnName.ToLower(), columnName.ToUpper(),
                                    char.ToUpper(columnName[0]) + columnName.Substring(1).ToLower() };
-            
+
             foreach (string variant in variations)
             {
                 try
@@ -315,10 +314,10 @@ public class GoogleOAuthService
         {
             throw new ArgumentException("פרטי משתמש Google לא תקינים");
         }
-        
+
         int? existingUserId = GetUserIdByGoogleId(userInfo.Id);
         bool isNewUser = false;
-        
+
         if (existingUserId.HasValue)
         {
             string connectionString = Connect.GetConnectionString();
@@ -372,10 +371,10 @@ public class GoogleOAuthService
                 {
                     userName = "user" + DateTime.Now.Ticks;
                 }
-                
+
                 string firstName = (userInfo.GivenName ?? "").Trim();
                 string lastName = (userInfo.FamilyName ?? "").Trim();
-                
+
                 if (string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(userInfo.Name))
                 {
                     string[] nameParts = userInfo.Name.Split(new[] { ' ' }, 2);
@@ -385,17 +384,17 @@ public class GoogleOAuthService
                         lastName = nameParts[1] ?? "";
                     }
                 }
-                
+
                 if (string.IsNullOrEmpty(firstName))
                 {
                     firstName = userName;
                 }
-                
+
                 if (string.IsNullOrEmpty(lastName))
                 {
                     lastName = "";
                 }
-                
+
                 UsersService us = new UsersService();
                 int newUserId = us.insertIntoDB(
                     userName,
@@ -409,7 +408,7 @@ public class GoogleOAuthService
                     "",
                     7
                 );
-                
+
                 if (newUserId > 0)
                 {
                     string connectionString = Connect.GetConnectionString();
@@ -432,7 +431,7 @@ public class GoogleOAuthService
                 }
             }
         }
-        
+
         return isNewUser;
     }
 }

@@ -14,14 +14,18 @@ public class ImageService
     /// <summary>
     /// Saves uploaded image to server and creates database record
     /// </summary>
+    // Saves uploaded image to server, validates file type and size, creates database record, and links it to an event
     public int SaveImage(HttpPostedFile image, int eventId, int uploadedBy)
     {
+        // Validate image exists and has content
         if (image == null || image.ContentLength == 0)
             throw new ArgumentException("תמונה לא תקינה");
 
+        // Check image size limit (5MB)
         if (image.ContentLength > MAX_IMAGE_SIZE)
             throw new ArgumentException("גודל התמונה חורג מהמותר (5MB)");
 
+        // Validate file extension is in allowed list (jpg, jpeg, png, gif)
         string fileExtension = Path.GetExtension(image.FileName).ToLower();
         if (Array.IndexOf(ALLOWED_EXTENSIONS, fileExtension) == -1)
             throw new ArgumentException("סוג קובץ לא מותר. מותר: JPG, JPEG, PNG, GIF");
@@ -35,7 +39,7 @@ public class ImageService
             Directory.CreateDirectory(uploadPath);
         }
 
-        // Generate unique filename
+        // Generate unique filename using event ID and timestamp to prevent conflicts
         string originalFileName = Path.GetFileName(image.FileName);
         string uniqueFileName = string.Format("{0}_{1}_{2}", eventId, DateTime.Now.Ticks, originalFileName);
         string imagePath = Path.Combine(uploadPath, uniqueFileName);
@@ -43,7 +47,7 @@ public class ImageService
         // Save image to server
         image.SaveAs(imagePath);
 
-        // Get relative path for database
+        // Get relative path for database storage (without ~/)
         string relativePath = UPLOAD_FOLDER.Replace("~/", "") + uniqueFileName;
 
         // Save to database
@@ -62,14 +66,14 @@ public class ImageService
                 cmd.ExecuteNonQuery();
             }
 
-            // Get the inserted image ID
+            // Get the inserted image ID using Access identity function
             sql = "SELECT @@IDENTITY";
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {
                 object result = cmd.ExecuteScalar();
                 int imageId = Convert.ToInt32(result);
 
-                // Link image to event
+                // Link image to event in junction table
                 sql = "INSERT INTO EventImages (event_id, image_id) VALUES (?, ?)";
                 using (OleDbCommand linkCmd = new OleDbCommand(sql, conn))
                 {
@@ -87,6 +91,7 @@ public class ImageService
     /// <summary>
     /// Gets all images for an event
     /// </summary>
+    // Retrieves all images linked to a specific event, ordered by upload date (newest first)
     public DataTable GetImagesByEvent(int eventId)
     {
         string connectionString = Connect.GetConnectionString();
@@ -96,6 +101,7 @@ public class ImageService
         {
             conn.Open();
 
+            // Join Images and EventImages tables to get images for this event
             string sql = @"
                 SELECT I.Id, I.image_name, I.image_path, I.uploaded_at, I.uploaded_by
                 FROM Images I
@@ -162,6 +168,7 @@ public class ImageService
     /// <summary>
     /// Deletes image from server and database
     /// </summary>
+    // Deletes image from server and database after checking user permissions (owner or image uploader only)
     public bool DeleteImage(int imageId, int userId, string userRole)
     {
         string connectionString = Connect.GetConnectionString();
@@ -170,19 +177,19 @@ public class ImageService
         {
             conn.Open();
 
-            // Get image info first
+            // Get image info first to check permissions
             DataRow imageInfo = GetImageById(imageId);
             if (imageInfo == null)
                 return false;
 
-            // Check permissions - only owner or admin can delete
+            // Check permissions - only owner role or the user who uploaded the image can delete
             int uploadedBy = Convert.ToInt32(imageInfo["uploaded_by"]);
             if (userRole != "owner" && uploadedBy != userId)
             {
                 throw new UnauthorizedAccessException("אין לך הרשאה למחוק תמונה זו");
             }
 
-            // Delete physical file
+            // Delete physical image file from server
             string imagePath = imageInfo["image_path"].ToString();
             if (!string.IsNullOrEmpty(imagePath))
             {
@@ -195,12 +202,13 @@ public class ImageService
                     }
                     catch (Exception ex)
                     {
+                        // Log image deletion errors but continue with database cleanup
                         LoggingService.Log("ImageService", "Error deleting physical image", ex);
                     }
                 }
             }
 
-            // Delete from EventImages junction table
+            // Delete from EventImages junction table first (foreign key constraint)
             string sql = "DELETE FROM EventImages WHERE image_id = ?";
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {

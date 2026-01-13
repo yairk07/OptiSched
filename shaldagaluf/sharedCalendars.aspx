@@ -308,14 +308,8 @@
             border-bottom: 2px solid var(--border);
         }
 
-        .calendars-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 28px;
-            margin-top: 24px;
-            align-items: stretch;
-            width: 100%;
-        }
+      l
+        
 
         @media (max-width: 768px) {
             .calendars-list {

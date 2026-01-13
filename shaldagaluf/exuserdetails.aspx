@@ -87,6 +87,58 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="tables-section">
+                    <div class="tables-card">
+                        <h3 class="tables-title">
+                            <i class="fas fa-table"></i>
+                            טבלאות שהמשתמש נמצא
+                        </h3>
+                        <div class="table-container-inner">
+                            <asp:GridView ID="gvUserTables" runat="server"
+                                AutoGenerateColumns="false"
+                                CssClass="tables-grid"
+                                EmptyDataText="אין טבלאות"
+                                HeaderStyle-CssClass="tables-header"
+                                RowStyle-CssClass="tables-row"
+                                AlternatingRowStyle-CssClass="tables-row-alt">
+                                <Columns>
+                                </Columns>
+                                <EmptyDataTemplate>
+                                    <div class="empty-tables">
+                                        <i class="fas fa-inbox"></i>
+                                        <p>אין טבלאות להצגה</p>
+                                    </div>
+                                </EmptyDataTemplate>
+                            </asp:GridView>
+                        </div>
+                    </div>
+
+                    <div class="tables-card">
+                        <h3 class="tables-title">
+                            <i class="fas fa-user-shield"></i>
+                            טבלאות שהמשתמש מנהל
+                        </h3>
+                        <div class="table-container-inner">
+                            <asp:GridView ID="gvManagedTables" runat="server"
+                                AutoGenerateColumns="false"
+                                CssClass="tables-grid"
+                                EmptyDataText="אין טבלאות"
+                                HeaderStyle-CssClass="tables-header"
+                                RowStyle-CssClass="tables-row"
+                                AlternatingRowStyle-CssClass="tables-row-alt">
+                                <Columns>
+                                </Columns>
+                                <EmptyDataTemplate>
+                                    <div class="empty-tables">
+                                        <i class="fas fa-inbox"></i>
+                                        <p>אין טבלאות להצגה</p>
+                                    </div>
+                                </EmptyDataTemplate>
+                            </asp:GridView>
+                        </div>
+                    </div>
+                </div>
             </div>
         </asp:Panel>
 
@@ -114,7 +166,7 @@
         }
 
         .user-details-container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
@@ -253,6 +305,99 @@
         .not-found-card p {
             color: var(--text);
             opacity: 0.8;
+        }
+
+        .tables-section {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .tables-card {
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+        }
+
+        .tables-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--heading);
+            margin: 0 0 24px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tables-title i {
+            color: var(--brand);
+            font-size: 20px;
+        }
+
+        .table-container-inner {
+            overflow-x: auto;
+        }
+
+        .tables-grid {
+            width: 100%;
+            border-collapse: collapse;
+            direction: rtl;
+        }
+
+        .tables-header {
+            background: var(--brand);
+            color: #fff;
+            padding: 12px;
+            text-align: right;
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .tables-row {
+            background: var(--surface);
+        }
+
+        .tables-row-alt {
+            background: rgba(0,0,0,0.02);
+        }
+
+        .tables-row:hover,
+        .tables-row-alt:hover {
+            background: rgba(0,0,0,0.05);
+        }
+
+        .tables-grid td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .empty-tables {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text);
+            opacity: 0.6;
+        }
+
+        .empty-tables i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .empty-tables p {
+            font-size: 16px;
+            margin: 0;
+        }
+
+        @media (max-width: 968px) {
+            .tables-section {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 
