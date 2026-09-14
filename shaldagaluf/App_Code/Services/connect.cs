@@ -4,12 +4,18 @@ using System.Web;
 
 public class Connect
 {
+    private static string _cachedConnectionString;
+
     // Gets the database connection string for Microsoft Access database
+    // Automatically detects the best available provider (ACE 16.0 or 12.0)
     public static string GetConnectionString()
     {
+        if (!string.IsNullOrEmpty(_cachedConnectionString))
+            return _cachedConnectionString;
+
         try
         {
-            LoggingService.Log("CONNECT", "GetConnectionString called");
+            LoggingService.Log("CONNECT", "GetConnectionString called - detecting provider");
 
             // Verify HttpContext is available (required for Server.MapPath)
             if (HttpContext.Current == null)
@@ -28,17 +34,41 @@ public class Connect
                 throw new InvalidOperationException("Database path is empty");
             }
 
-            // Warn if database file doesn't exist (but don't fail)
             if (!System.IO.File.Exists(path))
             {
                 LoggingService.Log("CONNECT", string.Format("Database file does not exist: {0}", path));
             }
 
-            // Build Access connection string with ACE provider
-            string connectionString = @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + path + ";Persist Security Info=False;";
-            LoggingService.Log("CONNECT", "GetConnectionString completed successfully");
+            // Try providers in order of preference: 16.0 (Newer Office/Access), then 12.0 (Legacy)
+            string[] providers = new[] { "Microsoft.ACE.OLEDB.16.0", "Microsoft.ACE.OLEDB.12.0" };
+            
+            foreach (var provider in providers)
+            {
+                string connectionString = @"Provider=" + provider + ";Data Source=" + path + ";Persist Security Info=False;";
+                try
+                {
+                    // Test connection
+                    using (var conn = new System.Data.OleDb.OleDbConnection(connectionString))
+                    {
+                        conn.Open();
+                        // If we are here, it worked
+                        LoggingService.Log("CONNECT", "Successfully connected using provider: " + provider);
+                    }
+                    
+                    _cachedConnectionString = connectionString;
+                    return _cachedConnectionString;
+                }
+                catch (Exception ex)
+                {
+                   LoggingService.Log("CONNECT", "Failed to connect with provider: " + provider + " - " + ex.Message);
+                   // Continue to next provider
+                }
+            }
 
-            return connectionString;
+            // If we get here, no provider worked. Default to 12.0 and let the caller handle the error.
+            LoggingService.Log("CONNECT", "All providers failed. Defaulting to 12.0");
+            _cachedConnectionString = @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + path + ";Persist Security Info=False;";
+            return _cachedConnectionString;
         }
         catch (Exception ex)
         {

@@ -268,8 +268,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
     {
         try
         {
-            string message = txtJoinMessage.Text.Trim();
-            
+            // Note: New schema doesn't support message yet, so we ignore txtJoinMessage.Text
             if (calendarId <= 0)
             {
                 lblJoinMessage.Text = "שגיאה: לא ניתן לזהות את הטבלה.";
@@ -286,7 +285,8 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
                 return;
             }
             
-            service.CreateJoinRequest(calendarId, currentUserId, message);
+            PermissionService.RequestJoin(calendarId, currentUserId);
+            
             lblJoinMessage.Text = "בקשתך נשלחה בהצלחה! המנהל יקבל התראה.";
             lblJoinMessage.ForeColor = System.Drawing.Color.Green;
             lblJoinMessage.Visible = true;
@@ -336,7 +336,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
 
     private void LoadRequests()
     {
-        DataTable dt = service.GetJoinRequests(calendarId, currentUserId);
+        DataTable dt = PermissionService.GetPendingRequestsForCalendar(calendarId);
         if (dt == null || dt.Rows.Count == 0)
         {
             lblNoRequests.Visible = true;
@@ -581,20 +581,17 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
             permission = ddlPermission.SelectedValue;
         }
 
-        DataTable dt = service.GetJoinRequests(calendarId, currentUserId);
-        if (dt == null)
-            return;
-            
-        DataRow[] rows = dt.Select(string.Format("RequestId = {0}", requestId));
-        if (rows.Length > 0)
-        {
-            DataRow row = rows[0];
-            if (row.Table.Columns.Contains("UserId") && row["UserId"] != DBNull.Value && row["UserId"] != null)
-            {
-                int userId = Convert.ToInt32(row["UserId"]);
-                service.ApproveJoinRequest(requestId, calendarId, userId, permission);
-                LoadRequests();
-            }
+        // Map permission to ID (1=Read, 2=ReadWrite)
+        int permissionTypeId = 1;
+        if (permission == "ReadWrite")
+            permissionTypeId = 2;
+
+        try {
+            PermissionService.ApproveJoinRequest(requestId, permissionTypeId);
+            LoadRequests();
+        }
+        catch (Exception) {
+            // Ignore error
         }
     }
 
@@ -607,8 +604,14 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
 
         Button btn = sender as Button;
         int requestId = Convert.ToInt32(btn.CommandArgument);
-        service.RejectJoinRequest(requestId);
-        LoadRequests();
+        
+        try {
+            PermissionService.RejectJoinRequest(requestId);
+            LoadRequests();
+        }
+        catch (Exception) {
+            // Ignore error
+        }
     }
 
     private void ClearEventForm()
