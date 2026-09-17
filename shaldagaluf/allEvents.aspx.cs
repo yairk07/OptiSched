@@ -158,6 +158,7 @@ public partial class allEvents : System.Web.UI.Page
 
         if (!IsPostBack)
         {
+            ShowGoogleExportMessage();
             BindUsers();
             string viewMode = Request.QueryString["view"] ?? "table";
             SetViewMode(viewMode);
@@ -167,6 +168,143 @@ public partial class allEvents : System.Web.UI.Page
             {
                 BindCalendar();
             }
+
+            if (string.Equals(Request.QueryString["export"], "google", StringComparison.OrdinalIgnoreCase))
+            {
+                btnExportGoogle_Click(btnExportGoogle, EventArgs.Empty);
+            }
+        }
+    }
+
+    private void ShowGoogleExportMessage()
+    {
+        string gcal = Request.QueryString["gcal"];
+        if (string.IsNullOrEmpty(gcal))
+            return;
+
+        switch (gcal)
+        {
+            case "ok":
+                string count = Request.QueryString["count"] ?? "0";
+                lblGoogleExport.Text = "הייצוא ליומן Google הושלם בהצלחה. אירועים שיוצאו: " + count;
+                lblGoogleExport.CssClass = "google-export-msg ok";
+                break;
+            case "denied":
+                lblGoogleExport.Text = "ההרשאה ליומן Google בוטלה.";
+                lblGoogleExport.CssClass = "google-export-msg err";
+                break;
+            case "state":
+            case "nocode":
+                lblGoogleExport.Text = "תהליך ההרשאה ל-Google נכשל. נסה שוב.";
+                lblGoogleExport.CssClass = "google-export-msg err";
+                break;
+            case "error":
+                lblGoogleExport.Text = "שגיאה בייצוא ליומן Google. ודא ש-Google Calendar API מופעל בפרויקט ב-Cloud Console.";
+                lblGoogleExport.CssClass = "google-export-msg err";
+                break;
+            case "one":
+                lblGoogleExport.Text = "האירוע יוצא ליומן Google.";
+                lblGoogleExport.CssClass = "google-export-msg ok";
+                break;
+            default:
+                break;
+        }
+    }
+
+    protected void btnExportGoogle_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if (Session["userId"] == null)
+            {
+                Response.Redirect("login.aspx");
+                return;
+            }
+
+            int userId = Convert.ToInt32(Session["userId"]);
+            GoogleCalendarService.EnsureTokenColumns();
+
+            if (!GoogleCalendarService.HasCalendarAccess(userId))
+            {
+                string url = GoogleCalendarService.GetCalendarAuthorizationUrl();
+                Response.Redirect(url, false);
+                Context.ApplicationInstance.CompleteRequest();
+                return;
+            }
+
+            int exported = GoogleCalendarService.ExportUserEventsToGoogle(userId);
+            lblGoogleExport.Text = "הייצוא ליומן Google הושלם. אירועים שיוצאו: " + exported;
+            lblGoogleExport.CssClass = "google-export-msg ok";
+        }
+        catch (InvalidOperationException ex)
+        {
+            if (ex.Message == "NO_CALENDAR_TOKEN")
+            {
+                string url = GoogleCalendarService.GetCalendarAuthorizationUrl();
+                Response.Redirect(url, false);
+                Context.ApplicationInstance.CompleteRequest();
+                return;
+            }
+            lblGoogleExport.Text = "שגיאה: " + ex.Message;
+            lblGoogleExport.CssClass = "google-export-msg err";
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("GOOGLE_CALENDAR_EXPORT_CLICK", ex.Message, ex);
+            lblGoogleExport.Text = "שגיאה בייצוא ליומן Google: " + ex.Message;
+            lblGoogleExport.CssClass = "google-export-msg err";
+        }
+    }
+
+    protected void btnExportOne_Command(object sender, CommandEventArgs e)
+    {
+        try
+        {
+            if (Session["userId"] == null)
+            {
+                Response.Redirect("login.aspx");
+                return;
+            }
+
+            int userId = Convert.ToInt32(Session["userId"]);
+            int eventId;
+            if (!int.TryParse(Convert.ToString(e.CommandArgument), out eventId))
+            {
+                lblGoogleExport.Text = "מזהה אירוע לא תקין.";
+                lblGoogleExport.CssClass = "google-export-msg err";
+                return;
+            }
+
+            if (!GoogleCalendarService.HasCalendarAccess(userId))
+            {
+                Session["PendingExportEventId"] = eventId;
+                string url = GoogleCalendarService.GetCalendarAuthorizationUrl();
+                Response.Redirect(url, false);
+                Context.ApplicationInstance.CompleteRequest();
+                return;
+            }
+
+            bool ok = GoogleCalendarService.ExportSingleEventToGoogle(userId, eventId);
+            lblGoogleExport.Text = ok ? "האירוע יוצא ליומן Google." : "לא נמצא אירוע לייצוא.";
+            lblGoogleExport.CssClass = ok ? "google-export-msg ok" : "google-export-msg err";
+        }
+        catch (InvalidOperationException ex)
+        {
+            if (ex.Message == "NO_CALENDAR_TOKEN")
+            {
+                string url = GoogleCalendarService.GetCalendarAuthorizationUrl();
+                Response.Redirect(url, false);
+                Context.ApplicationInstance.CompleteRequest();
+                return;
+            }
+            lblGoogleExport.Text = "שגיאה: " + ex.Message;
+            lblGoogleExport.CssClass = "google-export-msg err";
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("GOOGLE_CALENDAR_EXPORT_ONE", ex.Message, ex);
+            lblGoogleExport.Text = "שגיאה בייצוא האירוע: " + ex.Message;
+            lblGoogleExport.CssClass = "google-export-msg err";
         }
     }
 
@@ -879,6 +1017,15 @@ public partial class allEvents : System.Web.UI.Page
                             lnkEdit.NavigateUrl = "editEvent.aspx?id=" + row["Id"].ToString();
                         else
                             lnkEdit.Visible = false;
+                    }
+
+                    LinkButton btnExportOne = (LinkButton)e.Item.FindControl("btnExportOne");
+                    if (btnExportOne != null)
+                    {
+                        if (table.Columns.Contains("Id") && row["Id"] != DBNull.Value && row["Id"] != null)
+                            btnExportOne.CommandArgument = row["Id"].ToString();
+                        else
+                            btnExportOne.Visible = false;
                     }
                     
                     try

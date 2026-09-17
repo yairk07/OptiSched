@@ -34,7 +34,10 @@
             </asp:DropDownList>
             <asp:Button ID="btnSearch" runat="server" Text="חפש" CssClass="search-btn"
                         OnClick="btnSearch_Click" />
+            <asp:Button ID="btnExportGoogle" runat="server" Text="ייצוא ליומן Google" CssClass="search-btn google-export-btn"
+                        OnClick="btnExportGoogle_Click" ToolTip="מייצא את האירועים שלך ליומן Google Calendar" />
         </div>
+        <asp:Label ID="lblGoogleExport" runat="server" CssClass="google-export-msg"></asp:Label>
     </div>
 
     <asp:Label ID="lblResult" runat="server" CssClass="search-result"></asp:Label>
@@ -72,6 +75,8 @@
                                 <td>
                                     <asp:HyperLink ID="lnkDetails" runat="server" CssClass="edit-link" Text="פרטים" />
                                     <asp:HyperLink ID="lnkEdit" runat="server" CssClass="edit-link" Text="ערוך" />
+                                    <asp:LinkButton ID="btnExportOne" runat="server" CssClass="edit-link" Text="ל-Google"
+                                        CommandName="ExportGoogle" OnCommand="btnExportOne_Command" />
                                 </td>
                             </tr>
                 </ItemTemplate>
@@ -137,6 +142,29 @@
 
         .search-btn:hover {
             background: var(--brand-dark);
+        }
+
+        .google-export-btn {
+            background: #1a73e8 !important;
+        }
+        .google-export-btn:hover {
+            background: #1557b0 !important;
+        }
+        .google-export-msg {
+            display: block;
+            width: min(1500px, 95%);
+            margin: 10px auto 0;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .google-export-msg.ok {
+            background: #e6f4ea;
+            color: #137333;
+        }
+        .google-export-msg.err {
+            background: #fce8e6;
+            color: #c5221f;
         }
 
         .search-result {

@@ -15,12 +15,16 @@ public partial class google_oauth_callback : System.Web.UI.Page
             string code = Request.QueryString["code"];
             string state = Request.QueryString["state"];
             string error = Request.QueryString["error"];
+            string purpose = Session["OAuthPurpose"] != null ? Session["OAuthPurpose"].ToString() : "login";
 
             if (!string.IsNullOrEmpty(error))
             {
                 LoggingService.Log("GOOGLE_OAUTH_ERROR", "Google returned error: " + error);
                 GoogleOAuthService.ClearOAuthState();
-                SafeRedirect("login.aspx?error=google_denied");
+                Session.Remove("OAuthPurpose");
+                SafeRedirect(purpose == "calendar_export"
+                    ? "allEvents.aspx?gcal=denied"
+                    : "login.aspx?error=google_denied");
                 return;
             }
 
@@ -28,7 +32,10 @@ public partial class google_oauth_callback : System.Web.UI.Page
             {
                 LoggingService.Log("GOOGLE_OAUTH_NO_CODE", "No code parameter in callback");
                 GoogleOAuthService.ClearOAuthState();
-                SafeRedirect("login.aspx?error=no_code");
+                Session.Remove("OAuthPurpose");
+                SafeRedirect(purpose == "calendar_export"
+                    ? "allEvents.aspx?gcal=nocode"
+                    : "login.aspx?error=no_code");
                 return;
             }
 
@@ -36,84 +43,154 @@ public partial class google_oauth_callback : System.Web.UI.Page
             {
                 LoggingService.Log("GOOGLE_OAUTH_STATE_INVALID", "OAuth state missing, expired, or mismatched");
                 GoogleOAuthService.ClearOAuthState();
-                SafeRedirect("login.aspx?error=state_mismatch");
+                Session.Remove("OAuthPurpose");
+                SafeRedirect(purpose == "calendar_export"
+                    ? "allEvents.aspx?gcal=state"
+                    : "login.aspx?error=state_mismatch");
                 return;
             }
 
-            LoggingService.Log("GOOGLE_OAUTH_CALLBACK", "Processing OAuth callback");
-
-            GoogleUserInfo userInfo = GoogleOAuthService.GetUserInfo(code);
-
-            if (userInfo == null || string.IsNullOrEmpty(userInfo.Email) || string.IsNullOrEmpty(userInfo.Id))
+            if (purpose == "calendar_export")
             {
-                LoggingService.Log("GOOGLE_OAUTH_NO_USERINFO", "Failed to get user info from Google");
-                GoogleOAuthService.ClearOAuthState();
-                SafeRedirect("login.aspx?error=no_userinfo");
+                HandleCalendarExport(code);
                 return;
             }
 
-            bool isNewUser = GoogleOAuthService.CreateOrUpdateUser(userInfo);
-
-            int? userId = GoogleOAuthService.GetUserIdByGoogleId(userInfo.Id);
-            if (!userId.HasValue)
-                userId = GoogleOAuthService.GetUserIdByEmail(userInfo.Email);
-
-            if (!userId.HasValue)
-            {
-                LoggingService.Log("GOOGLE_OAUTH_NO_USERID", "Failed to resolve user id after Google login");
-                GoogleOAuthService.ClearOAuthState();
-                SafeRedirect("login.aspx?error=no_userid");
-                return;
-            }
-
-            string connectionString = Connect.GetConnectionString();
-            using (System.Data.OleDb.OleDbConnection conn = new System.Data.OleDb.OleDbConnection(connectionString))
-            {
-                conn.Open();
-                string sql = "SELECT [UserName], [Role] FROM [Users] WHERE [Id]=?";
-                using (System.Data.OleDb.OleDbCommand cmd = new System.Data.OleDb.OleDbCommand(sql, conn))
-                {
-                    cmd.Parameters.AddWithValue("?", userId.Value);
-                    using (System.Data.OleDb.OleDbDataReader dr = cmd.ExecuteReader())
-                    {
-                        if (dr.Read())
-                        {
-                            Session["username"] = dr["UserName"] != null && dr["UserName"] != DBNull.Value
-                                ? dr["UserName"].ToString()
-                                : "";
-                            Session["Role"] = dr["Role"] != null && dr["Role"] != DBNull.Value
-                                ? dr["Role"].ToString()
-                                : "user";
-                            Session["userId"] = userId.Value.ToString();
-                            Session["loggedIn"] = true;
-                            GoogleOAuthService.ClearOAuthState();
-
-                            LoggingService.Log(
-                                "GOOGLE_OAUTH_SUCCESS",
-                                string.Format("User logged in via Google. IsNewUser={0}", isNewUser));
-
-                            SafeRedirect(isNewUser ? "home.aspx?newuser=true" : "home.aspx");
-                            return;
-                        }
-                    }
-                }
-            }
-
-            LoggingService.Log("GOOGLE_OAUTH_USER_NOT_FOUND", "User row missing after Google login");
-            GoogleOAuthService.ClearOAuthState();
-            SafeRedirect("login.aspx?error=user_not_found");
+            HandleLogin(code);
         }
         catch (ThreadAbortException)
         {
-            // Expected when Response.Redirect ends the request.
             throw;
         }
         catch (Exception ex)
         {
             LoggingService.Log("GOOGLE_OAUTH_EXCEPTION", "Exception in OAuth callback: " + ex.Message, ex);
             try { GoogleOAuthService.ClearOAuthState(); } catch { }
-            SafeRedirect("login.aspx?error=exception");
+            string purpose = Session["OAuthPurpose"] != null ? Session["OAuthPurpose"].ToString() : "login";
+            Session.Remove("OAuthPurpose");
+            SafeRedirect(purpose == "calendar_export"
+                ? "allEvents.aspx?gcal=error"
+                : "login.aspx?error=exception");
         }
+    }
+
+    private void HandleCalendarExport(string code)
+    {
+        if (Session["userId"] == null)
+        {
+            Session.Remove("OAuthPurpose");
+            GoogleOAuthService.ClearOAuthState();
+            SafeRedirect("login.aspx?error=exception");
+            return;
+        }
+
+        int userId = Convert.ToInt32(Session["userId"]);
+        GoogleTokenSet tokens = GoogleCalendarService.ExchangeCodeForTokens(code);
+        GoogleCalendarService.SaveTokens(userId, tokens);
+        GoogleOAuthService.ClearOAuthState();
+        Session.Remove("OAuthPurpose");
+
+        if (Session["PendingExportEventId"] != null)
+        {
+            int pendingId;
+            if (int.TryParse(Convert.ToString(Session["PendingExportEventId"]), out pendingId))
+            {
+                bool ok = GoogleCalendarService.ExportSingleEventToGoogle(userId, pendingId);
+                Session.Remove("PendingExportEventId");
+                SafeRedirect(ok ? "allEvents.aspx?gcal=one" : "allEvents.aspx?gcal=error");
+                return;
+            }
+            Session.Remove("PendingExportEventId");
+        }
+
+        int exported = GoogleCalendarService.ExportUserEventsToGoogle(userId);
+        LoggingService.Log("GOOGLE_CALENDAR_EXPORT_DONE", "Exported events: " + exported);
+        SafeRedirect("allEvents.aspx?gcal=ok&count=" + exported);
+    }
+
+    private void HandleLogin(string code)
+    {
+        LoggingService.Log("GOOGLE_OAUTH_CALLBACK", "Processing OAuth callback");
+
+        GoogleUserInfo userInfo = GoogleOAuthService.GetUserInfo(code);
+
+        if (userInfo == null || string.IsNullOrEmpty(userInfo.Email) || string.IsNullOrEmpty(userInfo.Id))
+        {
+            LoggingService.Log("GOOGLE_OAUTH_NO_USERINFO", "Failed to get user info from Google");
+            GoogleOAuthService.ClearOAuthState();
+            SafeRedirect("login.aspx?error=no_userinfo");
+            return;
+        }
+
+        bool isNewUser = GoogleOAuthService.CreateOrUpdateUser(userInfo);
+
+        int? userId = GoogleOAuthService.GetUserIdByGoogleId(userInfo.Id);
+        if (!userId.HasValue)
+            userId = GoogleOAuthService.GetUserIdByEmail(userInfo.Email);
+
+        if (!userId.HasValue)
+        {
+            LoggingService.Log("GOOGLE_OAUTH_NO_USERID", "Failed to resolve user id after Google login");
+            GoogleOAuthService.ClearOAuthState();
+            SafeRedirect("login.aspx?error=no_userid");
+            return;
+        }
+
+        string connectionString = Connect.GetConnectionString();
+        using (System.Data.OleDb.OleDbConnection conn = new System.Data.OleDb.OleDbConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "SELECT * FROM [Users] WHERE [Id]=?";
+            using (System.Data.OleDb.OleDbCommand cmd = new System.Data.OleDb.OleDbCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("?", userId.Value);
+                using (System.Data.OleDb.OleDbDataReader dr = cmd.ExecuteReader())
+                {
+                    if (dr.Read())
+                    {
+                        string userName = ReadColumn(dr, "UserName", "username");
+                        string role = ReadColumn(dr, "Role", "role");
+                        if (string.IsNullOrEmpty(role))
+                            role = "user";
+
+                        Session["username"] = userName;
+                        Session["Role"] = role;
+                        Session["userId"] = userId.Value.ToString();
+                        Session["loggedIn"] = true;
+                        GoogleOAuthService.ClearOAuthState();
+                        Session.Remove("OAuthPurpose");
+
+                        LoggingService.Log(
+                            "GOOGLE_OAUTH_SUCCESS",
+                            string.Format("User logged in via Google. IsNewUser={0}", isNewUser));
+
+                        SafeRedirect(isNewUser ? "home.aspx?newuser=true" : "home.aspx");
+                        return;
+                    }
+                }
+            }
+        }
+
+        LoggingService.Log("GOOGLE_OAUTH_USER_NOT_FOUND", "User row missing after Google login");
+        GoogleOAuthService.ClearOAuthState();
+        SafeRedirect("login.aspx?error=user_not_found");
+    }
+
+    private static string ReadColumn(System.Data.OleDb.OleDbDataReader dr, params string[] names)
+    {
+        for (int i = 0; i < names.Length; i++)
+        {
+            try
+            {
+                object value = dr[names[i]];
+                if (value != null && value != DBNull.Value)
+                    return value.ToString();
+            }
+            catch (IndexOutOfRangeException)
+            {
+            }
+        }
+        return "";
     }
 
     private void SafeRedirect(string url)

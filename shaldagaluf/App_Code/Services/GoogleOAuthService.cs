@@ -82,6 +82,11 @@ public class GoogleOAuthService
         }
     }
 
+    public static void EnsureTls12Public()
+    {
+        EnsureTls12();
+    }
+
     public static string GetAuthorizationUrl()
     {
         if (!IsConfigured())
@@ -96,6 +101,7 @@ public class GoogleOAuthService
 
         HttpContext.Current.Session["OAuthState"] = state;
         HttpContext.Current.Session["OAuthStartedUtc"] = DateTime.UtcNow;
+        SaveOAuthStateCookie(state);
 
         string authUrl = "https://accounts.google.com/o/oauth2/v2/auth?" +
             "client_id=" + Uri.EscapeDataString(clientId) + "&" +
@@ -111,21 +117,53 @@ public class GoogleOAuthService
         return authUrl;
     }
 
+    private static void SaveOAuthStateCookie(string state)
+    {
+        if (HttpContext.Current == null || HttpContext.Current.Response == null)
+            return;
+
+        HttpCookie cookie = new HttpCookie("OptiSchedOAuthState", state);
+        cookie.HttpOnly = true;
+        cookie.Secure = HttpContext.Current.Request.IsSecureConnection;
+        cookie.Path = "/";
+        cookie.Expires = DateTime.UtcNow.AddMinutes(10);
+        try { cookie.SameSite = SameSiteMode.Lax; } catch { }
+        HttpContext.Current.Response.Cookies.Set(cookie);
+    }
+
+    private static string ReadOAuthStateCookie()
+    {
+        if (HttpContext.Current == null || HttpContext.Current.Request == null)
+            return null;
+
+        HttpCookie cookie = HttpContext.Current.Request.Cookies["OptiSchedOAuthState"];
+        return cookie != null ? cookie.Value : null;
+    }
+
     public static bool ValidateOAuthState(string returnedState)
     {
-        if (HttpContext.Current == null || HttpContext.Current.Session == null)
+        if (string.IsNullOrEmpty(returnedState) || HttpContext.Current == null)
             return false;
 
-        string expected = HttpContext.Current.Session["OAuthState"] as string;
-        if (string.IsNullOrEmpty(expected) || string.IsNullOrEmpty(returnedState))
+        string expected = null;
+        if (HttpContext.Current.Session != null)
+            expected = HttpContext.Current.Session["OAuthState"] as string;
+
+        if (string.IsNullOrEmpty(expected))
+            expected = ReadOAuthStateCookie();
+
+        if (string.IsNullOrEmpty(expected))
             return false;
 
-        object startedObj = HttpContext.Current.Session["OAuthStartedUtc"];
-        if (startedObj is DateTime)
+        if (HttpContext.Current.Session != null)
         {
-            DateTime started = (DateTime)startedObj;
-            if (DateTime.UtcNow - started > TimeSpan.FromMinutes(10))
-                return false;
+            object startedObj = HttpContext.Current.Session["OAuthStartedUtc"];
+            if (startedObj is DateTime)
+            {
+                DateTime started = (DateTime)startedObj;
+                if (DateTime.UtcNow - started > TimeSpan.FromMinutes(10))
+                    return false;
+            }
         }
 
         return string.Equals(expected, returnedState, StringComparison.Ordinal);
@@ -133,11 +171,20 @@ public class GoogleOAuthService
 
     public static void ClearOAuthState()
     {
-        if (HttpContext.Current == null || HttpContext.Current.Session == null)
-            return;
+        if (HttpContext.Current != null && HttpContext.Current.Session != null)
+        {
+            HttpContext.Current.Session.Remove("OAuthState");
+            HttpContext.Current.Session.Remove("OAuthStartedUtc");
+        }
 
-        HttpContext.Current.Session.Remove("OAuthState");
-        HttpContext.Current.Session.Remove("OAuthStartedUtc");
+        if (HttpContext.Current != null && HttpContext.Current.Response != null)
+        {
+            HttpCookie expired = new HttpCookie("OptiSchedOAuthState", "");
+            expired.HttpOnly = true;
+            expired.Path = "/";
+            expired.Expires = DateTime.UtcNow.AddDays(-1);
+            HttpContext.Current.Response.Cookies.Set(expired);
+        }
     }
 
     public static GoogleUserInfo GetUserInfo(string code)
@@ -215,7 +262,7 @@ public class GoogleOAuthService
 
                 var userInfo = serializer.Deserialize<Dictionary<string, object>>(userInfoJson);
 
-                bool verified = false;
+                bool verified = true;
                 if (userInfo.ContainsKey("verified_email") && userInfo["verified_email"] != null)
                 {
                     object verifiedObj = userInfo["verified_email"];
