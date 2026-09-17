@@ -34,10 +34,9 @@
             </asp:DropDownList>
             <asp:Button ID="btnSearch" runat="server" Text="חפש" CssClass="search-btn"
                         OnClick="btnSearch_Click" />
-            <asp:Button ID="btnExportGoogle" runat="server" Text="ייצוא ליומן Google" CssClass="search-btn google-export-btn"
-                        OnClick="btnExportGoogle_Click" ToolTip="מייצא את האירועים שלך ליומן Google Calendar" />
+            <asp:HyperLink ID="lnkExportGoogle" runat="server" NavigateUrl="exportGoogle.aspx" CssClass="search-btn google-export-btn" Text="ייצוא ליומן Google" />
         </div>
-        <asp:Label ID="lblGoogleExport" runat="server" CssClass="google-export-msg"></asp:Label>
+        <asp:Label ID="lblGoogleExport" runat="server" CssClass="google-export-msg" Visible="false"></asp:Label>
     </div>
 
     <asp:Label ID="lblResult" runat="server" CssClass="search-result"></asp:Label>
@@ -75,8 +74,6 @@
                                 <td>
                                     <asp:HyperLink ID="lnkDetails" runat="server" CssClass="edit-link" Text="פרטים" />
                                     <asp:HyperLink ID="lnkEdit" runat="server" CssClass="edit-link" Text="ערוך" />
-                                    <asp:LinkButton ID="btnExportOne" runat="server" CssClass="edit-link" Text="ל-Google"
-                                        CommandName="ExportGoogle" OnCommand="btnExportOne_Command" />
                                 </td>
                             </tr>
                 </ItemTemplate>

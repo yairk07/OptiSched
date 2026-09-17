@@ -34,6 +34,7 @@
                 <h3>התחברות למערכת</h3>
                 <p class="auth-support">הזן את פרטי המשתמש שסופקו לך על ידי מנהל המערכת</p>
 
+                <asp:Panel ID="pnlLogin" runat="server" DefaultButton="btnLogin">
                 <div class="form-field">
                     <label for="txtUserName">שם משתמש</label>
                     <asp:TextBox ID="txtUserName" runat="server" CssClass="textbox" placeholder="לדוגמה: yair.k" />
@@ -44,10 +45,8 @@
                     <asp:TextBox ID="txtPassword" runat="server" TextMode="Password" CssClass="textbox" placeholder="••••••••" />
                 </div>
 
-                <div class="form-field">
-                    <asp:Button ID="btnGoogleLogin" runat="server" Text="התחבר עם Google" OnClick="btnGoogleLogin_Click" 
-                        CssClass="google-button" />
-                </div>
+                <asp:Button ID="btnLogin" runat="server" Text="כניסה למערכת" OnClick="btnLogin_Click" CssClass="button" />
+                </asp:Panel>
 
                 <div style="margin: 24px 0; text-align: center; position: relative;">
                     <div style="position: relative; text-align: center;">
@@ -56,7 +55,10 @@
                     </div>
                 </div>
 
-                <asp:Button ID="btnLogin" runat="server" Text="כניסה למערכת" OnClick="btnLogin_Click" CssClass="button" />
+                <div class="form-field">
+                    <asp:Button ID="btnGoogleLogin" runat="server" Text="התחבר עם Google" OnClick="btnGoogleLogin_Click" 
+                        CssClass="google-button" />
+                </div>
 
                 <asp:Label ID="lblError" runat="server" CssClass="auth-error" />
 

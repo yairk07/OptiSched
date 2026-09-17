@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Data;
@@ -64,7 +64,250 @@ public class GoogleCalendarService
         string access;
         DateTime? expiry;
         LoadTokens(userId, out access, out refresh, out expiry);
-        return !string.IsNullOrEmpty(refresh) || !string.IsNullOrEmpty(access);
+
+        if (HttpContext.Current != null && HttpContext.Current.Session != null)
+        {
+            if (string.IsNullOrEmpty(access))
+                access = HttpContext.Current.Session["GoogleAccessToken"] as string;
+            if (string.IsNullOrEmpty(refresh))
+                refresh = HttpContext.Current.Session["GoogleRefreshToken"] as string;
+        }
+
+        // Ignore short junk values left from tests / truncated saves.
+        bool hasAccess = !string.IsNullOrEmpty(access) && access.Length > 40;
+        bool hasRefresh = !string.IsNullOrEmpty(refresh) && refresh.Length > 20;
+        return hasAccess || hasRefresh;
+    }
+
+    public static void ClearTokens(int userId)
+    {
+        EnsureTokenColumns();
+        string connectionString = Connect.GetConnectionString();
+        using (OleDbConnection conn = new OleDbConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "UPDATE [Users] SET [GoogleAccessToken]=Null, [GoogleRefreshToken]=Null, [GoogleTokenExpiry]=Null WHERE [Id]=?";
+            using (OleDbCommand cmd = new OleDbCommand(sql, conn))
+            {
+                OleDbParameter idParam = cmd.Parameters.Add("?", OleDbType.VarWChar);
+                idParam.Value = userId.ToString();
+                if (cmd.ExecuteNonQuery() == 0)
+                {
+                    cmd.Parameters.Clear();
+                    idParam = cmd.Parameters.Add("?", OleDbType.Integer);
+                    idParam.Value = userId;
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        if (HttpContext.Current != null && HttpContext.Current.Session != null)
+        {
+            HttpContext.Current.Session.Remove("GoogleAccessToken");
+            HttpContext.Current.Session.Remove("GoogleRefreshToken");
+            HttpContext.Current.Session.Remove("GoogleTokenExpiryUtc");
+        }
+    }
+
+    public static DataTable GetUserPersonalEvents(int userId)
+    {
+        DataTable dt = new DataTable();
+        string connectionString = Connect.GetConnectionString();
+        using (OleDbConnection conn = new OleDbConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "SELECT * FROM [CalendarEvents] WHERE [UserId]=? ORDER BY [EventDate], [Id]";
+            using (OleDbCommand cmd = new OleDbCommand(sql, conn))
+            {
+                OleDbParameter p = cmd.Parameters.Add("?", OleDbType.Integer);
+                p.Value = userId;
+                using (OleDbDataAdapter da = new OleDbDataAdapter(cmd))
+                {
+                    da.Fill(dt);
+                }
+            }
+
+            if (dt.Rows.Count == 0)
+            {
+                // Some DBs store UserId as text.
+                using (OleDbCommand cmd = new OleDbCommand("SELECT * FROM [CalendarEvents] WHERE [UserId]=? ORDER BY [Id]", conn))
+                {
+                    OleDbParameter p = cmd.Parameters.Add("?", OleDbType.VarWChar);
+                    p.Value = userId.ToString();
+                    using (OleDbDataAdapter da = new OleDbDataAdapter(cmd))
+                    {
+                        dt.Clear();
+                        da.Fill(dt);
+                    }
+                }
+            }
+        }
+
+        foreach (string col in new[] { "Title", "Notes", "Category", "EventTime" })
+        {
+            if (!dt.Columns.Contains(col))
+                continue;
+            foreach (DataRow row in dt.Rows)
+            {
+                if (row[col] != null && row[col] != DBNull.Value)
+                    row[col] = Connect.FixEncoding(Convert.ToString(row[col]));
+            }
+        }
+
+        return dt;
+    }
+
+    public static string BuildIcsForUser(int userId)
+    {
+        DataTable events = GetUserPersonalEvents(userId);
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine("BEGIN:VCALENDAR");
+        sb.AppendLine("VERSION:2.0");
+        sb.AppendLine("PRODID:-//OptiSched//Google Export//HE");
+        sb.AppendLine("CALSCALE:GREGORIAN");
+        sb.AppendLine("METHOD:PUBLISH");
+        sb.AppendLine("X-WR-CALNAME:OptiSched");
+
+        int index = 0;
+        foreach (DataRow row in events.Rows)
+        {
+            index++;
+            string title = EscapeIcsText(GetString(row, "Title", "title"));
+            if (string.IsNullOrWhiteSpace(title))
+                title = "OptiSched Event";
+
+            string notes = GetString(row, "Notes", "notes");
+            string category = GetString(row, "Category", "category");
+            string timeText = GetString(row, "EventTime", "time");
+            string description = EscapeIcsText(
+                (string.IsNullOrWhiteSpace(category) ? "" : ("\u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D4: " + category + "\\n")) +
+                (notes ?? "") +
+                "\\n\u05D9\u05D5\u05E6\u05D0 \u05DE-OptiSched");
+
+            DateTime eventDate = DateTime.Today;
+            object dateObj = null;
+            if (row.Table.Columns.Contains("EventDate") && row["EventDate"] != DBNull.Value)
+                dateObj = row["EventDate"];
+            else if (row.Table.Columns.Contains("date") && row["date"] != DBNull.Value)
+                dateObj = row["date"];
+            if (dateObj != null)
+                eventDate = Convert.ToDateTime(dateObj).Date;
+
+            DateTime startLocal;
+            DateTime endLocal;
+            ParseEventTimes(eventDate, timeText, out startLocal, out endLocal);
+
+            string uid = "optischedule-" + userId + "-" + GetString(row, "Id") + "-" + index + "@optischedule.local";
+            string dtStamp = DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'");
+            string dtStart = startLocal.ToString("yyyyMMdd'T'HHmmss");
+            string dtEnd = endLocal.ToString("yyyyMMdd'T'HHmmss");
+
+            sb.AppendLine("BEGIN:VEVENT");
+            sb.AppendLine("UID:" + uid);
+            sb.AppendLine("DTSTAMP:" + dtStamp);
+            sb.AppendLine("DTSTART;TZID=Asia/Jerusalem:" + dtStart);
+            sb.AppendLine("DTEND;TZID=Asia/Jerusalem:" + dtEnd);
+            sb.AppendLine("SUMMARY:" + title);
+            if (!string.IsNullOrWhiteSpace(description))
+                sb.AppendLine("DESCRIPTION:" + description);
+            sb.AppendLine("END:VEVENT");
+        }
+
+        sb.AppendLine("END:VCALENDAR");
+        return sb.ToString();
+    }
+
+    private static string EscapeIcsText(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return "";
+        return value
+            .Replace("\\", "\\\\")
+            .Replace(";", "\\;")
+            .Replace(",", "\\,")
+            .Replace("\r\n", "\\n")
+            .Replace("\n", "\\n")
+            .Replace("\r", "\\n");
+    }
+
+    public static ExportResult ExportUserEventsToGoogle(int userId)
+    {
+        string accessToken = GetValidAccessToken(userId);
+        if (string.IsNullOrEmpty(accessToken) || accessToken.Length < 40)
+            throw new InvalidOperationException("NO_CALENDAR_TOKEN");
+
+        DataTable all = GetUserPersonalEvents(userId);
+        ExportResult result = new ExportResult { Total = all != null ? all.Rows.Count : 0 };
+        if (all == null || all.Rows.Count == 0)
+            return result;
+
+        foreach (DataRow row in all.Rows)
+        {
+            try
+            {
+                if (CreateGoogleEvent(accessToken, row))
+                    result.Exported++;
+            }
+            catch (Exception ex)
+            {
+                result.Failed++;
+                result.LastError = ex.Message;
+                LoggingService.Log("GOOGLE_CALENDAR_EXPORT_ITEM_ERROR", "Failed to export one event: " + ex.Message, ex);
+
+                string body = Convert.ToString(ex.Message);
+                if (body.Contains("(401)") || body.IndexOf("UNAUTHENTICATED", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    body.IndexOf("Invalid Credentials", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    ClearTokens(userId);
+                    throw new InvalidOperationException("NO_CALENDAR_TOKEN");
+                }
+                if (body.IndexOf("Calendar API", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    body.IndexOf("accessNotConfigured", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    body.IndexOf("Cloud Console", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    throw; // fail fast — API disabled for the whole export
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public static bool ExportSingleEventToGoogle(int userId, int eventId)
+    {
+        string accessToken = GetValidAccessToken(userId);
+        if (string.IsNullOrEmpty(accessToken) || accessToken.Length < 40)
+            throw new InvalidOperationException("NO_CALENDAR_TOKEN");
+
+        DataTable all = GetUserPersonalEvents(userId);
+        if (all == null)
+            return false;
+
+        foreach (DataRow row in all.Rows)
+        {
+            if (!row.Table.Columns.Contains("Id") || row["Id"] == DBNull.Value)
+                continue;
+
+            int id;
+            if (!int.TryParse(Convert.ToString(row["Id"]), out id) || id != eventId)
+                continue;
+
+            try
+            {
+                return CreateGoogleEvent(accessToken, row);
+            }
+            catch (Exception ex)
+            {
+                if ((ex.Message ?? "").Contains("(401)"))
+                {
+                    ClearTokens(userId);
+                    throw new InvalidOperationException("NO_CALENDAR_TOKEN");
+                }
+                throw;
+            }
+        }
+
+        return false;
     }
 
     public static string GetCalendarAuthorizationUrl()
@@ -144,6 +387,7 @@ public class GoogleCalendarService
             return;
 
         EnsureTokenColumns();
+        string refreshToSave = tokens.RefreshToken ?? "";
         string connectionString = Connect.GetConnectionString();
         using (OleDbConnection conn = new OleDbConnection(connectionString))
         {
@@ -154,17 +398,53 @@ public class GoogleCalendarService
             DateTime? existingExpiry;
             LoadTokens(userId, out existingAccess, out existingRefresh, out existingExpiry);
 
-            string refreshToSave = !string.IsNullOrEmpty(tokens.RefreshToken) ? tokens.RefreshToken : existingRefresh;
+            if (string.IsNullOrEmpty(refreshToSave))
+                refreshToSave = existingRefresh ?? "";
+            // Access rejects UTC DateTime from AddWithValue — store as local OleDb Date.
+            DateTime expiryLocal = tokens.ExpiryUtc.Kind == DateTimeKind.Utc
+                ? tokens.ExpiryUtc.ToLocalTime()
+                : DateTime.SpecifyKind(tokens.ExpiryUtc, DateTimeKind.Local);
 
             string sql = "UPDATE [Users] SET [GoogleAccessToken]=?, [GoogleRefreshToken]=?, [GoogleTokenExpiry]=? WHERE [Id]=?";
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {
-                cmd.Parameters.AddWithValue("?", tokens.AccessToken ?? "");
-                cmd.Parameters.AddWithValue("?", refreshToSave ?? "");
-                cmd.Parameters.AddWithValue("?", tokens.ExpiryUtc);
-                cmd.Parameters.AddWithValue("?", userId);
-                cmd.ExecuteNonQuery();
+                OleDbParameter accessParam = cmd.Parameters.Add("?", OleDbType.LongVarWChar);
+                accessParam.Value = tokens.AccessToken ?? "";
+
+                OleDbParameter refreshParam = cmd.Parameters.Add("?", OleDbType.LongVarWChar);
+                refreshParam.Value = refreshToSave ?? "";
+
+                OleDbParameter expiryParam = cmd.Parameters.Add("?", OleDbType.Date);
+                expiryParam.Value = expiryLocal;
+
+                // Users.Id is text in this Access DB.
+                OleDbParameter idParam = cmd.Parameters.Add("?", OleDbType.VarWChar);
+                idParam.Value = userId.ToString();
+
+                int rows = cmd.ExecuteNonQuery();
+                if (rows == 0)
+                {
+                    // Fallback if Id was stored as numeric matching.
+                    cmd.Parameters.Clear();
+                    accessParam = cmd.Parameters.Add("?", OleDbType.LongVarWChar);
+                    accessParam.Value = tokens.AccessToken ?? "";
+                    refreshParam = cmd.Parameters.Add("?", OleDbType.LongVarWChar);
+                    refreshParam.Value = refreshToSave ?? "";
+                    expiryParam = cmd.Parameters.Add("?", OleDbType.Date);
+                    expiryParam.Value = expiryLocal;
+                    idParam = cmd.Parameters.Add("?", OleDbType.Integer);
+                    idParam.Value = userId;
+                    cmd.ExecuteNonQuery();
+                }
             }
+        }
+
+        // Session backup for immediate export after OAuth.
+        if (HttpContext.Current != null && HttpContext.Current.Session != null)
+        {
+            HttpContext.Current.Session["GoogleAccessToken"] = tokens.AccessToken;
+            HttpContext.Current.Session["GoogleRefreshToken"] = refreshToSave;
+            HttpContext.Current.Session["GoogleTokenExpiryUtc"] = tokens.ExpiryUtc;
         }
     }
 
@@ -176,7 +456,20 @@ public class GoogleCalendarService
         DateTime? expiry;
         LoadTokens(userId, out access, out refresh, out expiry);
 
+        if (string.IsNullOrEmpty(access) && HttpContext.Current != null && HttpContext.Current.Session != null)
+        {
+            access = HttpContext.Current.Session["GoogleAccessToken"] as string;
+            refresh = HttpContext.Current.Session["GoogleRefreshToken"] as string ?? refresh;
+            object expObj = HttpContext.Current.Session["GoogleTokenExpiryUtc"];
+            if (expObj is DateTime)
+                expiry = (DateTime)expObj;
+        }
+
         if (!string.IsNullOrEmpty(access) && expiry.HasValue && expiry.Value > DateTime.UtcNow.AddMinutes(1))
+            return access;
+
+        // Access token still usable without known expiry for a short window.
+        if (!string.IsNullOrEmpty(access) && !expiry.HasValue)
             return access;
 
         if (string.IsNullOrEmpty(refresh))
@@ -245,92 +538,42 @@ public class GoogleCalendarService
             string sql = "SELECT [GoogleAccessToken], [GoogleRefreshToken], [GoogleTokenExpiry] FROM [Users] WHERE [Id]=?";
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {
-                cmd.Parameters.AddWithValue("?", userId);
+                OleDbParameter idParam = cmd.Parameters.Add("?", OleDbType.VarWChar);
+                idParam.Value = userId.ToString();
                 using (OleDbDataReader dr = cmd.ExecuteReader())
                 {
-                    if (!dr.Read())
+                    if (dr.Read())
+                    {
+                        ReadTokenRow(dr, out accessToken, out refreshToken, out expiryUtc);
                         return;
+                    }
+                }
+            }
 
-                    if (dr["GoogleAccessToken"] != DBNull.Value)
-                        accessToken = Convert.ToString(dr["GoogleAccessToken"]);
-                    if (dr["GoogleRefreshToken"] != DBNull.Value)
-                        refreshToken = Convert.ToString(dr["GoogleRefreshToken"]);
-                    if (dr["GoogleTokenExpiry"] != DBNull.Value)
-                        expiryUtc = Convert.ToDateTime(dr["GoogleTokenExpiry"]).ToUniversalTime();
+            using (OleDbCommand cmd = new OleDbCommand(sql, conn))
+            {
+                OleDbParameter idParam = cmd.Parameters.Add("?", OleDbType.Integer);
+                idParam.Value = userId;
+                using (OleDbDataReader dr = cmd.ExecuteReader())
+                {
+                    if (dr.Read())
+                        ReadTokenRow(dr, out accessToken, out refreshToken, out expiryUtc);
                 }
             }
         }
     }
 
-    public static int ExportUserEventsToGoogle(int userId)
+    private static void ReadTokenRow(OleDbDataReader dr, out string accessToken, out string refreshToken, out DateTime? expiryUtc)
     {
-        string accessToken = GetValidAccessToken(userId);
-        if (string.IsNullOrEmpty(accessToken))
-            throw new InvalidOperationException("NO_CALENDAR_TOKEN");
-
-        EventService es = new EventService();
-        DataTable all = es.GetAllEvents(userId);
-        if (all == null || all.Rows.Count == 0)
-            return 0;
-
-        int exported = 0;
-        foreach (DataRow row in all.Rows)
-        {
-            if (!IsOwnedByUser(row, userId))
-                continue;
-
-            try
-            {
-                if (CreateGoogleEvent(accessToken, row))
-                    exported++;
-            }
-            catch (Exception ex)
-            {
-                LoggingService.Log("GOOGLE_CALENDAR_EXPORT_ITEM_ERROR", "Failed to export one event: " + ex.Message, ex);
-            }
-        }
-
-        return exported;
-    }
-
-    public static bool ExportSingleEventToGoogle(int userId, int eventId)
-    {
-        string accessToken = GetValidAccessToken(userId);
-        if (string.IsNullOrEmpty(accessToken))
-            throw new InvalidOperationException("NO_CALENDAR_TOKEN");
-
-        EventService es = new EventService();
-        DataTable all = es.GetAllEvents(userId);
-        if (all == null)
-            return false;
-
-        foreach (DataRow row in all.Rows)
-        {
-            if (!row.Table.Columns.Contains("Id") || row["Id"] == DBNull.Value)
-                continue;
-
-            int id;
-            if (!int.TryParse(Convert.ToString(row["Id"]), out id) || id != eventId)
-                continue;
-
-            if (!IsOwnedByUser(row, userId))
-                continue;
-
-            return CreateGoogleEvent(accessToken, row);
-        }
-
-        return false;
-    }
-
-    private static bool IsOwnedByUser(DataRow row, int userId)
-    {
-        if (row.Table.Columns.Contains("UserId") && row["UserId"] != null && row["UserId"] != DBNull.Value)
-        {
-            int rowUserId;
-            if (int.TryParse(Convert.ToString(row["UserId"]), out rowUserId))
-                return rowUserId == userId;
-        }
-        return true;
+        accessToken = null;
+        refreshToken = null;
+        expiryUtc = null;
+        if (dr["GoogleAccessToken"] != DBNull.Value)
+            accessToken = Convert.ToString(dr["GoogleAccessToken"]);
+        if (dr["GoogleRefreshToken"] != DBNull.Value)
+            refreshToken = Convert.ToString(dr["GoogleRefreshToken"]);
+        if (dr["GoogleTokenExpiry"] != DBNull.Value)
+            expiryUtc = Convert.ToDateTime(dr["GoogleTokenExpiry"]).ToUniversalTime();
     }
 
     private static bool CreateGoogleEvent(string accessToken, DataRow row)
@@ -359,9 +602,9 @@ public class GoogleCalendarService
 
         string description = notes ?? "";
         if (!string.IsNullOrWhiteSpace(category))
-            description = "קטגוריה: " + category + (string.IsNullOrWhiteSpace(description) ? "" : "\n" + description);
+            description = "\u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D4: " + category + (string.IsNullOrWhiteSpace(description) ? "" : "\n" + description);
 
-        description += "\n\nיוצא מ-OptiSched";
+        description += "\n\n\u05D9\u05D5\u05E6\u05D0 \u05DE-OptiSched";
 
         var payload = new Dictionary<string, object>();
         payload["summary"] = title;
@@ -471,4 +714,12 @@ public class GoogleTokenSet
     public string AccessToken { get; set; }
     public string RefreshToken { get; set; }
     public DateTime ExpiryUtc { get; set; }
+}
+
+public class ExportResult
+{
+    public int Total { get; set; }
+    public int Exported { get; set; }
+    public int Failed { get; set; }
+    public string LastError { get; set; }
 }

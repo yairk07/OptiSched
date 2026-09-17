@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Web.UI;
 
 public partial class login_with_code : System.Web.UI.Page
@@ -18,27 +18,21 @@ public partial class login_with_code : System.Web.UI.Page
 
         if (!IsPostBack)
         {
-            InitializeUI();
             pnlRequestCode.Visible = true;
             pnlVerifyCode.Visible = false;
         }
     }
 
-    private void InitializeUI()
+    private string FriendlyEmailError(Exception ex)
     {
-        h2Title.InnerText = "התחברות ללא סיסמה";
-        pDescription.InnerText = "קבל קוד התחברות באימייל שלך";
-        h3Title.InnerText = "התחברות עם קוד";
-        pSupport.InnerText = "הזן את כתובת האימייל שלך ונשלח לך קוד התחברות";
-        lblEmail.InnerText = "כתובת אימייל";
-        btnSendCode.Text = "שלח קוד";
-        lblCode.InnerText = "קוד אימות";
-        btnVerifyCode.Text = "אמת קוד";
-        pCodeInfo.InnerText = "הזן את הקוד בן 6 הספרות שנשלח לאימייל שלך";
-        lnkResendCode.Text = "שלח קוד חדש";
-        lnkBack.InnerText = "חזור להתחברות רגילה";
-        spanNotRegistered.InnerText = "עדיין לא רשום?";
-        lnkRegister.InnerText = "הירשם עכשיו";
+        string msg = ex != null ? (ex.Message ?? "") : "";
+        if (msg.IndexOf("SMTP", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            msg.IndexOf("Web.config", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            msg.IndexOf("mail", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            return "\u05E9\u05DC\u05D9\u05D7\u05EA \u05D4\u05DE\u05D9\u05D9\u05DC \u05DC\u05D0 \u05D4\u05E6\u05DC\u05D9\u05D7\u05D4. \u05D1\u05D3\u05D5\u05E7 \u05D4\u05D2\u05D3\u05E8\u05D5\u05EA SMTP \u05D1-Web.config \u05D0\u05D5 \u05E0\u05E1\u05D4 \u05D4\u05EA\u05D7\u05D1\u05E8\u05D5\u05EA \u05E2\u05DD \u05E1\u05D9\u05E1\u05DE\u05D4.";
+        }
+        return msg;
     }
 
     protected void btnSendCode_Click(object sender, EventArgs e)
@@ -47,7 +41,7 @@ public partial class login_with_code : System.Web.UI.Page
 
         if (string.IsNullOrEmpty(email))
         {
-            lblMessage.Text = "אנא הזן כתובת אימייל";
+            lblMessage.Text = "\u05D0\u05E0\u05D0 \u05D4\u05D6\u05DF \u05DB\u05EA\u05D5\u05D1\u05EA \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC";
             lblMessage.CssClass = "auth-error";
             return;
         }
@@ -55,25 +49,24 @@ public partial class login_with_code : System.Web.UI.Page
         try
         {
             string code = LoginCodeService.GenerateCode(email);
-            
             EmailService emailService = new EmailService();
             emailService.SendLoginCode(email, code);
 
             ViewState["Email"] = email;
             pnlRequestCode.Visible = false;
             pnlVerifyCode.Visible = true;
-            lblCodeMessage.Text = "קוד נשלח לאימייל שלך. אנא בדוק את תיבת הדואר הנכנס.";
+            lblCodeMessage.Text = "\u05E7\u05D5\u05D3 \u05E0\u05E9\u05DC\u05D7 \u05DC\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05E9\u05DC\u05DA. \u05D0\u05E0\u05D0 \u05D1\u05D3\u05D5\u05E7 \u05D0\u05EA \u05EA\u05D9\u05D1\u05EA \u05D4\u05D3\u05D5\u05D0\u05E8 \u05D4\u05E0\u05DB\u05E0\u05E1.";
             lblCodeMessage.CssClass = "auth-success";
         }
         catch (InvalidOperationException ex)
         {
-            lblMessage.Text = ex.Message;
+            lblMessage.Text = FriendlyEmailError(ex);
             lblMessage.CssClass = "auth-error";
         }
         catch (Exception ex)
         {
             LoggingService.Log("login-with-code", "Error sending code", ex);
-            lblMessage.Text = "אירעה שגיאה בשליחת הקוד. אנא נסה שוב מאוחר יותר.";
+            lblMessage.Text = FriendlyEmailError(ex);
             lblMessage.CssClass = "auth-error";
         }
     }
@@ -85,14 +78,14 @@ public partial class login_with_code : System.Web.UI.Page
 
         if (string.IsNullOrEmpty(email))
         {
-            lblCodeMessage.Text = "שגיאה: כתובת אימייל לא נמצאה";
+            lblCodeMessage.Text = "\u05E9\u05D2\u05D9\u05D0\u05D4: \u05DB\u05EA\u05D5\u05D1\u05EA \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0\u05D4";
             lblCodeMessage.CssClass = "auth-error";
             return;
         }
 
         if (string.IsNullOrEmpty(code) || code.Length != 6)
         {
-            lblCodeMessage.Text = "אנא הזן קוד בן 6 ספרות";
+            lblCodeMessage.Text = "\u05D0\u05E0\u05D0 \u05D4\u05D6\u05DF \u05E7\u05D5\u05D3 \u05D1\u05DF 6 \u05E1\u05E4\u05E8\u05D5\u05EA";
             lblCodeMessage.CssClass = "auth-error";
             return;
         }
@@ -115,25 +108,27 @@ public partial class login_with_code : System.Web.UI.Page
                     Session["username"] = username;
                     Session["userId"] = userId;
                     Session["Role"] = role;
+                    Session["loggedIn"] = true;
 
-                    Response.Redirect("home.aspx");
+                    Response.Redirect("home.aspx", false);
+                    Context.ApplicationInstance.CompleteRequest();
                 }
                 else
                 {
-                    lblCodeMessage.Text = "משתמש לא נמצא במערכת";
+                    lblCodeMessage.Text = "\u05DE\u05E9\u05EA\u05DE\u05E9 \u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0 \u05D1\u05DE\u05E2\u05E8\u05DB\u05EA";
                     lblCodeMessage.CssClass = "auth-error";
                 }
             }
             else
             {
-                lblCodeMessage.Text = "קוד לא תקין או שפג תוקפו. אנא נסה שוב או בקש קוד חדש.";
+                lblCodeMessage.Text = "\u05E7\u05D5\u05D3 \u05DC\u05D0 \u05EA\u05E7\u05D9\u05DF \u05D0\u05D5 \u05E9\u05E4\u05D2 \u05EA\u05D5\u05E7\u05E4\u05D5. \u05D0\u05E0\u05D0 \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1 \u05D0\u05D5 \u05D1\u05E7\u05E9 \u05E7\u05D5\u05D3 \u05D7\u05D3\u05E9.";
                 lblCodeMessage.CssClass = "auth-error";
             }
         }
         catch (Exception ex)
         {
             LoggingService.Log("login-with-code", "Error verifying code", ex);
-            lblCodeMessage.Text = "אירעה שגיאה באימות הקוד. אנא נסה שוב מאוחר יותר.";
+            lblCodeMessage.Text = "\u05D0\u05D9\u05E8\u05E2\u05D4 \u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05D0\u05D9\u05DE\u05D5\u05EA \u05D4\u05E7\u05D5\u05D3. \u05D0\u05E0\u05D0 \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1 \u05DE\u05D0\u05D5\u05D7\u05E8 \u05D9\u05D5\u05EA\u05E8.";
             lblCodeMessage.CssClass = "auth-error";
         }
     }
@@ -144,7 +139,7 @@ public partial class login_with_code : System.Web.UI.Page
 
         if (string.IsNullOrEmpty(email))
         {
-            lblCodeMessage.Text = "שגיאה: כתובת אימייל לא נמצאה";
+            lblCodeMessage.Text = "\u05E9\u05D2\u05D9\u05D0\u05D4: \u05DB\u05EA\u05D5\u05D1\u05EA \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0\u05D4";
             lblCodeMessage.CssClass = "auth-error";
             return;
         }
@@ -152,23 +147,22 @@ public partial class login_with_code : System.Web.UI.Page
         try
         {
             string code = LoginCodeService.GenerateCode(email);
-            
             EmailService emailService = new EmailService();
             emailService.SendLoginCode(email, code);
 
-            lblCodeMessage.Text = "קוד חדש נשלח לאימייל שלך.";
+            lblCodeMessage.Text = "\u05E7\u05D5\u05D3 \u05D7\u05D3\u05E9 \u05E0\u05E9\u05DC\u05D7 \u05DC\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05E9\u05DC\u05DA.";
             lblCodeMessage.CssClass = "auth-success";
             txtCode.Text = "";
         }
         catch (InvalidOperationException ex)
         {
-            lblCodeMessage.Text = ex.Message;
+            lblCodeMessage.Text = FriendlyEmailError(ex);
             lblCodeMessage.CssClass = "auth-error";
         }
         catch (Exception ex)
         {
             LoggingService.Log("login-with-code", "Error resending code", ex);
-            lblCodeMessage.Text = "אירעה שגיאה בשליחת הקוד. אנא נסה שוב מאוחר יותר.";
+            lblCodeMessage.Text = FriendlyEmailError(ex);
             lblCodeMessage.CssClass = "auth-error";
         }
     }

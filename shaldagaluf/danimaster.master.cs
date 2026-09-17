@@ -41,6 +41,9 @@ public partial class danimaster : System.Web.UI.MasterPage
         if (linkAllEvents != null)
             linkAllEvents.Visible = isOwner;
 
+        if (linkExportGoogle != null)
+            linkExportGoogle.Visible = isLoggedIn;
+
         if (lnkUserName != null)
             lnkUserName.Visible = isLoggedIn;
     }

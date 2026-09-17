@@ -19,7 +19,7 @@
                 <div class="hero-actions">
                     <a class="btn-pill primary" href="tasks.aspx">טופס משימות</a>
                     <a class="btn-pill ghost" href="allEvents.aspx">כל האירועים</a>
-                    <a class="btn-pill ghost" href="allEvents.aspx?export=google">ייצוא ליומן Google</a>
+                    <a class="btn-pill ghost" href="exportGoogle.aspx">ייצוא ליומן Google</a>
                 </div>
             </div>
 

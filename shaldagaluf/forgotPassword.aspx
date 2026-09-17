@@ -1,4 +1,4 @@
-<%@ Page Title="שחזור סיסמה" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="forgotPassword.aspx.cs" Inherits="forgotPassword" %>
+﻿<%@ Page Title="שחזור סיסמה" Language="C#" MasterPageFile="~/danimaster.master" AutoEventWireup="true" CodeFile="forgotPassword.aspx.cs" Inherits="forgotPassword" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" Runat="Server">
 </asp:Content>

@@ -23,7 +23,7 @@ public partial class google_oauth_callback : System.Web.UI.Page
                 GoogleOAuthService.ClearOAuthState();
                 Session.Remove("OAuthPurpose");
                 SafeRedirect(purpose == "calendar_export"
-                    ? "allEvents.aspx?gcal=denied"
+                    ? "exportGoogle.aspx?gcal=denied"
                     : "login.aspx?error=google_denied");
                 return;
             }
@@ -34,7 +34,7 @@ public partial class google_oauth_callback : System.Web.UI.Page
                 GoogleOAuthService.ClearOAuthState();
                 Session.Remove("OAuthPurpose");
                 SafeRedirect(purpose == "calendar_export"
-                    ? "allEvents.aspx?gcal=nocode"
+                    ? "exportGoogle.aspx?gcal=error&msg=" + Uri.EscapeDataString("לא התקבל קוד מ-Google")
                     : "login.aspx?error=no_code");
                 return;
             }
@@ -45,7 +45,7 @@ public partial class google_oauth_callback : System.Web.UI.Page
                 GoogleOAuthService.ClearOAuthState();
                 Session.Remove("OAuthPurpose");
                 SafeRedirect(purpose == "calendar_export"
-                    ? "allEvents.aspx?gcal=state"
+                    ? "exportGoogle.aspx?gcal=error&msg=" + Uri.EscapeDataString("state לא תקין")
                     : "login.aspx?error=state_mismatch");
                 return;
             }
@@ -68,8 +68,9 @@ public partial class google_oauth_callback : System.Web.UI.Page
             try { GoogleOAuthService.ClearOAuthState(); } catch { }
             string purpose = Session["OAuthPurpose"] != null ? Session["OAuthPurpose"].ToString() : "login";
             Session.Remove("OAuthPurpose");
+            string detail = Uri.EscapeDataString((ex.Message ?? "").Length > 120 ? (ex.Message ?? "").Substring(0, 120) : (ex.Message ?? ""));
             SafeRedirect(purpose == "calendar_export"
-                ? "allEvents.aspx?gcal=error"
+                ? "exportGoogle.aspx?gcal=error&msg=" + detail
                 : "login.aspx?error=exception");
         }
     }
@@ -97,15 +98,15 @@ public partial class google_oauth_callback : System.Web.UI.Page
             {
                 bool ok = GoogleCalendarService.ExportSingleEventToGoogle(userId, pendingId);
                 Session.Remove("PendingExportEventId");
-                SafeRedirect(ok ? "allEvents.aspx?gcal=one" : "allEvents.aspx?gcal=error");
+                SafeRedirect(ok ? "exportGoogle.aspx?gcal=ok&count=1&failed=0" : "exportGoogle.aspx?gcal=error&msg=" + Uri.EscapeDataString("ייצוא אירוע בודד נכשל"));
                 return;
             }
             Session.Remove("PendingExportEventId");
         }
 
-        int exported = GoogleCalendarService.ExportUserEventsToGoogle(userId);
-        LoggingService.Log("GOOGLE_CALENDAR_EXPORT_DONE", "Exported events: " + exported);
-        SafeRedirect("allEvents.aspx?gcal=ok&count=" + exported);
+        ExportResult result = GoogleCalendarService.ExportUserEventsToGoogle(userId);
+        LoggingService.Log("GOOGLE_CALENDAR_EXPORT_DONE", "Exported events: " + result.Exported);
+        SafeRedirect("exportGoogle.aspx?gcal=ok&count=" + result.Exported + "&failed=" + result.Failed);
     }
 
     private void HandleLogin(string code)

@@ -44,6 +44,7 @@
 
                     <a href="exusers.aspx" id="linkUsers" runat="server">משתמשים</a>
                     <a href="allEvents.aspx" id="linkAllEvents" runat="server">כל האירועים</a>
+                    <a href="exportGoogle.aspx" id="linkExportGoogle" runat="server">ייצוא ל-Google</a>
 
                     <asp:LinkButton ID="lnkUserName" runat="server" CssClass="logout-btn"
                         OnClick="lnkUserName_Click">התנתק</asp:LinkButton>
