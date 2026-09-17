@@ -6,80 +6,118 @@ using System.Text;
 
 public partial class login : System.Web.UI.Page
 {
-    // Sets UTF-8 encoding and redirects to home if user is already logged in
     protected void Page_Load(object sender, EventArgs e)
     {
-        // Set UTF-8 encoding for Hebrew text
         Response.ContentType = "text/html; charset=utf-8";
         Response.Charset = "utf-8";
         Response.ContentEncoding = System.Text.Encoding.UTF8;
         Response.HeaderEncoding = System.Text.Encoding.UTF8;
-        
-        // Redirect if already logged in
+
         if (Session["username"] != null)
         {
-            Response.Redirect("home.aspx");
+            Response.Redirect("home.aspx", false);
+            Context.ApplicationInstance.CompleteRequest();
             return;
         }
+
+        if (!IsPostBack)
+            ShowOAuthErrorIfPresent();
     }
 
-    // Initiates Google OAuth login flow by redirecting to Google authorization URL
+    private void ShowOAuthErrorIfPresent()
+    {
+        string error = Request.QueryString["error"];
+        if (string.IsNullOrEmpty(error))
+            return;
+
+        string message;
+        switch (error)
+        {
+            case "google_denied":
+                message = "ההתחברות עם Google בוטלה.";
+                break;
+            case "google_oauth_failed":
+            case "google_oauth_config":
+                message = "Google OAuth לא מוגדר כראוי. עדכן Client ID ו-Client Secret ב-Web.config, והוסף Redirect URI ב-Google Cloud Console: "
+                    + GoogleOAuthService.GetConfiguredRedirectUri();
+                break;
+            case "no_code":
+                message = "Google לא החזיר קוד הרשאה. נסה שוב.";
+                break;
+            case "state_mismatch":
+                message = "פג תוקף תהליך ההתחברות או שהוא לא תקין. נסה שוב.";
+                break;
+            case "no_userinfo":
+                message = "לא ניתן לקבל פרטי משתמש מ-Google.";
+                break;
+            case "no_userid":
+            case "user_not_found":
+                message = "המשתמש נוצר/נמצא חלקית, אבל לא ניתן להשלים התחברות. נסה שוב.";
+                break;
+            case "exception":
+                message = "אירעה שגיאה במהלך ההתחברות עם Google. נסה שוב.";
+                break;
+            default:
+                message = "ההתחברות עם Google נכשלה. נסה שוב.";
+                break;
+        }
+
+        lblError.Text = message;
+        lblError.Visible = true;
+    }
+
     protected void btnGoogleLogin_Click(object sender, EventArgs e)
     {
         try
         {
-            LoggingService.Log("GOOGLE_LOGIN_CLICK", "Google login button clicked");
-            
-            string clientId = System.Configuration.ConfigurationManager.AppSettings["GoogleOAuth:ClientId"];
-            int clientIdLength = clientId != null ? clientId.Length : 0;
-            LoggingService.Log("GOOGLE_LOGIN_CHECK_CLIENT_ID", string.Format("Checking ClientId - IsEmpty: {0}, Length: {1}", string.IsNullOrWhiteSpace(clientId), clientIdLength));
-            
-            // Check if Google OAuth is configured
-            if (string.IsNullOrWhiteSpace(clientId))
+            if (!GoogleOAuthService.IsConfigured())
             {
-                LoggingService.Log("GOOGLE_LOGIN_NO_CLIENT_ID", "ClientId is empty - cannot proceed with Google login");
-                lblError.Text = "Google OAuth לא מוגדר. כדי להפעיל התחברות עם Google:<br/>1. היכנס ל-Google Cloud Console (https://console.cloud.google.com/)<br/>2. צור OAuth 2.0 Client ID<br/>3. הוסף את הערכים ב-Web.config תחת GoogleOAuth:ClientId ו-GoogleOAuth:ClientSecret<br/>4. הוסף Authorized redirect URI: " + Request.Url.Scheme + "://" + Request.Url.Authority + "/google-oauth-callback.aspx";
+                lblError.Text = "Google OAuth לא מוגדר. כדי להפעיל התחברות עם Google:<br/>"
+                    + "1. היכנס ל-Google Cloud Console<br/>"
+                    + "2. צור OAuth 2.0 Client ID<br/>"
+                    + "3. עדכן ב-Web.config את GoogleOAuth:ClientId ו-GoogleOAuth:ClientSecret<br/>"
+                    + "4. הוסף Authorized redirect URI: <b>" + GoogleOAuthService.GetConfiguredRedirectUri() + "</b>";
                 lblError.Visible = true;
                 return;
             }
-            
-            // Get Google OAuth authorization URL and redirect user
+
             string redirectUrl = GoogleOAuthService.GetAuthorizationUrl();
-            int redirectUrlLength = redirectUrl != null ? redirectUrl.Length : 0;
-            LoggingService.Log("GOOGLE_LOGIN_REDIRECT", string.Format("Redirecting to Google OAuth - URL length: {0}", redirectUrlLength));
-            Response.Redirect(redirectUrl);
+            Response.Redirect(redirectUrl, false);
+            Context.ApplicationInstance.CompleteRequest();
         }
         catch (Exception ex)
         {
-            LoggingService.Log("GOOGLE_LOGIN_ERROR", string.Format("Error in Google login: {0}, StackTrace: {1}", ex.Message, ex.StackTrace), ex);
+            LoggingService.Log("GOOGLE_LOGIN_ERROR", "Error in Google login: " + ex.Message, ex);
             lblError.Text = "שגיאה בהתחברות עם Google: " + ex.Message;
             lblError.Visible = true;
         }
     }
 
-    // Hashes password using SHA256 algorithm and returns hexadecimal string
     private string HashPassword(string password)
     {
         using (SHA256 sha256 = SHA256.Create())
         {
-            byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password ?? ""));
             StringBuilder builder = new StringBuilder();
             for (int i = 0; i < bytes.Length; i++)
-            {
                 builder.Append(bytes[i].ToString("x2"));
-            }
             return builder.ToString();
         }
     }
 
-    // Validates username and password, handles both hashed and plain text passwords, and sets session
     protected void btnLogin_Click(object sender, EventArgs e)
     {
         string username = txtUserName.Text.Trim();
-        string password = txtPassword.Text.Trim();
+        string password = txtPassword.Text;
+
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrEmpty(password))
+        {
+            lblError.Text = "יש להזין שם משתמש וסיסמה.";
+            lblError.Visible = true;
+            return;
+        }
 
         string hashedPassword = HashPassword(password);
-
         string connStr = Connect.GetConnectionString();
 
         using (OleDbConnection conn = new OleDbConnection(connStr))
@@ -94,22 +132,20 @@ public partial class login : System.Web.UI.Page
 
             if (dr.Read())
             {
-                string dbPassword = dr["password"] != null && dr["password"] != DBNull.Value ? dr["password"].ToString() : "";
-                
+                string dbPassword = dr["password"] != null && dr["password"] != DBNull.Value
+                    ? dr["password"].ToString()
+                    : "";
+
                 bool passwordMatch = false;
-                
-                // Check if password is hashed (64 hex characters) or plain text (backward compatibility)
+
                 if (dbPassword.Length == 64 && System.Text.RegularExpressions.Regex.IsMatch(dbPassword, @"^[a-f0-9]{64}$"))
                 {
-                    // Compare hashed passwords
                     passwordMatch = (dbPassword == hashedPassword);
                 }
-                else
+                else if (!string.IsNullOrEmpty(dbPassword))
                 {
-                    // Compare plain text passwords (legacy support)
                     passwordMatch = (dbPassword == password);
-                    
-                    // Upgrade plain text password to hash if match found
+
                     if (passwordMatch)
                     {
                         string updateSql = "UPDATE Users SET [password]=? WHERE id=?";
@@ -120,7 +156,6 @@ public partial class login : System.Web.UI.Page
                     }
                 }
 
-                // Set session variables and redirect on successful login
                 if (passwordMatch)
                 {
                     Session["username"] = dr["userName"].ToString();
@@ -128,12 +163,14 @@ public partial class login : System.Web.UI.Page
                     Session["userId"] = dr["id"].ToString();
                     Session["loggedIn"] = true;
 
-                    Response.Redirect("home.aspx");
+                    Response.Redirect("home.aspx", false);
+                    Context.ApplicationInstance.CompleteRequest();
                     return;
                 }
             }
-            
+
             lblError.Text = "שם משתמש או סיסמה שגויים.";
+            lblError.Visible = true;
         }
     }
 }

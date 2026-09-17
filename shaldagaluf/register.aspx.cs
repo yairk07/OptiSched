@@ -24,28 +24,24 @@ public partial class register : System.Web.UI.Page
     {
         try
         {
-            LoggingService.Log("GOOGLE_REGISTER_CLICK", "Google register button clicked");
-            
-            string clientId = System.Configuration.ConfigurationManager.AppSettings["GoogleOAuth:ClientId"];
-            int clientIdLength = clientId != null ? clientId.Length : 0;
-            LoggingService.Log("GOOGLE_REGISTER_CHECK_CLIENT_ID", string.Format("Checking ClientId - IsEmpty: {0}, Length: {1}", string.IsNullOrWhiteSpace(clientId), clientIdLength));
-            
-            if (string.IsNullOrWhiteSpace(clientId))
+            if (!GoogleOAuthService.IsConfigured())
             {
-                LoggingService.Log("GOOGLE_REGISTER_NO_CLIENT_ID", "ClientId is empty - cannot proceed with Google registration");
-                lblMessage.Text = "Google OAuth לא מוגדר. כדי להפעיל הרשמה עם Google:<br/>1. היכנס ל-Google Cloud Console (https://console.cloud.google.com/)<br/>2. צור OAuth 2.0 Client ID<br/>3. הוסף את הערכים ב-Web.config תחת GoogleOAuth:ClientId ו-GoogleOAuth:ClientSecret<br/>4. הוסף Authorized redirect URI: " + Request.Url.Scheme + "://" + Request.Url.Authority + "/google-oauth-callback.aspx";
+                lblMessage.Text = "Google OAuth לא מוגדר. כדי להפעיל הרשמה עם Google:<br/>"
+                    + "1. היכנס ל-Google Cloud Console<br/>"
+                    + "2. צור OAuth 2.0 Client ID<br/>"
+                    + "3. עדכן ב-Web.config את GoogleOAuth:ClientId ו-GoogleOAuth:ClientSecret<br/>"
+                    + "4. הוסף Authorized redirect URI: <b>" + GoogleOAuthService.GetConfiguredRedirectUri() + "</b>";
                 lblMessage.ForeColor = System.Drawing.Color.Red;
                 return;
             }
-            
+
             string redirectUrl = GoogleOAuthService.GetAuthorizationUrl();
-            int redirectUrlLength = redirectUrl != null ? redirectUrl.Length : 0;
-            LoggingService.Log("GOOGLE_REGISTER_REDIRECT", string.Format("Redirecting to Google OAuth - URL length: {0}", redirectUrlLength));
-            Response.Redirect(redirectUrl);
+            Response.Redirect(redirectUrl, false);
+            Context.ApplicationInstance.CompleteRequest();
         }
         catch (Exception ex)
         {
-            LoggingService.Log("GOOGLE_REGISTER_ERROR", string.Format("Error in Google registration: {0}, StackTrace: {1}", ex.Message, ex.StackTrace), ex);
+            LoggingService.Log("GOOGLE_REGISTER_ERROR", "Error in Google registration: " + ex.Message, ex);
             lblMessage.Text = "שגיאה בהרשמה עם Google: " + ex.Message;
             lblMessage.ForeColor = System.Drawing.Color.Red;
         }

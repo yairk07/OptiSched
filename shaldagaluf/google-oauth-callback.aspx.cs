@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Web.UI;
 
 public partial class google_oauth_callback : System.Web.UI.Page
@@ -8,7 +9,7 @@ public partial class google_oauth_callback : System.Web.UI.Page
         Response.ContentType = "text/html; charset=utf-8";
         Response.Charset = "utf-8";
         Response.ContentEncoding = System.Text.Encoding.UTF8;
-        
+
         try
         {
             string code = Request.QueryString["code"];
@@ -17,51 +18,51 @@ public partial class google_oauth_callback : System.Web.UI.Page
 
             if (!string.IsNullOrEmpty(error))
             {
-                LoggingService.Log("GOOGLE_OAUTH_ERROR", string.Format("Google OAuth error: {0}", error));
-                Response.Redirect("login.aspx?error=google_oauth_failed");
+                LoggingService.Log("GOOGLE_OAUTH_ERROR", "Google returned error: " + error);
+                GoogleOAuthService.ClearOAuthState();
+                SafeRedirect("login.aspx?error=google_denied");
                 return;
             }
 
             if (string.IsNullOrEmpty(code))
             {
                 LoggingService.Log("GOOGLE_OAUTH_NO_CODE", "No code parameter in callback");
-                Response.Redirect("login.aspx?error=no_code");
+                GoogleOAuthService.ClearOAuthState();
+                SafeRedirect("login.aspx?error=no_code");
                 return;
             }
 
-            string sessionState = Session["OAuthState"] != null ? Session["OAuthState"].ToString() : null;
-            if (!string.IsNullOrEmpty(state) && !string.IsNullOrEmpty(sessionState) && state != sessionState)
+            if (!GoogleOAuthService.ValidateOAuthState(state))
             {
-                LoggingService.Log("GOOGLE_OAUTH_STATE_MISMATCH", string.Format("State mismatch - Expected: {0}, Got: {1}", sessionState, state));
-                Response.Redirect("login.aspx?error=state_mismatch");
+                LoggingService.Log("GOOGLE_OAUTH_STATE_INVALID", "OAuth state missing, expired, or mismatched");
+                GoogleOAuthService.ClearOAuthState();
+                SafeRedirect("login.aspx?error=state_mismatch");
                 return;
             }
 
-            LoggingService.Log("GOOGLE_OAUTH_CALLBACK", string.Format("Processing OAuth callback - Code: {0}, State: {1}", code, state));
+            LoggingService.Log("GOOGLE_OAUTH_CALLBACK", "Processing OAuth callback");
 
             GoogleUserInfo userInfo = GoogleOAuthService.GetUserInfo(code);
-            
-            if (userInfo == null || string.IsNullOrEmpty(userInfo.Email))
+
+            if (userInfo == null || string.IsNullOrEmpty(userInfo.Email) || string.IsNullOrEmpty(userInfo.Id))
             {
                 LoggingService.Log("GOOGLE_OAUTH_NO_USERINFO", "Failed to get user info from Google");
-                Response.Redirect("login.aspx?error=no_userinfo");
+                GoogleOAuthService.ClearOAuthState();
+                SafeRedirect("login.aspx?error=no_userinfo");
                 return;
             }
 
-            LoggingService.Log("GOOGLE_OAUTH_USERINFO", string.Format("Got user info - Email: {0}, Name: {1}", userInfo.Email, userInfo.Name));
-
             bool isNewUser = GoogleOAuthService.CreateOrUpdateUser(userInfo);
-            
+
             int? userId = GoogleOAuthService.GetUserIdByGoogleId(userInfo.Id);
             if (!userId.HasValue)
-            {
                 userId = GoogleOAuthService.GetUserIdByEmail(userInfo.Email);
-            }
 
             if (!userId.HasValue)
             {
-                LoggingService.Log("GOOGLE_OAUTH_NO_USERID", string.Format("Failed to get user ID - Email: {0}", userInfo.Email));
-                Response.Redirect("login.aspx?error=no_userid");
+                LoggingService.Log("GOOGLE_OAUTH_NO_USERID", "Failed to resolve user id after Google login");
+                GoogleOAuthService.ClearOAuthState();
+                SafeRedirect("login.aspx?error=no_userid");
                 return;
             }
 
@@ -77,35 +78,47 @@ public partial class google_oauth_callback : System.Web.UI.Page
                     {
                         if (dr.Read())
                         {
-                            Session["username"] = dr["UserName"] != null && dr["UserName"] != DBNull.Value ? dr["UserName"].ToString() : "";
-                            Session["Role"] = dr["Role"] != null && dr["Role"] != DBNull.Value ? dr["Role"].ToString() : "user";
+                            Session["username"] = dr["UserName"] != null && dr["UserName"] != DBNull.Value
+                                ? dr["UserName"].ToString()
+                                : "";
+                            Session["Role"] = dr["Role"] != null && dr["Role"] != DBNull.Value
+                                ? dr["Role"].ToString()
+                                : "user";
                             Session["userId"] = userId.Value.ToString();
                             Session["loggedIn"] = true;
-                            Session.Remove("OAuthState");
+                            GoogleOAuthService.ClearOAuthState();
 
-                            LoggingService.Log("GOOGLE_OAUTH_SUCCESS", string.Format("User logged in - Email: {0}, Username: {1}, IsNewUser: {2}", userInfo.Email, Session["username"], isNewUser));
+                            LoggingService.Log(
+                                "GOOGLE_OAUTH_SUCCESS",
+                                string.Format("User logged in via Google. IsNewUser={0}", isNewUser));
 
-                            if (isNewUser)
-                            {
-                                Response.Redirect("home.aspx?newuser=true");
-                            }
-                            else
-                            {
-                                Response.Redirect("home.aspx");
-                            }
+                            SafeRedirect(isNewUser ? "home.aspx?newuser=true" : "home.aspx");
                             return;
                         }
                     }
                 }
             }
 
-            LoggingService.Log("GOOGLE_OAUTH_USER_NOT_FOUND", string.Format("User not found after creation - Email: {0}, UserId: {1}", userInfo.Email, userId));
-            Response.Redirect("login.aspx?error=user_not_found");
+            LoggingService.Log("GOOGLE_OAUTH_USER_NOT_FOUND", "User row missing after Google login");
+            GoogleOAuthService.ClearOAuthState();
+            SafeRedirect("login.aspx?error=user_not_found");
+        }
+        catch (ThreadAbortException)
+        {
+            // Expected when Response.Redirect ends the request.
+            throw;
         }
         catch (Exception ex)
         {
-            LoggingService.Log("GOOGLE_OAUTH_EXCEPTION", string.Format("Exception in OAuth callback - Error: {0}", ex.Message), ex);
-            Response.Redirect("login.aspx?error=exception");
+            LoggingService.Log("GOOGLE_OAUTH_EXCEPTION", "Exception in OAuth callback: " + ex.Message, ex);
+            try { GoogleOAuthService.ClearOAuthState(); } catch { }
+            SafeRedirect("login.aspx?error=exception");
         }
+    }
+
+    private void SafeRedirect(string url)
+    {
+        Response.Redirect(url, false);
+        Context.ApplicationInstance.CompleteRequest();
     }
 }
