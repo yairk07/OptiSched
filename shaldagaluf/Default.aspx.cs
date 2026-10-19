@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 
 public partial class _Default : System.Web.UI.Page
 {
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";
@@ -12,6 +13,7 @@ public partial class _Default : System.Web.UI.Page
         Response.Redirect("home.aspx");
     }
 }
+
 
 
 

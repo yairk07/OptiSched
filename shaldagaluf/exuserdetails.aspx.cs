@@ -4,6 +4,7 @@ using System.Linq;
 
 public partial class exuserdetails : System.Web.UI.Page
 {
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         // אם אין סשן — שולח לכניסה
@@ -29,6 +30,7 @@ public partial class exuserdetails : System.Web.UI.Page
         }
     }
 
+    // טעינה וקישור נתונים: LoadUserById
     private void LoadUserById(int userId)
     {
         try
@@ -87,6 +89,7 @@ public partial class exuserdetails : System.Web.UI.Page
         }
     }
 
+    // טעינה וקישור נתונים: LoadUserTables
     private void LoadUserTables(int userId)
     {
         DataTable dt = new DataTable();
@@ -94,6 +97,7 @@ public partial class exuserdetails : System.Web.UI.Page
         gvUserTables.DataBind();
     }
 
+    // טעינה וקישור נתונים: LoadManagedTables
     private void LoadManagedTables(int userId)
     {
         DataTable dt = new DataTable();
@@ -101,12 +105,14 @@ public partial class exuserdetails : System.Web.UI.Page
         gvManagedTables.DataBind();
     }
 
+    // הצגת הודעה כשהפריט לא נמצא
     private void ShowNotFound()
     {
         pnlContent.Visible = false;
         pnlNotFound.Visible = true;
     }
 
+    // פונקציה: SafeGet
     private string SafeGet(DataRow row, string columnName)
     {
         if (row == null || row.Table == null) return string.Empty;
@@ -124,6 +130,7 @@ public partial class exuserdetails : System.Web.UI.Page
         return Connect.FixEncoding(result);
     }
 
+    // החזרת שם עיר משורת הנתונים
     private string GetCity(DataRow row)
     {
         if (row == null || row.Table == null) return string.Empty;
@@ -141,3 +148,4 @@ public partial class exuserdetails : System.Web.UI.Page
         return string.Empty;
     }
 }
+

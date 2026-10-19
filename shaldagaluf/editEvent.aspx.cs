@@ -6,6 +6,7 @@ public partial class editEvent : System.Web.UI.Page
 {
     private int eventId;
 
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";
@@ -29,6 +30,7 @@ public partial class editEvent : System.Web.UI.Page
             LoadEvent();
     }
 
+    // טעינה וקישור נתונים: LoadEvent
     private void LoadEvent()
     {
         string conStr = Connect.GetConnectionString();
@@ -89,6 +91,7 @@ public partial class editEvent : System.Web.UI.Page
         LoadEventImages();
     }
 
+    // טעינה וקישור נתונים: LoadEventFiles
     private void LoadEventFiles()
     {
         try
@@ -114,6 +117,7 @@ public partial class editEvent : System.Web.UI.Page
         }
     }
 
+    // טעינה וקישור נתונים: LoadEventImages
     private void LoadEventImages()
     {
         try
@@ -139,6 +143,7 @@ public partial class editEvent : System.Web.UI.Page
         }
     }
 
+    // פונקציה: rptFiles_ItemCommand
     protected void rptFiles_ItemCommand(object source, System.Web.UI.WebControls.RepeaterCommandEventArgs e)
     {
         if (e.CommandName == "DeleteFile")
@@ -160,6 +165,7 @@ public partial class editEvent : System.Web.UI.Page
         }
     }
 
+    // פונקציה: rptImages_ItemCommand
     protected void rptImages_ItemCommand(object source, System.Web.UI.WebControls.RepeaterCommandEventArgs e)
     {
         if (e.CommandName == "DeleteImage")
@@ -181,6 +187,7 @@ public partial class editEvent : System.Web.UI.Page
         }
     }
 
+    // שמירת הנתונים מהטופס
     protected void btnSave_Click(object sender, EventArgs e)
     {
         string conStr = Connect.GetConnectionString();
@@ -262,3 +269,4 @@ public partial class editEvent : System.Web.UI.Page
         }
     }
 }
+

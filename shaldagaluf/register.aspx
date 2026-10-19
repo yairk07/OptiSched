@@ -5,10 +5,16 @@
 
 <asp:Content ID="Content2" ContentPlaceHolderID="ContentPlaceHolder1" Runat="Server">
     <section class="register-shell">
+        <div class="register-bg" aria-hidden="true">
+            <span class="register-glow register-glow-a"></span>
+            <span class="register-glow register-glow-b"></span>
+            <span class="register-grid"></span>
+        </div>
         <div class="register-container">
             <div class="register-header">
+                <span class="hero-eyebrow">OptiSched</span>
                 <h2 class="register-title">הרשמה למערכת</h2>
-                <p class="register-subtitle">צור חשבון חדש כדי להתחיל להשתמש ב-OptiSched</p>
+                <p class="register-subtitle">צור חשבון חדש כדי להתחיל לתכנן משימות ולוחות זמנים</p>
             </div>
 
             <div class="register-form-container">
@@ -17,12 +23,24 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">שם משתמש <span class="required">*</span></label>
-                        <asp:TextBox ID="txtUsername" runat="server" CssClass="form-input" placeholder="הזן שם משתמש"></asp:TextBox>
+                        <asp:TextBox ID="txtUsername" runat="server" CssClass="form-input" placeholder="הזן שם משתמש" MaxLength="30"></asp:TextBox>
+                        <asp:RequiredFieldValidator ID="rfvUsername" runat="server" ControlToValidate="txtUsername"
+                            ErrorMessage="חובה להזין שם משתמש" CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
+                        <asp:RegularExpressionValidator ID="revUsername" runat="server" ControlToValidate="txtUsername"
+                            ValidationExpression="^[A-Za-z0-9_\.\-]{3,30}$"
+                            ErrorMessage="שם משתמש: 3–30 תווים באנגלית/ספרות/._-"
+                            CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">אימייל <span class="required">*</span></label>
                         <asp:TextBox ID="txtEmail" runat="server" TextMode="Email" CssClass="form-input" placeholder="your.email@example.com"></asp:TextBox>
+                        <asp:RequiredFieldValidator ID="rfvEmail" runat="server" ControlToValidate="txtEmail"
+                            ErrorMessage="חובה להזין אימייל" CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
+                        <asp:RegularExpressionValidator ID="revEmail" runat="server" ControlToValidate="txtEmail"
+                            ValidationExpression="^[^@\s]+@[^@\s]+\.[^@\s]+$"
+                            ErrorMessage="כתובת אימייל לא תקינה"
+                            CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
                     </div>
                 </div>
 
@@ -30,11 +48,15 @@
                     <div class="form-group">
                         <label class="form-label">שם פרטי <span class="required">*</span></label>
                         <asp:TextBox ID="txtFirstName" runat="server" CssClass="form-input" placeholder="הזן שם פרטי"></asp:TextBox>
+                        <asp:RequiredFieldValidator ID="rfvFirstName" runat="server" ControlToValidate="txtFirstName"
+                            ErrorMessage="חובה להזין שם פרטי" CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">שם משפחה <span class="required">*</span></label>
                         <asp:TextBox ID="txtLastName" runat="server" CssClass="form-input" placeholder="הזן שם משפחה"></asp:TextBox>
+                        <asp:RequiredFieldValidator ID="rfvLastName" runat="server" ControlToValidate="txtLastName"
+                            ErrorMessage="חובה להזין שם משפחה" CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
                     </div>
                 </div>
 
@@ -42,11 +64,22 @@
                     <div class="form-group">
                         <label class="form-label">סיסמה <span class="required">*</span></label>
                         <asp:TextBox ID="txtPassword" runat="server" TextMode="Password" CssClass="form-input" placeholder="הזן סיסמה"></asp:TextBox>
+                        <asp:RequiredFieldValidator ID="rfvPassword" runat="server" ControlToValidate="txtPassword"
+                            ErrorMessage="חובה להזין סיסמה" CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
+                        <asp:RegularExpressionValidator ID="revPassword" runat="server" ControlToValidate="txtPassword"
+                            ValidationExpression="^.{6,}$"
+                            ErrorMessage="הסיסמה חייבת להכיל לפחות 6 תווים"
+                            CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">אימות סיסמה <span class="required">*</span></label>
                         <asp:TextBox ID="txtConfirmPassword" runat="server" TextMode="Password" CssClass="form-input" placeholder="הזן סיסמה שוב"></asp:TextBox>
+                        <asp:RequiredFieldValidator ID="rfvConfirmPassword" runat="server" ControlToValidate="txtConfirmPassword"
+                            ErrorMessage="חובה לאמת סיסמה" CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
+                        <asp:CompareValidator ID="cvPassword" runat="server" ControlToValidate="txtConfirmPassword"
+                            ControlToCompare="txtPassword" ErrorMessage="הסיסמאות אינן תואמות"
+                            CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
                     </div>
                 </div>
 
@@ -54,11 +87,23 @@
                     <div class="form-group">
                         <label class="form-label">טלפון <span class="required">*</span></label>
                         <asp:TextBox ID="txtPhone" runat="server" TextMode="Phone" CssClass="form-input" placeholder="050-1234567"></asp:TextBox>
+                        <asp:RequiredFieldValidator ID="rfvPhone" runat="server" ControlToValidate="txtPhone"
+                            ErrorMessage="חובה להזין טלפון" CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
+                        <asp:RegularExpressionValidator ID="revPhone" runat="server" ControlToValidate="txtPhone"
+                            ValidationExpression="^0(5\d|[2-489]|7[2-9])-?\d{7}$"
+                            ErrorMessage="טלפון לא תקין (לדוגמה 0501234567)"
+                            CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">תעודת זהות <span class="required">*</span></label>
-                        <asp:TextBox ID="txtID" runat="server" CssClass="form-input" placeholder="הזן תעודת זהות"></asp:TextBox>
+                        <asp:TextBox ID="txtID" runat="server" CssClass="form-input" placeholder="הזן תעודת זהות" MaxLength="9"></asp:TextBox>
+                        <asp:RequiredFieldValidator ID="rfvID" runat="server" ControlToValidate="txtID"
+                            ErrorMessage="חובה להזין תעודת זהות" CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
+                        <asp:RegularExpressionValidator ID="revID" runat="server" ControlToValidate="txtID"
+                            ValidationExpression="^\d{5,9}$"
+                            ErrorMessage="תעודת זהות: 5–9 ספרות"
+                            CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
                     </div>
                 </div>
 
@@ -84,6 +129,9 @@
                             <asp:DropDownList ID="ddlOptions" runat="server" CssClass="form-input city-dropdown" style="display:none;">
                                 <asp:ListItem Text="בחר עיר" Value="" />
                             </asp:DropDownList>
+                            <asp:RequiredFieldValidator ID="rfvCity" runat="server" ControlToValidate="ddlOptions"
+                                InitialValue="" ErrorMessage="חובה לבחור עיר" CssClass="field-error" Display="Dynamic"
+                                ValidationGroup="Register" />
                             <div id="cityDropdownList" class="city-dropdown-list"></div>
                         </div>
                     </div>
@@ -92,12 +140,18 @@
                 <div class="form-group">
                     <label class="form-label">שנת לידה <span class="required">*</span></label>
                     <asp:TextBox ID="txtYearOfBirth" runat="server" CssClass="form-input" placeholder="1990" TextMode="Number"></asp:TextBox>
+                    <asp:RequiredFieldValidator ID="rfvYear" runat="server" ControlToValidate="txtYearOfBirth"
+                        ErrorMessage="חובה להזין שנת לידה" CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
+                    <asp:RangeValidator ID="rvYear" runat="server" ControlToValidate="txtYearOfBirth"
+                        Type="Integer" MinimumValue="1906" MaximumValue="2016"
+                        ErrorMessage="שנת לידה לא בטווח תקין"
+                        CssClass="field-error" Display="Dynamic" ValidationGroup="Register" />
                 </div>
 
                 <div class="form-actions">
                     <div class="form-field">
                         <asp:Button ID="btnGoogleRegister" runat="server" Text="הירשם עם Google" OnClick="btnGoogleRegister_Click" 
-                            CssClass="google-button" />
+                            CssClass="google-button" CausesValidation="false" />
                     </div>
 
                     <div style="margin: 24px 0; text-align: center; position: relative;">
@@ -107,7 +161,12 @@
                         </div>
                     </div>
 
-                    <asp:Button ID="btnRegister" runat="server" Text="הירשם" OnClick="btnRegister_Click" CssClass="btn-register" />
+                    <asp:Button ID="btnRegister" runat="server" Text="הירשם" OnClick="btnRegister_Click"
+                        CssClass="btn-register" ValidationGroup="Register" CausesValidation="true" />
+
+                    <asp:Button ID="btnFillDemo" runat="server" Text="מלא דוגמה" OnClick="btnFillDemo_Click"
+                        CssClass="btn-fill-demo" CausesValidation="false"
+                        ToolTip="ממלא את הטופס במשתמש לדוגמה תקין (מתחלף בין 20 דוגמאות)" />
                 </div>
 
                 <div class="register-footer">
@@ -119,40 +178,97 @@
 
     <style>
         .register-shell {
-            width: min(1500px, 95%);
-            margin: 40px auto 60px;
-            padding: 0 20px;
+            position: relative;
+            width: min(920px, 94%);
+            margin: 28px auto 70px;
+            padding: 28px 12px 40px;
+            isolation: isolate;
+        }
+
+        .register-bg {
+            position: absolute;
+            inset: -48px -12% -20px;
+            z-index: -1;
+            pointer-events: none;
+            overflow: hidden;
+            border-radius: 36px;
+        }
+
+        .register-glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(50px);
+            opacity: 0.9;
+        }
+
+        .register-glow-a {
+            width: 340px;
+            height: 340px;
+            top: -80px;
+            left: -40px;
+            background: rgba(229, 9, 20, 0.28);
+        }
+
+        .register-glow-b {
+            width: 280px;
+            height: 280px;
+            right: -30px;
+            bottom: 10%;
+            background: rgba(229, 9, 20, 0.18);
+        }
+
+        .register-grid {
+            position: absolute;
+            inset: 0;
+            opacity: 0.09;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.45) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.45) 1px, transparent 1px);
+            background-size: 48px 48px;
+            mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, #000 20%, transparent 75%);
         }
 
         .register-container {
+            position: relative;
             max-width: 800px;
             margin: 0 auto;
         }
 
         .register-header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 28px;
+        }
+
+        .register-header .hero-eyebrow {
+            display: inline-block;
+            margin-bottom: 12px;
+            color: var(--brand);
+            opacity: 1;
         }
 
         .register-title {
-            font-size: 32px;
+            font-size: clamp(28px, 4vw, 36px);
             font-weight: 700;
             color: var(--heading);
-            margin-bottom: 12px;
+            margin: 0 0 10px;
         }
 
         .register-subtitle {
             font-size: 16px;
-            color: var(--text);
-            opacity: 0.8;
+            color: var(--muted);
+            margin: 0 auto;
+            max-width: 36ch;
+            line-height: 1.55;
         }
 
         .register-form-container {
-            background: var(--surface);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--border);
+            background:
+                radial-gradient(circle at top right, rgba(229, 9, 20, 0.16), transparent 40%),
+                linear-gradient(180deg, rgba(31, 33, 40, 0.95), var(--surface));
+            border-radius: 24px;
+            padding: clamp(28px, 4vw, 44px);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .form-row {
@@ -338,6 +454,25 @@
             min-height: 24px;
         }
 
+        .form-message.err {
+            background: #fce8e6;
+            color: #c5221f;
+            border: 1px solid #f5c2c0;
+        }
+
+        .form-message.ok {
+            background: #e6f4ea;
+            color: #137333;
+            border: 1px solid #b7e1c1;
+        }
+
+        .field-error {
+            display: block;
+            color: #c5221f;
+            font-size: 13px;
+            margin-top: 6px;
+        }
+
         .form-actions {
             margin-top: 32px;
             padding-top: 24px;
@@ -365,6 +500,26 @@
 
         .btn-register:active {
             transform: translateY(1px);
+        }
+
+        .btn-fill-demo {
+            width: 100%;
+            margin-top: 12px;
+            padding: 12px 28px;
+            background: transparent;
+            color: var(--text);
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: border-color .2s ease, color .2s ease, background .2s ease;
+        }
+
+        .btn-fill-demo:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+            background: rgba(229, 9, 20, 0.08);
         }
 
         .register-footer {

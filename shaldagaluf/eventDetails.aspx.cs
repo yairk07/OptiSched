@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Data;
 using System.Data.OleDb;
 using System.Text;
@@ -7,6 +7,7 @@ public partial class eventDetails : System.Web.UI.Page
 {
     private int eventId;
 
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         if (Session["username"] == null)
@@ -27,6 +28,7 @@ public partial class eventDetails : System.Web.UI.Page
         }
     }
 
+    // טעינה וקישור נתונים: LoadEvent
     private void LoadEvent()
     {
         try
@@ -84,6 +86,7 @@ public partial class eventDetails : System.Web.UI.Page
         }
     }
 
+    // טעינה וקישור נתונים: LoadEventData
     private void LoadEventData(OleDbDataReader dr, OleDbConnection con)
     {
         int rowUserId = dr["UserId"] != DBNull.Value ? Convert.ToInt32(dr["UserId"]) : 0;
@@ -179,6 +182,7 @@ public partial class eventDetails : System.Web.UI.Page
         LoadEventImages();
     }
 
+    // בדיקה אם עמודה קיימת בטבלה
     private bool ColumnExists(OleDbConnection conn, string tableName, string columnName)
     {
         try
@@ -210,6 +214,7 @@ public partial class eventDetails : System.Web.UI.Page
     }
 
 
+    // טעינה וקישור נתונים: LoadEventFiles
     private void LoadEventFiles()
     {
         try
@@ -223,6 +228,7 @@ public partial class eventDetails : System.Web.UI.Page
         catch { pnlFiles.Visible = false; }
     }
 
+    // טעינה וקישור נתונים: LoadEventImages
     private void LoadEventImages()
     {
         try
@@ -236,9 +242,11 @@ public partial class eventDetails : System.Web.UI.Page
         catch { pnlImages.Visible = false; }
     }
 
+    // הצגת הודעה כשהפריט לא נמצא
     private void ShowNotFound()
     {
         pnlContent.Visible = false;
         pnlNotFound.Visible = true;
     }
 }
+

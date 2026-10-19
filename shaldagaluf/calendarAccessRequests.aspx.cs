@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Data;
 using System.Web.UI;
 
@@ -6,6 +6,7 @@ public partial class calendarAccessRequests : System.Web.UI.Page
 {
     SharedCalendarService service = new SharedCalendarService();
 
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";
@@ -44,6 +45,7 @@ public partial class calendarAccessRequests : System.Web.UI.Page
         }
     }
 
+    // בדיקת תנאי: IsCalendarManager
     private bool IsCalendarManager(int userId)
     {
         try
@@ -67,6 +69,7 @@ public partial class calendarAccessRequests : System.Web.UI.Page
         }
     }
 
+    // טעינה וקישור נתונים: BindRequests
     private void BindRequests()
     {
         try
@@ -186,6 +189,7 @@ WHERE JR.Status = 'Pending'";
         }
     }
 
+    // פונקציה: rptRequests_ItemCommand
     protected void rptRequests_ItemCommand(object source, System.Web.UI.WebControls.RepeaterCommandEventArgs e)
     {
         try
@@ -239,5 +243,6 @@ WHERE JR.Status = 'Pending'";
         }
     }
 }
+
 
 

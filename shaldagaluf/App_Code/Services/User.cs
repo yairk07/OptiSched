@@ -59,6 +59,7 @@
         City = city;
     }
 
+    // הוספת משתמש חדש למסד הנתונים
     public void insertintodb()
     {
         UsersService us = new UsersService();
@@ -77,3 +78,4 @@
     }
 
 }
+

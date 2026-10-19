@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using System.Web.UI;
 
 public partial class createDatabaseTables : System.Web.UI.Page
 {
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         if (!IsPostBack)
@@ -11,6 +12,7 @@ public partial class createDatabaseTables : System.Web.UI.Page
         }
     }
 
+    // יצירת פריט חדש
     protected void btnCreateTables_Click(object sender, EventArgs e)
     {
         try
@@ -28,4 +30,5 @@ public partial class createDatabaseTables : System.Web.UI.Page
         }
     }
 }
+
 

@@ -905,12 +905,14 @@ button,
 
 /* ========== PAGE: register.aspx ========== */
 body.page-register {
-    padding-top: 100px;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    background-color: #eef2f5;
     min-height: 100vh;
+    background-color: var(--bg);
+    background-image:
+        radial-gradient(ellipse 900px 480px at 80% -10%, rgba(229, 9, 20, 0.34), transparent 60%),
+        radial-gradient(ellipse 700px 420px at 0% 100%, rgba(229, 9, 20, 0.16), transparent 55%),
+        radial-gradient(circle at 50% 30%, rgba(21, 23, 29, 0.55), transparent 65%),
+        linear-gradient(180deg, #0b0c0f 0%, #101218 45%, #0b0c0f 100%);
+    background-attachment: fixed;
 }
 
 #mainform {

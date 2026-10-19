@@ -146,6 +146,17 @@
             color: #e50914;
         }
 
+        .field-error {
+            display: block;
+            color: #e50914;
+            font-size: 13px;
+            margin-top: 6px;
+        }
+
+        .required {
+            color: var(--brand);
+        }
+
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -174,30 +185,52 @@
                 <asp:Panel ID="pnlForm" runat="server">
                     <div class="edit-user-form">
                         <div class="form-group">
-                            <label class="form-label">&#x05E9;&#x05DD; &#x05DE;&#x05E9;&#x05EA;&#x05DE;&#x05E9;</label>
-                            <asp:TextBox ID="txtUserName" runat="server" CssClass="form-input" />
+                            <label class="form-label">&#x05E9;&#x05DD; &#x05DE;&#x05E9;&#x05EA;&#x05DE;&#x05E9; <span class="required">*</span></label>
+                            <asp:TextBox ID="txtUserName" runat="server" CssClass="form-input" MaxLength="30" />
+                            <asp:RequiredFieldValidator ID="rfvUserName" runat="server" ControlToValidate="txtUserName"
+                                ErrorMessage="חובה להזין שם משתמש" CssClass="field-error" Display="Dynamic" ValidationGroup="EditUser" />
+                            <asp:RegularExpressionValidator ID="revUserName" runat="server" ControlToValidate="txtUserName"
+                                ValidationExpression="^[A-Za-z0-9_\.\-]{3,30}$"
+                                ErrorMessage="שם משתמש: 3–30 תווים באנגלית/ספרות/._-"
+                                CssClass="field-error" Display="Dynamic" ValidationGroup="EditUser" />
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label class="form-label">&#x05E9;&#x05DD; &#x05E4;&#x05E8;&#x05D8;&#x05D9;</label>
+                                <label class="form-label">&#x05E9;&#x05DD; &#x05E4;&#x05E8;&#x05D8;&#x05D9; <span class="required">*</span></label>
                                 <asp:TextBox ID="txtFirstName" runat="server" CssClass="form-input" />
+                                <asp:RequiredFieldValidator ID="rfvFirstName" runat="server" ControlToValidate="txtFirstName"
+                                    ErrorMessage="חובה להזין שם פרטי" CssClass="field-error" Display="Dynamic" ValidationGroup="EditUser" />
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">&#x05E9;&#x05DD; &#x05DE;&#x05E9;&#x05E4;&#x05D7;&#x05D4;</label>
+                                <label class="form-label">&#x05E9;&#x05DD; &#x05DE;&#x05E9;&#x05E4;&#x05D7;&#x05D4; <span class="required">*</span></label>
                                 <asp:TextBox ID="txtLastName" runat="server" CssClass="form-input" />
+                                <asp:RequiredFieldValidator ID="rfvLastName" runat="server" ControlToValidate="txtLastName"
+                                    ErrorMessage="חובה להזין שם משפחה" CssClass="field-error" Display="Dynamic" ValidationGroup="EditUser" />
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">&#x05D0;&#x05D9;&#x05DE;&#x05D9;&#x05D9;&#x05DC;</label>
+                            <label class="form-label">&#x05D0;&#x05D9;&#x05DE;&#x05D9;&#x05D9;&#x05DC; <span class="required">*</span></label>
                             <asp:TextBox ID="txtEmail" runat="server" CssClass="form-input" TextMode="Email" />
+                            <asp:RequiredFieldValidator ID="rfvEmail" runat="server" ControlToValidate="txtEmail"
+                                ErrorMessage="חובה להזין אימייל" CssClass="field-error" Display="Dynamic" ValidationGroup="EditUser" />
+                            <asp:RegularExpressionValidator ID="revEmail" runat="server" ControlToValidate="txtEmail"
+                                ValidationExpression="^[^@\s]+@[^@\s]+\.[^@\s]+$"
+                                ErrorMessage="כתובת אימייל לא תקינה"
+                                CssClass="field-error" Display="Dynamic" ValidationGroup="EditUser" />
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">&#x05D8;&#x05DC;&#x05E4;&#x05D5;&#x05DF;</label>
+                            <label class="form-label">&#x05D8;&#x05DC;&#x05E4;&#x05D5;&#x05DF; <span class="required">*</span></label>
                             <asp:TextBox ID="txtPhone" runat="server" CssClass="form-input" />
+                            <asp:RequiredFieldValidator ID="rfvPhone" runat="server" ControlToValidate="txtPhone"
+                                ErrorMessage="חובה להזין טלפון" CssClass="field-error" Display="Dynamic" ValidationGroup="EditUser" />
+                            <asp:RegularExpressionValidator ID="revPhone" runat="server" ControlToValidate="txtPhone"
+                                ValidationExpression="^0(5\d|[2-489]|7[2-9])-?\d{7}$"
+                                ErrorMessage="טלפון לא תקין (לדוגמה 0501234567)"
+                                CssClass="field-error" Display="Dynamic" ValidationGroup="EditUser" />
                         </div>
 
                         <div class="form-group">
@@ -216,7 +249,8 @@
                         <asp:Label ID="lblMessage" runat="server" CssClass="form-message" Visible="false" />
 
                         <div class="form-actions">
-                            <asp:Button ID="btnSave" runat="server" Text="&#x05E9;&#x05DE;&#x05D5;&#x05E8; &#x05E9;&#x05D9;&#x05E0;&#x05D5;&#x05D9;&#x05D9;&#x05DD;" CssClass="btn-save" OnClick="btnSave_Click" />
+                            <asp:Button ID="btnSave" runat="server" Text="&#x05E9;&#x05DE;&#x05D5;&#x05E8; &#x05E9;&#x05D9;&#x05E0;&#x05D5;&#x05D9;&#x05D9;&#x05DD;"
+                                CssClass="btn-save" OnClick="btnSave_Click" ValidationGroup="EditUser" CausesValidation="true" />
                             <a href="exusers.aspx" class="btn-cancel">&#x05D1;&#x05D9;&#x05D8;&#x05D5;&#x05DC;</a>
                         </div>
                     </div>

@@ -6,6 +6,7 @@ using System.Web.UI;
 
 public partial class exportGoogle : System.Web.UI.Page
 {
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";
@@ -26,11 +27,13 @@ public partial class exportGoogle : System.Web.UI.Page
         }
     }
 
+    // פונקציה: CurrentUserId
     private int CurrentUserId()
     {
         return Convert.ToInt32(Session["userId"]);
     }
 
+    // טעינה וקישור נתונים: BindPage
     private void BindPage()
     {
         int userId = CurrentUserId();
@@ -53,6 +56,7 @@ public partial class exportGoogle : System.Web.UI.Page
         }
     }
 
+    // פונקציה: ShowQueryMessage
     private void ShowQueryMessage()
     {
         string gcal = Request.QueryString["gcal"];
@@ -77,12 +81,14 @@ public partial class exportGoogle : System.Web.UI.Page
             SetStatus("\u05E0\u05D3\u05E8\u05E9 \u05D7\u05D9\u05D1\u05D5\u05E8 \u05DE\u05D7\u05D3\u05E9 \u05DC-Google \u05E2\u05D1\u05D5\u05E8 \u05D9\u05D9\u05E6\u05D5\u05D0 \u05D9\u05E9\u05D9\u05E8.", "info");
     }
 
+    // פונקציה: SetStatus
     private void SetStatus(string text, string kind)
     {
         lblStatus.Text = text;
         lblStatus.CssClass = "export-status " + kind;
     }
 
+    // פונקציה: FormatDate
     protected string FormatDate(object value)
     {
         if (value == null || value == DBNull.Value)
@@ -95,12 +101,14 @@ public partial class exportGoogle : System.Web.UI.Page
         return Convert.ToString(value);
     }
 
+    // טיפול בלחיצת כפתור RefreshIcs
     protected void btnRefreshIcs_Click(object sender, EventArgs e)
     {
         BindPage();
         SetStatus("\u05E7\u05D5\u05D3 \u05D4-ICS \u05E2\u05D5\u05D3\u05DB\u05DF.", "ok");
     }
 
+    // טיפול בלחיצת כפתור DownloadIcs
     protected void btnDownloadIcs_Click(object sender, EventArgs e)
     {
         int userId = CurrentUserId();
@@ -126,6 +134,7 @@ public partial class exportGoogle : System.Web.UI.Page
         HttpContext.Current.ApplicationInstance.CompleteRequest();
     }
 
+    // טיפול בלחיצת כפתור ExportApi
     protected void btnExportApi_Click(object sender, EventArgs e)
     {
         try
@@ -177,6 +186,7 @@ public partial class exportGoogle : System.Web.UI.Page
         }
     }
 
+    // טיפול בלחיצת כפתור Reconnect
     protected void btnReconnect_Click(object sender, EventArgs e)
     {
         try

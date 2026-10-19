@@ -17,6 +17,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
 
     public bool IsAdmin { get { return isAdmin; } }
 
+    // טעינת הדף: בדיקת התחברות, מחיקת אירוע אם נדרש, וטעינת הטבלה המשותפת
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";
@@ -85,6 +86,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         }
     }
 
+    // תיקון קידוד עברית (UTF-8 / Windows-1255)
     private string FixEncoding(string text)
     {
         if (string.IsNullOrEmpty(text))
@@ -107,6 +109,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         }
     }
 
+    // טעינת פרטי הטבלה, הרשאות המשתמש, והצגת אירועי היום הנבחר
     private void LoadCalendar()
     {
         DataRow calendar = service.GetSharedCalendar(calendarId);
@@ -167,6 +170,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         }
     }
 
+    // שמירת אירועים שפורסרו מטקסט מודבק (JSON) למסד הנתונים
     private void SaveParsedEvents(string json)
     {
         try
@@ -258,12 +262,14 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         }
     }
 
+    // הצגת הודעה כשהטבלה לא נמצאה
     private void ShowNotFound()
     {
         pnlContent.Visible = false;
         pnlNotFound.Visible = true;
     }
 
+    // שליחת בקשת הצטרפות לטבלה המשותפת
     protected void btnSendJoinRequest_Click(object sender, EventArgs e)
     {
         try
@@ -304,6 +310,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         }
     }
 
+    // מעבר ללשונית אירועים ולוח השנה
     protected void btnTabEvents_Click(object sender, EventArgs e)
     {
         pnlEvents.Visible = true;
@@ -313,6 +320,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         BindCalendar();
     }
 
+    // מעבר ללשונית בקשות הצטרפות ממתינות
     protected void btnTabRequests_Click(object sender, EventArgs e)
     {
         pnlEvents.Visible = false;
@@ -322,6 +330,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         LoadRequests();
     }
 
+    // בדיקה אם ערך שדה לא תקין / ריק / placeholder
     private bool IsInvalidValue(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -334,6 +343,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
     }
 
 
+    // טעינת בקשות הצטרפות ממתינות לטבלה
     private void LoadRequests()
     {
         DataTable dt = PermissionService.GetPendingRequestsForCalendar(calendarId);
@@ -366,6 +376,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         dlRequests.DataBind();
     }
 
+    // פתיחת טופס הוספת אירוע חדש לתאריך הנבחר
     protected void btnAddEvent_Click(object sender, EventArgs e)
     {
         ViewState["EditingEventId"] = null;
@@ -382,6 +393,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         ShowEvents(calEvents.SelectedDate);
     }
 
+    // שמירת אירוע חדש או עדכון אירוע קיים
     protected void btnSaveEvent_Click(object sender, EventArgs e)
     {
         lblSaveError.Visible = false;
@@ -466,6 +478,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         }
     }
 
+    // טעינת אירוע קיים לטופס העריכה
     protected void lnkEdit_Click(object sender, EventArgs e)
     {
         string role = Session["Role"] != null ? Session["Role"].ToString() : "";
@@ -535,6 +548,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         }
     }
 
+    // מחיקת אירוע מהטבלה המשותפת
     protected void lnkDelete_Click(object sender, EventArgs e)
     {
         string role = Session["Role"] != null ? Session["Role"].ToString() : "";
@@ -551,6 +565,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         BindCalendar();
     }
 
+    // אתחול ברירת מחדל להרשאה בכל שורת בקשת הצטרפות
     protected void dlRequests_ItemDataBound(object sender, DataListItemEventArgs e)
     {
         if (e.Item.ItemType == ListItemType.Item || e.Item.ItemType == ListItemType.AlternatingItem)
@@ -563,6 +578,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         }
     }
 
+    // אישור בקשת הצטרפות והענקת הרשאה למשתמש
     protected void btnApprove_Click(object sender, EventArgs e)
     {
         string role = Session["Role"] != null ? Session["Role"].ToString() : "";
@@ -595,6 +611,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         }
     }
 
+    // דחיית בקשת הצטרפות לטבלה
     protected void btnReject_Click(object sender, EventArgs e)
     {
         string role = Session["Role"] != null ? Session["Role"].ToString() : "";
@@ -614,6 +631,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         }
     }
 
+    // ניקוי שדות טופס האירוע
     private void ClearEventForm()
     {
         txtEventTitle.Text = "";
@@ -623,6 +641,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         ddlEventCategory.SelectedIndex = 0;
     }
 
+    // החזרת מחרוזת בטוחה מה-DB (עם תיקון קידוד)
     protected string GetSafeString(object value, string defaultValue = "")
     {
         try
@@ -646,6 +665,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         }
     }
 
+    // המרת תאריך מה-DB לפורמט תצוגה dd/MM/yyyy
     protected string GetSafeDate(object value)
     {
         try
@@ -661,6 +681,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         }
     }
 
+    // טעינת כל אירועי הטבלה ל-ViewState (לפני סינון לפי יום)
     private void BindCalendar()
     {
         try
@@ -689,6 +710,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         }
     }
 
+    // מעבר לחודש קודם/הבא בלוח השנה
     protected void btnMonthChange_Click(object sender, EventArgs e)
     {
         LinkButton btn = sender as LinkButton;
@@ -726,6 +748,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         BindCalendar();
     }
 
+    // רענון הלוח כשמשנים חודש נראה
     protected void calEvents_VisibleMonthChanged(object sender, MonthChangedEventArgs e)
     {
         try
@@ -747,6 +770,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         BindCalendar();
     }
 
+    // סינון והצגת אירועים בתוך תא יום בלוח (לפי תאריך היום)
     protected void calEvents_DayRender(object sender, DayRenderEventArgs e)
     {
         try
@@ -833,6 +857,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         }
     }
 
+    // סינון נתונים לטבלה לפי יום (בחירת תאריך בלוח)
     protected void calEvents_SelectionChanged(object sender, EventArgs e)
     {
         DateTime selectedDate = calEvents.SelectedDate;
@@ -846,6 +871,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         }
     }
 
+    // סינון נתונים לטבלה לפי יום — מציג רק אירועים של התאריך שנבחר
     private void ShowEvents(DateTime date)
     {
         var builder = new StringBuilder();

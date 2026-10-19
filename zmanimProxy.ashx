@@ -1,1 +1,1 @@
-{"latitude":31.7683,"longitude":-35.2137,"date":"2025-11-21"}
+{"latitude":31.7683,"longitude":-35.2137,"date":"2026-10-18"}

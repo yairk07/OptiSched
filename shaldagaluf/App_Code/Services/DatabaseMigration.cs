@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Data.OleDb;
 
 /// <summary>
@@ -378,6 +378,7 @@ public static class DatabaseMigration
         }
     }
 
+    // בדיקה אם עמודה קיימת בטבלה
     private static bool ColumnExists(OleDbConnection conn, string tableName, string columnName)
     {
         try
@@ -394,6 +395,7 @@ public static class DatabaseMigration
         }
     }
 
+    // פונקציה: ExecuteNonQuery
     private static void ExecuteNonQuery(OleDbConnection conn, string sql)
     {
         using (OleDbCommand cmd = new OleDbCommand(sql, conn))
@@ -402,6 +404,7 @@ public static class DatabaseMigration
         }
     }
 }
+
 
 
 

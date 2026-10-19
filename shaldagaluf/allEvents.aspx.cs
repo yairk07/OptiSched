@@ -99,6 +99,7 @@ public partial class allEvents : System.Web.UI.Page
         return dt;
     }
     
+    // פונקציה: EnsureRequiredColumns
     private void EnsureRequiredColumns(DataTable dt)
     {
         if (dt == null) return;
@@ -132,6 +133,7 @@ public partial class allEvents : System.Web.UI.Page
         }
     }
     
+    // פונקציה: ClearEventsCache
     private void ClearEventsCache()
     {
         string userIdStr = Session["userId"] != null ? Session["userId"].ToString() : null;
@@ -170,6 +172,7 @@ public partial class allEvents : System.Web.UI.Page
         }
     }
 
+    // פונקציה: SetViewMode
     private void SetViewMode(string mode)
     {
         if (mode == "calendar")
@@ -198,6 +201,7 @@ public partial class allEvents : System.Web.UI.Page
         }
     }
 
+    // טעינה וקישור של טבלת המשתמשים
     private void BindUsers()
     {
         try
@@ -390,6 +394,7 @@ public partial class allEvents : System.Web.UI.Page
         lblResult.Text = resultMessage;
     }
 
+    // טעינת אירועי הטבלה ללוח (לפני סינון לפי יום)
     private void BindCalendar()
     {
         LoggingService.Log("ALLEVENTS", "BindCalendar called");
@@ -481,6 +486,7 @@ public partial class allEvents : System.Web.UI.Page
         BindData(search, categoryFilter, userFilter);
     }
 
+    // פונקציה: ddlCategoryFilter_SelectedIndexChanged
     protected void ddlCategoryFilter_SelectedIndexChanged(object sender, EventArgs e)
     {
         string search = txtSearch.Text.Trim();
@@ -489,6 +495,7 @@ public partial class allEvents : System.Web.UI.Page
         BindData(search, categoryFilter, userFilter);
     }
 
+    // פונקציה: ddlUserFilter_SelectedIndexChanged
     protected void ddlUserFilter_SelectedIndexChanged(object sender, EventArgs e)
     {
         string search = txtSearch.Text.Trim();
@@ -497,6 +504,7 @@ public partial class allEvents : System.Web.UI.Page
         BindData(search, categoryFilter, userFilter);
     }
 
+    // טיפול בלחיצת כפתור ViewToggle
     protected void btnViewToggle_Click(object sender, EventArgs e)
     {
         Button btn = sender as Button;
@@ -514,6 +522,7 @@ public partial class allEvents : System.Web.UI.Page
         }
     }
 
+    // מעבר לחודש קודם/הבא בלוח
     protected void btnMonthChange_Click(object sender, EventArgs e)
     {
         LinkButton btn = sender as LinkButton;
@@ -551,6 +560,7 @@ public partial class allEvents : System.Web.UI.Page
         BindCalendar();
     }
 
+    // רענון הלוח בעת שינוי חודש
     protected void calEvents_VisibleMonthChanged(object sender, MonthChangedEventArgs e)
     {
         try
@@ -572,6 +582,7 @@ public partial class allEvents : System.Web.UI.Page
         BindCalendar();
     }
 
+    // סינון והצגת אירועים בתא יום בלוח
     protected void calEvents_DayRender(object sender, DayRenderEventArgs e)
     {
         try
@@ -900,7 +911,9 @@ public partial class allEvents : System.Web.UI.Page
         }
     }
 
+    // פונקציה: VerifyRenderingInServerForm
     public override void VerifyRenderingInServerForm(System.Web.UI.Control control)
     {
     }
 }
+

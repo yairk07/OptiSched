@@ -6,6 +6,7 @@ using System.Data.OleDb;
 public class UsersService
 {
 
+    // בדיקה אם עמודה קיימת בטבלה
     private static bool ColumnExists(OleDbConnection conn, string tableName, string columnName)
     {
         try
@@ -41,6 +42,41 @@ public class UsersService
     // DSD Schema: Uses PasswordHash, UserIdNumber, PhoneNumber, CityId, CreatedDate
     // Supports both old and new column names for migration
     // ------------------------------
+    private static int GetNextUserId(OleDbConnection conn)
+    {
+        string[] maxQueries =
+        {
+            "SELECT MAX(Val([id])) FROM [Users]",
+            "SELECT MAX(Val([Id])) FROM [Users]",
+            "SELECT MAX([id]) FROM [Users]",
+            "SELECT MAX([Id]) FROM [Users]"
+        };
+
+        foreach (string sql in maxQueries)
+        {
+            try
+            {
+                using (OleDbCommand cmd = new OleDbCommand(sql, conn))
+                {
+                    object result = cmd.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                    {
+                        int maxId;
+                        if (int.TryParse(Convert.ToString(result).Trim(), out maxId))
+                            return maxId + 1;
+                    }
+                }
+            }
+            catch
+            {
+                continue;
+            }
+        }
+
+        return 1;
+    }
+
+    // הוספת משתמש חדש למסד הנתונים
     public int insertIntoDB(string userName, string firstName, string lastName, string email, string password,
                 int gender, int yearOfBirth, string userId, string phonenum, int city)
     {
@@ -59,6 +95,10 @@ public class UsersService
             bool hasCity = ColumnExists(myConnection, "Users", "city");
             bool hasRole = ColumnExists(myConnection, "Users", "Role") || ColumnExists(myConnection, "Users", "role");
             bool hasCreatedDate = ColumnExists(myConnection, "Users", "CreatedDate");
+            // Access schema: [id] is required text (not AutoNumber) — must supply next unique value
+            bool hasId = ColumnExists(myConnection, "Users", "id") || ColumnExists(myConnection, "Users", "Id");
+            string idCol = ColumnExists(myConnection, "Users", "id") ? "id" : "Id";
+            int nextId = hasId ? GetNextUserId(myConnection) : -1;
 
             string passwordCol = hasPasswordHash ? "PasswordHash" : (hasPassword ? "[password]" : "PasswordHash");
             string userIdCol = hasUserIdNumber ? "UserIdNumber" : (hasUserId ? "userId" : "UserIdNumber");
@@ -66,8 +106,17 @@ public class UsersService
             string cityCol = hasCityId ? "CityId" : (hasCity ? "city" : "CityId");
             string roleCol = ColumnExists(myConnection, "Users", "Role") ? "Role" : (ColumnExists(myConnection, "Users", "role") ? "role" : "Role");
 
-            List<string> columns = new List<string> { "UserName", "FirstName", "LastName", "Email", passwordCol, "Gender", "YearOfBirth", userIdCol, phoneCol, cityCol };
-            List<string> values = new List<string> { "?", "?", "?", "?", "?", "?", "?", "?", "?", "?" };
+            List<string> columns = new List<string>();
+            List<string> values = new List<string>();
+
+            if (hasId)
+            {
+                columns.Add("[" + idCol + "]");
+                values.Add("?");
+            }
+
+            columns.AddRange(new string[] { "UserName", "FirstName", "LastName", "Email", passwordCol, "Gender", "YearOfBirth", userIdCol, phoneCol, cityCol });
+            values.AddRange(new string[] { "?", "?", "?", "?", "?", "?", "?", "?", "?", "?" });
 
             if (hasRole)
             {
@@ -83,14 +132,16 @@ public class UsersService
 
             string sSql = "INSERT INTO Users (" + string.Join(", ", columns) + ") VALUES(" + string.Join(", ", values) + ")";
 
-            // #region agent log
-            try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:SCHEMA_CHECK\",\"message\":\"Checking column schema\",\"data\":{\"hasPasswordHash\":\"" + hasPasswordHash + "\",\"hasPassword\":\"" + hasPassword + "\",\"hasUserIdNumber\":\"" + hasUserIdNumber + "\",\"hasUserId\":\"" + hasUserId + "\",\"hasPhoneNumber\":\"" + hasPhoneNumber + "\",\"hasPhonenum\":\"" + hasPhonenum + "\",\"hasCityId\":\"" + hasCityId + "\",\"hasCity\":\"" + hasCity + "\",\"hasRole\":\"" + hasRole + "\",\"hasCreatedDate\":\"" + hasCreatedDate + "\",\"passwordCol\":\"" + passwordCol + "\",\"userIdCol\":\"" + userIdCol + "\",\"phoneCol\":\"" + phoneCol + "\",\"cityCol\":\"" + cityCol + "\",\"roleCol\":\"" + roleCol + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-            try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:INSERT_SQL\",\"message\":\"INSERT SQL with schema detection\",\"data\":{\"sql\":\"" + sSql.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"placeholderCount\":" + values.Count + ",\"userName\":\"" + (userName ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-            // #endregion
-
             using (OleDbCommand cmd = new OleDbCommand(sSql, myConnection))
             {
                 string hashedPassword = PasswordHelper.HashPassword(password);
+
+                if (hasId)
+                {
+                    OleDbParameter idParam = new OleDbParameter("?", OleDbType.WChar);
+                    idParam.Value = nextId.ToString();
+                    cmd.Parameters.Add(idParam);
+                }
 
                 OleDbParameter userNameParam = new OleDbParameter("?", OleDbType.WChar);
                 userNameParam.Value = userName != null ? userName.Trim() : "";
@@ -146,92 +197,16 @@ public class UsersService
                     cmd.Parameters.Add(createdDateParam);
                 }
 
-                // #region agent log
-                try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:BEFORE_EXECUTE\",\"message\":\"Before ExecuteNonQuery\",\"data\":{\"paramCount\":\"" + cmd.Parameters.Count + "\",\"expectedCount\":\"" + values.Count + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-                // #endregion
                 try
                 {
                     cmd.ExecuteNonQuery();
-                    // #region agent log
-                    try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:EXECUTE_SUCCESS\",\"message\":\"ExecuteNonQuery success\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-                    // #endregion
-
-                    cmd.CommandText = "SELECT @@IDENTITY";
-                    object newId = cmd.ExecuteScalar();
-                    if (newId != null && newId != DBNull.Value)
-                    {
-                        return Convert.ToInt32(newId);
-                    }
-                    return -1;
+                    return hasId ? nextId : -1;
                 }
                 catch (Exception ex)
                 {
-                    // #region agent log
-                    try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:EXECUTE_ERROR\",\"message\":\"ExecuteNonQuery error\",\"data\":{\"error\":\"" + ex.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"type\":\"" + ex.GetType().Name + "\",\"sql\":\"" + sSql.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\",\"paramCount\":\"" + cmd.Parameters.Count + "\",\"expectedCount\":\"" + values.Count + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-                    // #endregion
-
-                    if (ex.Message.Contains("You must enter a value in the 'Users.id' field") || ex.Message.Contains("Users.id") || ex.Message.Contains("Id field"))
-                    {
-                        try
-                        {
-                            string getIdentitySql = "SELECT @@IDENTITY";
-                            using (OleDbCommand identityCmd = new OleDbCommand(getIdentitySql, myConnection))
-                            {
-                                object identityResult = identityCmd.ExecuteScalar();
-                                if (identityResult != null && identityResult != DBNull.Value)
-                                {
-                                    // #region agent log
-                                    try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:IDENTITY_CHECK\",\"message\":\"Checking @@IDENTITY after failed insert\",\"data\":{\"identity\":\"" + identityResult.ToString() + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-                                    // #endregion
-                                }
-                            }
-
-                            string idCol = ColumnExists(myConnection, "Users", "Id") ? "Id" : (ColumnExists(myConnection, "Users", "id") ? "id" : "Id");
-                            string sSqlWithId = "INSERT INTO Users (" + idCol + ", " + string.Join(", ", columns) + ") VALUES(0, " + string.Join(", ", values) + ")";
-
-                            // #region agent log
-                            try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:RETRY_WITH_ID\",\"message\":\"Retrying INSERT with Id=0\",\"data\":{\"sql\":\"" + sSqlWithId.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-                            // #endregion
-
-                            using (OleDbCommand cmd2 = new OleDbCommand(sSqlWithId, myConnection))
-                            {
-                                foreach (OleDbParameter param in cmd.Parameters)
-                                {
-                                    OleDbParameter newParam = new OleDbParameter("?", param.OleDbType);
-                                    newParam.Value = param.Value;
-                                    cmd2.Parameters.Add(newParam);
-                                }
-
-                                cmd2.ExecuteNonQuery();
-                                // #region agent log
-                                try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:RETRY_SUCCESS\",\"message\":\"Retry with Id=0 success\",\"data\":{},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-                                // #endregion
-
-                                cmd2.CommandText = "SELECT @@IDENTITY";
-                                object newId = cmd2.ExecuteScalar();
-                                if (newId != null && newId != DBNull.Value)
-                                {
-                                    return Convert.ToInt32(newId);
-                                }
-                                return -1;
-                            }
-                        }
-                        catch (Exception retryEx)
-                        {
-                            // #region agent log
-                            try { LoggingService.Log("UsersService", "{\"location\":\"UsersService.insertIntoDB:RETRY_FAILED\",\"message\":\"Retry with Id=0 also failed\",\"data\":{\"error\":\"" + retryEx.Message.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"},\"timestamp\":" + (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds + "}\n"); } catch { }
-                            // #endregion
-                            throw new Exception("Failed to insert user: " + ex.Message + " (Retry also failed: " + retryEx.Message + ")", ex);
-                        }
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    throw new Exception("Failed to insert user: " + ex.Message, ex);
                 }
             }
-
-            return -1;
         }
     }
 
@@ -346,6 +321,110 @@ public class UsersService
     }
 
     // ------------------------------
+    // USERNAME UNIQUENESS
+    // ------------------------------
+    public bool UsernameExists(string userName)
+    {
+        return UsernameExistsForOtherUser(userName, -1);
+    }
+
+    // בדיקה אם שם משתמש קיים אצל משתמש אחר
+    public bool UsernameExistsForOtherUser(string userName, int excludeUserId)
+    {
+        if (string.IsNullOrWhiteSpace(userName))
+            return false;
+
+        string connectionString = Connect.GetConnectionString();
+        string lower = userName.Trim().ToLower();
+
+        using (OleDbConnection conn = new OleDbConnection(connectionString))
+        {
+            conn.Open();
+
+            string[] queries =
+            {
+                "SELECT COUNT(*) FROM [Users] WHERE LCase([UserName])=? AND [Id]<>?",
+                "SELECT COUNT(*) FROM [Users] WHERE LCase([userName])=? AND [Id]<>?",
+                "SELECT COUNT(*) FROM [Users] WHERE LCase([username])=? AND [id]<>?"
+            };
+
+            foreach (string sql in queries)
+            {
+                try
+                {
+                    using (OleDbCommand cmd = new OleDbCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("?", lower);
+                        cmd.Parameters.AddWithValue("?", excludeUserId);
+                        object result = cmd.ExecuteScalar();
+                        if (result != null && result != DBNull.Value && Convert.ToInt32(result) > 0)
+                            return true;
+                    }
+                }
+                catch
+                {
+                    continue;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // עדכון פרטי פרופיל משתמש במסד
+    public void UpdateUserProfile(int userId, string userName, string firstName, string lastName, string email, string phone)
+    {
+        string connectionString = Connect.GetConnectionString();
+        using (OleDbConnection conn = new OleDbConnection(connectionString))
+        {
+            conn.Open();
+
+            string userNameCol = ColumnExists(conn, "Users", "UserName") ? "[UserName]"
+                : (ColumnExists(conn, "Users", "userName") ? "[userName]" : "[username]");
+            string firstNameCol = ColumnExists(conn, "Users", "FirstName") ? "[FirstName]"
+                : (ColumnExists(conn, "Users", "firstName") ? "[firstName]" : "[firstname]");
+            string lastNameCol = ColumnExists(conn, "Users", "LastName") ? "[LastName]"
+                : (ColumnExists(conn, "Users", "lastName") ? "[lastName]" : "[lastname]");
+            string emailCol = ColumnExists(conn, "Users", "Email") ? "[Email]"
+                : (ColumnExists(conn, "Users", "email") ? "[email]" : "[email]");
+            string idCol = ColumnExists(conn, "Users", "Id") ? "[Id]"
+                : (ColumnExists(conn, "Users", "id") ? "[id]" : "[id]");
+
+            bool hasPhoneNumber = ColumnExists(conn, "Users", "PhoneNumber");
+            bool hasPhonenum = ColumnExists(conn, "Users", "phonenum");
+
+            // Keep both phone columns in sync when the schema has both.
+            System.Text.StringBuilder set = new System.Text.StringBuilder();
+            set.Append(userNameCol).Append("=?, ")
+               .Append(firstNameCol).Append("=?, ")
+               .Append(lastNameCol).Append("=?, ")
+               .Append(emailCol).Append("=?");
+            if (hasPhonenum)
+                set.Append(", [phonenum]=?");
+            if (hasPhoneNumber)
+                set.Append(", [PhoneNumber]=?");
+
+            string sql = "UPDATE [Users] SET " + set + " WHERE " + idCol + "=?";
+            using (OleDbCommand cmd = new OleDbCommand(sql, conn))
+            {
+                string phoneVal = phone != null ? phone.Trim() : "";
+                cmd.Parameters.AddWithValue("?", userName != null ? userName.Trim() : "");
+                cmd.Parameters.AddWithValue("?", firstName != null ? firstName.Trim() : "");
+                cmd.Parameters.AddWithValue("?", lastName != null ? lastName.Trim() : "");
+                cmd.Parameters.AddWithValue("?", email != null ? email.Trim() : "");
+                if (hasPhonenum)
+                    cmd.Parameters.AddWithValue("?", phoneVal);
+                if (hasPhoneNumber)
+                    cmd.Parameters.AddWithValue("?", phoneVal);
+                cmd.Parameters.AddWithValue("?", userId);
+                int affected = cmd.ExecuteNonQuery();
+                if (affected <= 0)
+                    throw new InvalidOperationException("לא נמצא משתמש לעדכון (Id=" + userId + ").");
+            }
+        }
+    }
+
+    // ------------------------------
     // LOGIN CHECK
     // ------------------------------
     public bool IsExist(string userName, string password)
@@ -388,6 +467,7 @@ public class UsersService
         return ds.Tables[0].Rows.Count > 0;
     }
 
+    // שליפת משתמש לפי אימייל
     public DataRow GetUserByEmail(string email)
     {
         DataSet ds = new DataSet();
@@ -435,6 +515,7 @@ public class UsersService
         return null;
     }
 
+    // שמירה/עדכון במסד: UpdatePassword
     public void UpdatePassword(int userId, string newPassword)
     {
         string connectionString = Connect.GetConnectionString();
@@ -490,6 +571,7 @@ public class UsersService
         }
     }
 
+    // שליפת משתמש לפי GoogleId
     public DataRow GetUserByGoogleId(string googleId)
     {
         DataSet ds = new DataSet();
@@ -552,6 +634,7 @@ public class UsersService
         return null;
     }
 
+    // מחיקה: DeleteUser
     public bool DeleteUser(int userId)
     {
         string connectionString = Connect.GetConnectionString();
@@ -572,3 +655,4 @@ public class UsersService
         }
     }
 }
+

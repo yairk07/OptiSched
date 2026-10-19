@@ -1,8 +1,9 @@
-using System.Data;
+﻿using System.Data;
 using System.Data.OleDb;
 
 public class CityService
 {
+    // שליפת כל הערים
     public DataTable GetAllCities()
     {
         DataTable dt = new DataTable();
@@ -24,6 +25,7 @@ public class CityService
         return dt;
     }
 
+    // פונקציה: SearchCities
     public DataTable SearchCities(string searchTerm)
     {
         DataTable dt = new DataTable();
@@ -48,6 +50,7 @@ public class CityService
         return dt;
     }
 }
+
 
 
 

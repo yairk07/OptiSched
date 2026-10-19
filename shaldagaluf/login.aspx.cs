@@ -6,6 +6,7 @@ using System.Text;
 
 public partial class login : System.Web.UI.Page
 {
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";
@@ -24,6 +25,7 @@ public partial class login : System.Web.UI.Page
             ShowOAuthErrorIfPresent();
     }
 
+    // פונקציה: ShowOAuthErrorIfPresent
     private void ShowOAuthErrorIfPresent()
     {
         string error = Request.QueryString["error"];
@@ -66,6 +68,7 @@ public partial class login : System.Web.UI.Page
         lblError.Visible = true;
     }
 
+    // טיפול בלחיצת התחברות
     protected void btnGoogleLogin_Click(object sender, EventArgs e)
     {
         try
@@ -93,6 +96,7 @@ public partial class login : System.Web.UI.Page
         }
     }
 
+    // הצפנת סיסמה ב-SHA256
     private string HashPassword(string password)
     {
         using (SHA256 sha256 = SHA256.Create())
@@ -105,6 +109,7 @@ public partial class login : System.Web.UI.Page
         }
     }
 
+    // טיפול בלחיצת התחברות
     protected void btnLogin_Click(object sender, EventArgs e)
     {
         string username = txtUserName.Text.Trim();
@@ -174,3 +179,4 @@ public partial class login : System.Web.UI.Page
         }
     }
 }
+

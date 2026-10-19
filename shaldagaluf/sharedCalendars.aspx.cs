@@ -7,6 +7,7 @@ public partial class sharedCalendars : System.Web.UI.Page
 {
     SharedCalendarService service = new SharedCalendarService();
 
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";
@@ -26,6 +27,7 @@ public partial class sharedCalendars : System.Web.UI.Page
         }
     }
 
+    // תיקון קידוד עברית (UTF-8 / Windows-1255)
     private string FixEncoding(string text)
     {
         if (string.IsNullOrEmpty(text))
@@ -47,6 +49,7 @@ public partial class sharedCalendars : System.Web.UI.Page
         }
     }
     
+    // בדיקה אם המחרוזת כבר ב-UTF-8 תקין
     private bool IsValidUtf8(string text)
     {
         try
@@ -61,6 +64,7 @@ public partial class sharedCalendars : System.Web.UI.Page
         }
     }
 
+    // טעינה וקישור של רשימת הטבלאות המשותפות
     private void BindCalendars()
     {
         try
@@ -127,12 +131,14 @@ public partial class sharedCalendars : System.Web.UI.Page
         }
     }
 
+    // יצירת פריט חדש
     protected void btnCreateNew_Click(object sender, EventArgs e)
     {
         pnlCreateForm.Visible = true;
         btnCreateNew.Visible = false;
     }
 
+    // ביטול הפעולה וסגירת הטופס
     protected void btnCancelCreate_Click(object sender, EventArgs e)
     {
         pnlCreateForm.Visible = false;
@@ -141,6 +147,7 @@ public partial class sharedCalendars : System.Web.UI.Page
         txtDescription.Text = "";
     }
 
+    // שמירת הנתונים מהטופס
     protected void btnSaveCalendar_Click(object sender, EventArgs e)
     {
         try
@@ -186,6 +193,7 @@ public partial class sharedCalendars : System.Web.UI.Page
         }
     }
 
+    // בחירת כפתור פעולה לפי הרשאות/חברות בטבלה
     protected string GetCalendarActionButton(object dataItem)
     {
         try
@@ -235,6 +243,7 @@ public partial class sharedCalendars : System.Web.UI.Page
         }
     }
 
+    // טעינה וקישור של בקשות הצטרפות ממתינות
     private void BindPendingRequests()
     {
         try
@@ -261,3 +270,4 @@ public partial class sharedCalendars : System.Web.UI.Page
         }
     }
 }
+

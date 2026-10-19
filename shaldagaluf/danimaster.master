@@ -13,7 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Trocchi&display=swap" rel="stylesheet">
     
     <!-- External CSS -->
-    <link href="StyleSheet.css" rel="stylesheet" />
+    <link href="StyleSheet.css?v=20261019" rel="stylesheet" />
     
     <!-- Placeholder for additional head content -->
     <asp:ContentPlaceHolder ID="head" runat="server"></asp:ContentPlaceHolder>

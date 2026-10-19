@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Data;
 using System.Data.OleDb;
 
@@ -386,6 +386,7 @@ ORDER BY SC.CreatedDate DESC";
         }
     }
 
+    // שליפת נתונים: GetJoinRequests
     public DataTable GetJoinRequests(int calendarId, int? adminUserId = null)
     {
         string conStr = Connect.GetConnectionString();
@@ -508,6 +509,7 @@ WHERE JR.CalendarId = ? AND JR.Status = 'pending'";
         }
     }
 
+    // דחיית בקשת הצטרפות
     public void RejectJoinRequest(int requestId)
     {
         string conStr = Connect.GetConnectionString();
@@ -532,6 +534,7 @@ WHERE JR.CalendarId = ? AND JR.Status = 'pending'";
         }
     }
 
+    // שליפת כל אירועי טבלה משותפת
     public DataTable GetSharedCalendarEvents(int calendarId, int? userId = null)
     {
         string conStr = Connect.GetConnectionString();
@@ -671,6 +674,7 @@ WHERE SCE.CalendarId = ?
         return dt;
     }
 
+    // הוספת אירוע לטבלה משותפת
     public void AddSharedCalendarEvent(int calendarId, string title, DateTime date, string time, string notes, string category, int createdBy)
     {
         string conStr = Connect.GetConnectionString();
@@ -790,6 +794,7 @@ WHERE SCE.CalendarId = ?
         }
     }
 
+    // עדכון אירוע בטבלה משותפת
     public void UpdateSharedCalendarEvent(int eventId, string title, DateTime date, string time, string notes, string category)
     {
         string conStr = Connect.GetConnectionString();
@@ -899,6 +904,7 @@ WHERE SCE.CalendarId = ?
         }
     }
 
+    // מחיקת אירוע מטבלה משותפת
     public void DeleteSharedCalendarEvent(int eventId)
     {
         string conStr = Connect.GetConnectionString();
@@ -924,6 +930,7 @@ WHERE SCE.CalendarId = ?
     }
 
 
+    // בדיקה אם המשתמש הוא יוצר/מנהל הטבלה
     public bool IsCalendarAdmin(int calendarId, int userId)
     {
         string conStr = Connect.GetConnectionString();
@@ -951,6 +958,7 @@ WHERE SCE.CalendarId = ?
         }
     }
 
+    // בדיקה אם המשתמש חבר בטבלה
     public bool IsCalendarMember(int calendarId, int userId)
     {
         string conStr = Connect.GetConnectionString();
@@ -978,6 +986,7 @@ WHERE SCE.CalendarId = ?
         }
     }
 
+    // שליפת פרטי טבלה משותפת לפי מזהה
     public DataRow GetSharedCalendar(int calendarId)
     {
         string conStr = Connect.GetConnectionString();
@@ -1051,6 +1060,7 @@ ORDER BY SC.Id";
         return null;
     }
 
+    // בקשת גישה לטבלה משותפת
     public bool RequestAccess(int calendarId, int userId, string message = "")
     {
         string conStr = Connect.GetConnectionString();
@@ -1152,6 +1162,7 @@ CREATE TABLE JoinRequests (
         }
     }
 
+    // בדיקה אם טבלה קיימת במסד
     private bool TableExists(OleDbConnection conn, string tableName)
     {
         try
@@ -1168,6 +1179,7 @@ CREATE TABLE JoinRequests (
         }
     }
 
+    // שליפת נתונים: GetAccessRequests
     public DataTable GetAccessRequests(int calendarId, int? approverUserId = null)
     {
         string conStr = Connect.GetConnectionString();
@@ -1248,6 +1260,7 @@ WHERE JR.CalendarId = ? AND JR.Status = 'Pending'";
         return dt;
     }
 
+    // פונקציה: ApproveRequest
     public bool ApproveRequest(int requestId, int approverUserId, string permission = "Read")
     {
         string conStr = Connect.GetConnectionString();
@@ -1370,6 +1383,7 @@ WHERE JR.Id = ?";
         }
     }
 
+    // בדיקה אם עמודה קיימת בטבלה
     private bool ColumnExists(OleDbConnection conn, string tableName, string columnName)
     {
         try
@@ -1411,6 +1425,7 @@ WHERE JR.Id = ?";
         }
     }
 
+    // פונקציה: RejectRequest
     public bool RejectRequest(int requestId, int approverUserId)
     {
         string conStr = Connect.GetConnectionString();
@@ -1467,6 +1482,7 @@ WHERE JR.Id = ?";
         }
     }
 
+    // בדיקה אם המשתמש המחובר הוא בעלים (owner)
     private bool IsOwner(int userId)
     {
         string conStr = Connect.GetConnectionString();
@@ -1492,6 +1508,7 @@ WHERE JR.Id = ?";
         }
     }
 
+    // החזרת סטטוס בקשת הצטרפות
     public string GetRequestStatus(int calendarId, int userId)
     {
         string conStr = Connect.GetConnectionString();
@@ -1521,6 +1538,7 @@ WHERE JR.Id = ?";
         return null;
     }
 
+    // החזרת רמת הרשאה של חבר בטבלה
     private string GetMemberPermission(OleDbConnection con, int calendarId, int userId)
     {
         try

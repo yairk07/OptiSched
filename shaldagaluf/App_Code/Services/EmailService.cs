@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Configuration;
 using System.Net;
 using System.Net.Mail;
@@ -7,11 +7,13 @@ using System.Security.Cryptography.X509Certificates;
 
 public class EmailService
 {
+    // שליפת נתונים: GetSmtpServer
     private static string GetSmtpServer()
     {
         return ConfigurationManager.AppSettings["Smtp:Server"] ?? "smtp.gmail.com";
     }
 
+    // שליפת נתונים: GetSmtpPort
     private static int GetSmtpPort()
     {
         string portStr = ConfigurationManager.AppSettings["Smtp:Port"];
@@ -23,16 +25,19 @@ public class EmailService
         return 587;
     }
 
+    // שליפת נתונים: GetSmtpUsername
     private static string GetSmtpUsername()
     {
         return ConfigurationManager.AppSettings["Smtp:Username"] ?? "";
     }
 
+    // שליפת נתונים: GetSmtpPassword
     private static string GetSmtpPassword()
     {
         return ConfigurationManager.AppSettings["Smtp:Password"] ?? "";
     }
 
+    // שליחת אימייל
     public static void SendEmail(string to, string subject, string body, bool isHtml = true)
     {
         if (string.IsNullOrWhiteSpace(to))
@@ -121,6 +126,7 @@ public class EmailService
         }
     }
 
+    // ביצוע פעולה: SendRegistrationEmail
     public static void SendRegistrationEmail(string email, string firstName = "")
     {
         string greeting = string.IsNullOrEmpty(firstName) ? "שלום" : "שלום " + firstName;
@@ -154,6 +160,7 @@ public class EmailService
         SendEmail(email, subject, body, true);
     }
 
+    // ביצוע פעולה: SendLoginCodeEmail
     public static void SendLoginCodeEmail(string email, string code)
     {
         LoggingService.Log("EMAIL_LOGIN_CODE_START", string.Format("Preparing login code email - Email: {0}, Code: {1}, Code Length: {2}", email, code, code != null ? code.Length : 0));
@@ -195,9 +202,11 @@ public class EmailService
         LoggingService.Log("EMAIL_LOGIN_CODE_SENT", string.Format("Login code email sent successfully - Email: {0}, Code: {1}", email, code));
     }
 
+    // ביצוע פעולה: SendLoginCode
     public void SendLoginCode(string email, string code)
     {
         SendLoginCodeEmail(email, code);
     }
 }
+
 

@@ -50,6 +50,7 @@ public partial class home : System.Web.UI.Page
         }
     }
 
+    // פונקציה: RenderDayNumber
     private void RenderDayNumber(DayRenderEventArgs e, DateTime date)
     {
         string text = CurrentMode == CalendarDisplayMode.Hebrew
@@ -82,6 +83,7 @@ public partial class home : System.Web.UI.Page
             e.Cell.Text = text;
     }
 
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         try
@@ -145,6 +147,7 @@ public partial class home : System.Web.UI.Page
         }
     }
     
+    // פונקציה: calendar_SelectionChanged
     protected void calendar_SelectionChanged(object sender, EventArgs e)
     {
         DateTime selectedDate = calendar.SelectedDate;
@@ -154,6 +157,7 @@ public partial class home : System.Web.UI.Page
         BindMonthNavigation(selectedDate);
     }
 
+    // פונקציה: calendar_VisibleMonthChanged
     protected void calendar_VisibleMonthChanged(object sender, MonthChangedEventArgs e)
     {
         calendar.SelectedDate = e.NewDate;
@@ -163,6 +167,7 @@ public partial class home : System.Web.UI.Page
         BindMonthNavigation(e.NewDate);
     }
 
+    // פונקציה: Month_Command
     protected void Month_Command(object source, RepeaterCommandEventArgs e)
     {
         if (e.CommandName != "ChangeMonth")
@@ -203,6 +208,7 @@ public partial class home : System.Web.UI.Page
         BindMonthNavigation(newDate);
     }
 
+    // פונקציה: ChangeYear_Click
     protected void ChangeYear_Click(object sender, EventArgs e)
     {
         LinkButton btn = sender as LinkButton;
@@ -243,6 +249,7 @@ public partial class home : System.Web.UI.Page
         }
     }
 
+    // פונקציה: rblCalendarMode_SelectedIndexChanged
     protected void rblCalendarMode_SelectedIndexChanged(object sender, EventArgs e)
     {
         CurrentMode = rblCalendarMode.SelectedValue == "H" ? CalendarDisplayMode.Hebrew : CalendarDisplayMode.Gregorian;
@@ -253,6 +260,7 @@ public partial class home : System.Web.UI.Page
         UpdateCalendarMeta(reference);
     }
 
+    // סינון נתונים לטבלה לפי יום — הצגת אירועי התאריך הנבחר
     private void ShowEvents(DateTime date)
     {
         var sb = new StringBuilder();
@@ -307,6 +315,7 @@ public partial class home : System.Web.UI.Page
         lblEvents.Text = sb.ToString();
     }
 
+    // פונקציה: calendar_DayRender
     protected void calendar_DayRender(object sender, DayRenderEventArgs e)
     {
         DateTime currentDay = e.Day.Date;
@@ -351,6 +360,7 @@ public partial class home : System.Web.UI.Page
         }
     }
 
+    // שמירה/עדכון במסד: UpdateCalendarMeta
     private void UpdateCalendarMeta(DateTime date)
     {
         lblMetaDay.Text = date.ToString("dd");
@@ -390,6 +400,7 @@ public partial class home : System.Web.UI.Page
         lblHavdalah.Text = havdalahText;
     }
 
+    // טעינה וקישור נתונים: BindMonthNavigation
     private void BindMonthNavigation(DateTime referenceDate)
     {
         var items = new List<MonthNavItem>();
@@ -434,12 +445,14 @@ public partial class home : System.Web.UI.Page
         rptMonths.DataBind();
     }
 
+    // שליפת נתונים: GetHebrewDayLabel
     private static string GetHebrewDayLabel(DateTime date)
     {
         int day = HebrewCal.GetDayOfMonth(date);
         return ToHebrewNumeral(day);
     }
 
+    // פונקציה: ToHebrewNumeral
     private static string ToHebrewNumeral(int number)
     {
         if (number <= 0 || number > 30)
@@ -468,6 +481,7 @@ public partial class home : System.Web.UI.Page
         return text.Insert(text.Length - 1, "״");
     }
 
+    // פונקציה: NormalizeParshaTitle
     private static string NormalizeParshaTitle(string raw)
     {
         if (string.IsNullOrWhiteSpace(raw))
@@ -501,6 +515,7 @@ public partial class home : System.Web.UI.Page
         return string.Join(" - ", translated);
     }
 
+    // פונקציה: NormalizeHolidayTitle
     private static string NormalizeHolidayTitle(string raw)
     {
         if (string.IsNullOrWhiteSpace(raw))
@@ -515,6 +530,7 @@ public partial class home : System.Web.UI.Page
         return raw;
     }
 
+    // שליפת נתונים: GetHebrewMonthName
     private static string GetHebrewMonthName(int month, bool isLeapYear)
     {
         switch (month)
@@ -536,6 +552,7 @@ public partial class home : System.Web.UI.Page
         }
     }
 
+    // פונקציה: ExtractHebrewYear
     private static string ExtractHebrewYear(string hebrewDate)
     {
         if (string.IsNullOrWhiteSpace(hebrewDate))
@@ -545,6 +562,7 @@ public partial class home : System.Web.UI.Page
         return parts.Length == 0 ? string.Empty : parts[parts.Length - 1];
     }
 
+    // בדיקת תנאי: IsHolidayCandidate
     private static bool IsHolidayCandidate(string category, string title)
     {
         if (string.IsNullOrEmpty(title))
@@ -575,6 +593,7 @@ public partial class home : System.Web.UI.Page
         }
     }
 
+    // פונקציה: FetchHebrewInfo
     public static HebrewInfo FetchHebrewInfo(DateTime date)
     {
         var info = new HebrewInfo();
@@ -663,6 +682,7 @@ public partial class home : System.Web.UI.Page
         return info;
     }
 
+    // פונקציה: FetchShabbatTimes
     private ShabbatTimes FetchShabbatTimes(DateTime date)
     {
         var times = new ShabbatTimes();
@@ -697,6 +717,7 @@ public partial class home : System.Web.UI.Page
         return times;
     }
 
+    // פונקציה: FormatToIsraelTime
     private static string FormatToIsraelTime(object isoValue)
     {
         if (isoValue == null)
@@ -713,6 +734,7 @@ public partial class home : System.Web.UI.Page
         return string.Empty;
     }
 
+    // פונקציה: ResolveIsraelTimeZone
     private static TimeZoneInfo ResolveIsraelTimeZone()
     {
         try
@@ -755,6 +777,7 @@ public partial class home : System.Web.UI.Page
         public string Parasha { get; set; }
     }
 
+    // שליפת נתונים: GetJson
     private static string GetJson(string url)
     {
         try
@@ -771,6 +794,7 @@ public partial class home : System.Web.UI.Page
         }
     }
 
+    // פונקציה: PostJson
     private static string PostJson(string url, string payload)
     {
         try
@@ -788,6 +812,7 @@ public partial class home : System.Web.UI.Page
         }
     }
 
+    // ביצוע פעולה: CreateWebClient
     private static WebClient CreateWebClient()
     {
         var client = new WebClient
@@ -799,6 +824,7 @@ public partial class home : System.Web.UI.Page
         return client;
     }
 
+    // ביצוע פעולה: CreateParashaMap
     private static Dictionary<string, string> CreateParashaMap()
     {
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -823,8 +849,10 @@ public partial class home : System.Web.UI.Page
         return map;
     }
 
+    // שמירה/עדכון במסד: AddParasha
     private static void AddParasha(Dictionary<string, string> map, string key, string value)
     {
         map[key] = value;
     }
 }
+

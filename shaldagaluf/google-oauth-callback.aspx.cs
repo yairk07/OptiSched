@@ -4,6 +4,7 @@ using System.Web.UI;
 
 public partial class google_oauth_callback : System.Web.UI.Page
 {
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";
@@ -75,6 +76,7 @@ public partial class google_oauth_callback : System.Web.UI.Page
         }
     }
 
+    // פונקציה: HandleCalendarExport
     private void HandleCalendarExport(string code)
     {
         if (Session["userId"] == null)
@@ -109,6 +111,7 @@ public partial class google_oauth_callback : System.Web.UI.Page
         SafeRedirect("exportGoogle.aspx?gcal=ok&count=" + result.Exported + "&failed=" + result.Failed);
     }
 
+    // פונקציה: HandleLogin
     private void HandleLogin(string code)
     {
         LoggingService.Log("GOOGLE_OAUTH_CALLBACK", "Processing OAuth callback");
@@ -177,6 +180,7 @@ public partial class google_oauth_callback : System.Web.UI.Page
         SafeRedirect("login.aspx?error=user_not_found");
     }
 
+    // פונקציה: ReadColumn
     private static string ReadColumn(System.Data.OleDb.OleDbDataReader dr, params string[] names)
     {
         for (int i = 0; i < names.Length; i++)
@@ -194,9 +198,11 @@ public partial class google_oauth_callback : System.Web.UI.Page
         return "";
     }
 
+    // פונקציה: SafeRedirect
     private void SafeRedirect(string url)
     {
         Response.Redirect(url, false);
         Context.ApplicationInstance.CompleteRequest();
     }
 }
+

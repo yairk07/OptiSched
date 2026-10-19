@@ -7,6 +7,7 @@ using System.Web.UI.WebControls;
 
 public partial class contactus : System.Web.UI.Page
 {
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";
@@ -15,6 +16,7 @@ public partial class contactus : System.Web.UI.Page
         Response.HeaderEncoding = System.Text.Encoding.UTF8;
     }
 
+    // טיפול בלחיצת כפתור Submit
     protected void btnSubmit_Click(object sender, EventArgs e)
     {
         try

@@ -3,6 +3,7 @@ using System.Web.UI;
 
 public partial class login_with_code : System.Web.UI.Page
 {
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";
@@ -23,6 +24,7 @@ public partial class login_with_code : System.Web.UI.Page
         }
     }
 
+    // פונקציה: FriendlyEmailError
     private string FriendlyEmailError(Exception ex)
     {
         string msg = ex != null ? (ex.Message ?? "") : "";
@@ -35,6 +37,7 @@ public partial class login_with_code : System.Web.UI.Page
         return msg;
     }
 
+    // שליחת הודעה/בקשה
     protected void btnSendCode_Click(object sender, EventArgs e)
     {
         string email = txtEmail.Text.Trim().ToLower();
@@ -71,6 +74,7 @@ public partial class login_with_code : System.Web.UI.Page
         }
     }
 
+    // טיפול בלחיצת כפתור VerifyCode
     protected void btnVerifyCode_Click(object sender, EventArgs e)
     {
         string email = ViewState["Email"] != null ? ViewState["Email"].ToString() : txtEmail.Text.Trim().ToLower();
@@ -133,6 +137,7 @@ public partial class login_with_code : System.Web.UI.Page
         }
     }
 
+    // טיפול בלחיצת קישור ResendCode
     protected void lnkResendCode_Click(object sender, EventArgs e)
     {
         string email = ViewState["Email"] != null ? ViewState["Email"].ToString() : txtEmail.Text.Trim().ToLower();

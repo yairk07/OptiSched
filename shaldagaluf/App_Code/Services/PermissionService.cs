@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.OleDb;
@@ -134,6 +134,7 @@ public class PermissionService
         }
     }
 
+    // בדיקת תנאי: HasPendingRequest
     public static bool HasPendingRequest(int calendarId, int userId)
     {
         string sql = "SELECT COUNT(*) FROM CalendarJoinRequests WHERE calendar_id = ? AND user_id = ? AND status = 'Pending'";
@@ -152,6 +153,7 @@ public class PermissionService
         }
     }
 
+    // שליפת בקשות ממתינות לטבלה
     public static DataTable GetPendingRequestsForCalendar(int calendarId)
     {
         DataTable dt = new DataTable();
@@ -214,6 +216,7 @@ public class PermissionService
         return dt;
     }
 
+    // אישור בקשת הצטרפות והענקת הרשאה
     public static void ApproveJoinRequest(int requestId, int permissionTypeId)
     {
         // 1. Get request details
@@ -296,6 +299,7 @@ public class PermissionService
         }
     }
 
+    // דחיית בקשת הצטרפות
     public static void RejectJoinRequest(int requestId)
     {
         string sql = "UPDATE CalendarJoinRequests SET status = 'Rejected' WHERE Id = ?";
@@ -329,3 +333,4 @@ public class PermissionService
         }
     }
 }
+

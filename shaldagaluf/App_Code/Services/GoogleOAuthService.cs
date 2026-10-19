@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
@@ -13,6 +13,7 @@ public class GoogleOAuthService
     private const string PlaceholderClientId = "YOUR_CLIENT_ID_HERE";
     private const string PlaceholderClientSecret = "YOUR_CLIENT_SECRET_HERE";
 
+    // בדיקה אם הגדרות Google OAuth מוגדרות
     public static bool IsConfigured()
     {
         string clientId = GetClientId();
@@ -21,11 +22,13 @@ public class GoogleOAuthService
             && IsRealCredential(clientSecret, PlaceholderClientSecret);
     }
 
+    // החזרת Redirect URI מההגדרות
     public static string GetConfiguredRedirectUri()
     {
         return GetRedirectUri();
     }
 
+    // בדיקת תנאי: IsRealCredential
     private static bool IsRealCredential(string value, string placeholder)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -41,16 +44,19 @@ public class GoogleOAuthService
         return true;
     }
 
+    // שליפת נתונים: GetClientId
     private static string GetClientId()
     {
         return (ConfigurationManager.AppSettings["GoogleOAuth:ClientId"] ?? "").Trim();
     }
 
+    // שליפת נתונים: GetClientSecret
     private static string GetClientSecret()
     {
         return (ConfigurationManager.AppSettings["GoogleOAuth:ClientSecret"] ?? "").Trim();
     }
 
+    // שליפת נתונים: GetRedirectUri
     private static string GetRedirectUri()
     {
         string configured = (ConfigurationManager.AppSettings["GoogleOAuth:RedirectUri"] ?? "").Trim();
@@ -70,6 +76,7 @@ public class GoogleOAuthService
         return url.Scheme + "://" + url.Authority + appPath + "/google-oauth-callback.aspx";
     }
 
+    // פונקציה: EnsureTls12
     private static void EnsureTls12()
     {
         try
@@ -82,11 +89,13 @@ public class GoogleOAuthService
         }
     }
 
+    // פונקציה: EnsureTls12Public
     public static void EnsureTls12Public()
     {
         EnsureTls12();
     }
 
+    // בניית כתובת התחברות Google OAuth
     public static string GetAuthorizationUrl()
     {
         if (!IsConfigured())
@@ -117,6 +126,7 @@ public class GoogleOAuthService
         return authUrl;
     }
 
+    // שמירה/עדכון במסד: SaveOAuthStateCookie
     private static void SaveOAuthStateCookie(string state)
     {
         if (HttpContext.Current == null || HttpContext.Current.Response == null)
@@ -131,6 +141,7 @@ public class GoogleOAuthService
         HttpContext.Current.Response.Cookies.Set(cookie);
     }
 
+    // פונקציה: ReadOAuthStateCookie
     private static string ReadOAuthStateCookie()
     {
         if (HttpContext.Current == null || HttpContext.Current.Request == null)
@@ -140,6 +151,7 @@ public class GoogleOAuthService
         return cookie != null ? cookie.Value : null;
     }
 
+    // אימות state של OAuth למניעת CSRF
     public static bool ValidateOAuthState(string returnedState)
     {
         if (string.IsNullOrEmpty(returnedState) || HttpContext.Current == null)
@@ -169,6 +181,7 @@ public class GoogleOAuthService
         return string.Equals(expected, returnedState, StringComparison.Ordinal);
     }
 
+    // פונקציה: ClearOAuthState
     public static void ClearOAuthState()
     {
         if (HttpContext.Current != null && HttpContext.Current.Session != null)
@@ -187,6 +200,7 @@ public class GoogleOAuthService
         }
     }
 
+    // שליפת פרטי משתמש מ-Google
     public static GoogleUserInfo GetUserInfo(string code)
     {
         if (string.IsNullOrWhiteSpace(code))
@@ -286,6 +300,7 @@ public class GoogleOAuthService
         }
     }
 
+    // פונקציה: ReadWebExceptionBody
     private static string ReadWebExceptionBody(WebException webEx)
     {
         try
@@ -307,6 +322,7 @@ public class GoogleOAuthService
         }
     }
 
+    // שליפת נתונים: GetUserIdByGoogleId
     public static int? GetUserIdByGoogleId(string googleId)
     {
         if (string.IsNullOrWhiteSpace(googleId))
@@ -328,6 +344,7 @@ public class GoogleOAuthService
         return null;
     }
 
+    // שליפת נתונים: GetUserIdByEmail
     public static int? GetUserIdByEmail(string email)
     {
         if (string.IsNullOrWhiteSpace(email))
@@ -369,6 +386,7 @@ public class GoogleOAuthService
         return null;
     }
 
+    // בדיקה אם עמודה קיימת בטבלה
     private static bool ColumnExists(OleDbConnection conn, string tableName, string columnName)
     {
         try
@@ -404,6 +422,7 @@ public class GoogleOAuthService
         }
     }
 
+    // בדיקה אם שם משתמש כבר קיים
     private static bool UsernameExists(OleDbConnection conn, string userName)
     {
         string[] queries =
@@ -433,6 +452,7 @@ public class GoogleOAuthService
         return false;
     }
 
+    // פונקציה: BuildUniqueUserName
     private static string BuildUniqueUserName(string email)
     {
         string baseName;
@@ -465,12 +485,14 @@ public class GoogleOAuthService
         }
     }
 
+    // ביצוע פעולה: CreateUnusablePassword
     private static string CreateUnusablePassword()
     {
         // Random value so Google accounts cannot be opened with an empty password.
         return "GOOG$" + Guid.NewGuid().ToString("N") + "$" + Guid.NewGuid().ToString("N");
     }
 
+    // ביצוע פעולה: CreateOrUpdateUser
     public static bool CreateOrUpdateUser(GoogleUserInfo userInfo)
     {
         if (userInfo == null || string.IsNullOrEmpty(userInfo.Id) || string.IsNullOrEmpty(userInfo.Email))
@@ -590,3 +612,4 @@ public class GoogleUserInfo
     public string Picture { get; set; }
     public bool EmailVerified { get; set; }
 }
+

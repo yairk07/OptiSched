@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using System.Data.OleDb;
 
 public static class LoginCodeService
 {
+    // פונקציה: EnsureLoginCodesTable
     private static void EnsureLoginCodesTable(OleDbConnection conn)
     {
         if (!TableExists(conn, "LoginCodes"))
@@ -23,6 +24,7 @@ public static class LoginCodeService
         }
     }
 
+    // בדיקה אם טבלה קיימת במסד
     private static bool TableExists(OleDbConnection conn, string tableName)
     {
         try
@@ -40,6 +42,7 @@ public static class LoginCodeService
         }
     }
 
+    // יצירת קוד התחברות חד-פעמי
     public static string GenerateCode(string email)
     {
         if (string.IsNullOrWhiteSpace(email))
@@ -135,6 +138,7 @@ public static class LoginCodeService
         }
     }
 
+    // אימות קוד התחברות
     public static bool ValidateCode(string email, string code)
     {
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(code))
@@ -210,6 +214,7 @@ public static class LoginCodeService
         return false;
     }
 
+    // פונקציה: CleanExpiredCodes
     public static void CleanExpiredCodes()
     {
         string connectionString = Connect.GetConnectionString();
@@ -229,4 +234,5 @@ public static class LoginCodeService
         }
     }
 }
+
 

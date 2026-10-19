@@ -7,6 +7,7 @@ using System.Web.UI.WebControls;
 
 public partial class termsofservice : System.Web.UI.Page
 {
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";

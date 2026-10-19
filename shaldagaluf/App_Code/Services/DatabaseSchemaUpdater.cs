@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Data;
 using System.Data.OleDb;
 
@@ -40,6 +40,7 @@ public static class DatabaseSchemaUpdater
         }
     }
 
+    // בדיקה אם טבלה קיימת במסד
     private static bool TableExists(OleDbConnection conn, string tableName)
     {
         try
@@ -56,6 +57,7 @@ public static class DatabaseSchemaUpdater
         }
     }
 
+    // פונקציה: ExecuteNonQuery
     private static void ExecuteNonQuery(OleDbConnection conn, string sql)
     {
         using (OleDbCommand cmd = new OleDbCommand(sql, conn))
@@ -263,4 +265,5 @@ public static class DatabaseSchemaUpdater
         LoggingService.Log("DatabaseSchemaUpdater", "CalendarJoinRequests table created successfully");
     }
 }
+
 

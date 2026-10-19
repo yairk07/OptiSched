@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Data;
 using System.Data.OleDb;
 using System.Text;
@@ -6,6 +6,7 @@ using System.Web.UI.WebControls;
 
 public partial class fixHebrewData : System.Web.UI.Page
 {
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";
@@ -33,6 +34,7 @@ public partial class fixHebrewData : System.Web.UI.Page
         pnlContent.Visible = true;
     }
 
+    // טיפול בלחיצת כפתור Fix
     protected void btnFix_Click(object sender, EventArgs e)
     {
         try
@@ -137,3 +139,4 @@ public partial class fixHebrewData : System.Web.UI.Page
         }
     }
 }
+

@@ -7,6 +7,7 @@ using System.Web.UI;
 
 public partial class forgotPassword : System.Web.UI.Page
 {
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         if (Session["username"] != null)
@@ -24,6 +25,7 @@ public partial class forgotPassword : System.Web.UI.Page
         }
     }
 
+    // שליחת הודעה/בקשה
     protected void btnSendReset_Click(object sender, EventArgs e)
     {
         string email = txtEmail.Text.Trim();
@@ -65,6 +67,7 @@ public partial class forgotPassword : System.Web.UI.Page
         }
     }
 
+    // איפוס סיסמת משתמש
     protected void btnResetPassword_Click(object sender, EventArgs e)
     {
         string token = ViewState["ResetToken"] != null ? ViewState["ResetToken"].ToString() : null;
@@ -111,11 +114,13 @@ public partial class forgotPassword : System.Web.UI.Page
         pnlReset.Visible = false;
     }
 
+    // פונקציה: GenerateResetToken
     private string GenerateResetToken()
     {
         return Guid.NewGuid().ToString("N");
     }
 
+    // שמירה/עדכון במסד: SaveResetToken
     private void SaveResetToken(int userId, string token)
     {
         string conStr = Connect.GetConnectionString();
@@ -133,6 +138,7 @@ public partial class forgotPassword : System.Web.UI.Page
         }
     }
 
+    // שליפת נתונים: GetUserIdByToken
     private int? GetUserIdByToken(string token)
     {
         string conStr = Connect.GetConnectionString();
@@ -164,6 +170,7 @@ public partial class forgotPassword : System.Web.UI.Page
         return null;
     }
 
+    // מחיקה: DeleteResetToken
     private void DeleteResetToken(string token)
     {
         string conStr = Connect.GetConnectionString();
@@ -177,6 +184,7 @@ public partial class forgotPassword : System.Web.UI.Page
         }
     }
 
+    // ביצוע פעולה: SendResetEmail
     private void SendResetEmail(string email, string resetLink)
     {
         string smtpServer = "smtp.gmail.com";
@@ -212,4 +220,5 @@ public partial class forgotPassword : System.Web.UI.Page
         smtp.Send(mail);
     }
 }
+
 

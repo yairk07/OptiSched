@@ -28,6 +28,7 @@ public class Calendar
         category = "אחר";
     }
 
+    // הוספת משתמש חדש למסד הנתונים
     public void InsertIntoDb(int? userId = null)
     {
         CalendarService cs = new CalendarService();
@@ -35,3 +36,4 @@ public class Calendar
         cs.InsertEvent(this.title, this.date, this.time, this.notes, this.category, userId);
     }
 }
+

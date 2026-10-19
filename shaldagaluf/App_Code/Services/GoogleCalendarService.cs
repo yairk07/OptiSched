@@ -18,6 +18,7 @@ public class GoogleCalendarService
     private const string CalendarEventsScope = "https://www.googleapis.com/auth/calendar.events";
     private const string CalendarApiUrl = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 
+    // פונקציה: EnsureTokenColumns
     public static void EnsureTokenColumns()
     {
         string connectionString = Connect.GetConnectionString();
@@ -30,6 +31,7 @@ public class GoogleCalendarService
         }
     }
 
+    // פונקציה: EnsureColumn
     private static void EnsureColumn(OleDbConnection conn, string columnName, string type)
     {
         if (ColumnExists(conn, "Users", columnName))
@@ -41,6 +43,7 @@ public class GoogleCalendarService
         }
     }
 
+    // בדיקה אם עמודה קיימת בטבלה
     private static bool ColumnExists(OleDbConnection conn, string tableName, string columnName)
     {
         try
@@ -57,6 +60,7 @@ public class GoogleCalendarService
         }
     }
 
+    // בדיקת תנאי: HasCalendarAccess
     public static bool HasCalendarAccess(int userId)
     {
         EnsureTokenColumns();
@@ -79,6 +83,7 @@ public class GoogleCalendarService
         return hasAccess || hasRefresh;
     }
 
+    // פונקציה: ClearTokens
     public static void ClearTokens(int userId)
     {
         EnsureTokenColumns();
@@ -109,6 +114,7 @@ public class GoogleCalendarService
         }
     }
 
+    // שליפת נתונים: GetUserPersonalEvents
     public static DataTable GetUserPersonalEvents(int userId)
     {
         DataTable dt = new DataTable();
@@ -157,6 +163,7 @@ public class GoogleCalendarService
         return dt;
     }
 
+    // פונקציה: BuildIcsForUser
     public static string BuildIcsForUser(int userId)
     {
         DataTable events = GetUserPersonalEvents(userId);
@@ -217,6 +224,7 @@ public class GoogleCalendarService
         return sb.ToString();
     }
 
+    // פונקציה: EscapeIcsText
     private static string EscapeIcsText(string value)
     {
         if (string.IsNullOrEmpty(value))
@@ -230,6 +238,7 @@ public class GoogleCalendarService
             .Replace("\r", "\\n");
     }
 
+    // ביצוע פעולה: ExportUserEventsToGoogle
     public static ExportResult ExportUserEventsToGoogle(int userId)
     {
         string accessToken = GetValidAccessToken(userId);
@@ -273,6 +282,7 @@ public class GoogleCalendarService
         return result;
     }
 
+    // ביצוע פעולה: ExportSingleEventToGoogle
     public static bool ExportSingleEventToGoogle(int userId, int eventId)
     {
         string accessToken = GetValidAccessToken(userId);
@@ -310,6 +320,7 @@ public class GoogleCalendarService
         return false;
     }
 
+    // שליפת נתונים: GetCalendarAuthorizationUrl
     public static string GetCalendarAuthorizationUrl()
     {
         if (!GoogleOAuthService.IsConfigured())
@@ -338,6 +349,7 @@ public class GoogleCalendarService
             "prompt=consent";
     }
 
+    // החלפת קוד OAuth בטוקנים
     public static GoogleTokenSet ExchangeCodeForTokens(string code)
     {
         GoogleOAuthService.EnsureTls12Public();
@@ -381,6 +393,7 @@ public class GoogleCalendarService
         }
     }
 
+    // שמירת טוקני Google למשתמש
     public static void SaveTokens(int userId, GoogleTokenSet tokens)
     {
         if (tokens == null || userId < 0)
@@ -448,6 +461,7 @@ public class GoogleCalendarService
         }
     }
 
+    // שליפת נתונים: GetValidAccessToken
     public static string GetValidAccessToken(int userId)
     {
         EnsureTokenColumns();
@@ -482,6 +496,7 @@ public class GoogleCalendarService
         return refreshed.AccessToken;
     }
 
+    // פונקציה: RefreshAccessToken
     private static GoogleTokenSet RefreshAccessToken(string refreshToken)
     {
         GoogleOAuthService.EnsureTls12Public();
@@ -522,6 +537,7 @@ public class GoogleCalendarService
         }
     }
 
+    // טעינה וקישור נתונים: LoadTokens
     private static void LoadTokens(int userId, out string accessToken, out string refreshToken, out DateTime? expiryUtc)
     {
         accessToken = null;
@@ -563,6 +579,7 @@ public class GoogleCalendarService
         }
     }
 
+    // פונקציה: ReadTokenRow
     private static void ReadTokenRow(OleDbDataReader dr, out string accessToken, out string refreshToken, out DateTime? expiryUtc)
     {
         accessToken = null;
@@ -576,6 +593,7 @@ public class GoogleCalendarService
             expiryUtc = Convert.ToDateTime(dr["GoogleTokenExpiry"]).ToUniversalTime();
     }
 
+    // ביצוע פעולה: CreateGoogleEvent
     private static bool CreateGoogleEvent(string accessToken, DataRow row)
     {
         string title = GetString(row, "Title", "title");
@@ -646,6 +664,7 @@ public class GoogleCalendarService
         }
     }
 
+    // פונקציה: ParseEventTimes
     private static void ParseEventTimes(DateTime date, string timeText, out DateTime startLocal, out DateTime endLocal)
     {
         startLocal = date.AddHours(9);
@@ -678,6 +697,7 @@ public class GoogleCalendarService
         }
     }
 
+    // שליפת נתונים: GetString
     private static string GetString(DataRow row, params string[] names)
     {
         foreach (string name in names)
@@ -688,6 +708,7 @@ public class GoogleCalendarService
         return "";
     }
 
+    // פונקציה: ReadWebExceptionBody
     private static string ReadWebExceptionBody(WebException webEx)
     {
         try
@@ -723,3 +744,4 @@ public class ExportResult
     public int Failed { get; set; }
     public string LastError { get; set; }
 }
+

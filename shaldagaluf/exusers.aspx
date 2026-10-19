@@ -24,14 +24,21 @@
             <asp:Button ID="btnClear" runat="server" Text="נקה" OnClick="btnClear_Click" CssClass="clear-button" />
         </div>
 
+        <asp:Label ID="lblGridMessage" runat="server" CssClass="grid-message" Visible="false" />
+        <p class="grid-hint" runat="server" id="pEditHint" visible="false">אפשר לערוך בלחיצה על ערך בטבלה, או דרך כפתור העריכה.</p>
+
         <div class="table-container">
             <asp:GridView ID="gvUsers" runat="server" 
                 AutoGenerateColumns="false"
                 CssClass="users-table"
                 AllowPaging="true"
                 PageSize="20"
+                DataKeyNames="id"
                 OnPageIndexChanging="gvUsers_PageIndexChanging"
                 OnRowDataBound="gvUsers_RowDataBound"
+                OnRowEditing="gvUsers_RowEditing"
+                OnRowCancelingEdit="gvUsers_RowCancelingEdit"
+                OnRowUpdating="gvUsers_RowUpdating"
                 PagerStyle-CssClass="pager-style"
                 HeaderStyle-CssClass="header-style"
                 RowStyle-CssClass="row-style"
@@ -43,36 +50,74 @@
                                 <%# GetAvatarLetter(Container) %>
                             </div>
                         </ItemTemplate>
+                        <EditItemTemplate>
+                            <div class="table-avatar">
+                                <%# GetAvatarLetter(Container) %>
+                            </div>
+                        </EditItemTemplate>
                     </asp:TemplateField>
                     <asp:TemplateField HeaderText="שם משתמש" ItemStyle-CssClass="user-name-cell">
                         <ItemTemplate>
-                            <%# Connect.FixEncoding(Eval("userName") != null ? Eval("userName").ToString() : "") %>
+                            <asp:LinkButton ID="lnkUserName" runat="server" CommandName="Edit" CssClass="editable-cell"
+                                Enabled='<%# IsOwner() %>'
+                                Text='<%# Connect.FixEncoding(Eval("userName") != null ? Eval("userName").ToString() : "") %>' />
                         </ItemTemplate>
+                        <EditItemTemplate>
+                            <asp:TextBox ID="txtEditUserName" runat="server" CssClass="grid-edit-input"
+                                Text='<%# Bind("userName") %>' />
+                        </EditItemTemplate>
                     </asp:TemplateField>
                     <asp:TemplateField HeaderText="שם פרטי">
                         <ItemTemplate>
-                            <%# Connect.FixEncoding(Eval("firstName") != null ? Eval("firstName").ToString() : "") %>
+                            <asp:LinkButton ID="lnkFirstName" runat="server" CommandName="Edit" CssClass="editable-cell"
+                                Enabled='<%# IsOwner() %>'
+                                Text='<%# Connect.FixEncoding(Eval("firstName") != null ? Eval("firstName").ToString() : "") %>' />
                         </ItemTemplate>
+                        <EditItemTemplate>
+                            <asp:TextBox ID="txtEditFirstName" runat="server" CssClass="grid-edit-input"
+                                Text='<%# Bind("firstName") %>' />
+                        </EditItemTemplate>
                     </asp:TemplateField>
                     <asp:TemplateField HeaderText="שם משפחה">
                         <ItemTemplate>
-                            <%# Connect.FixEncoding(Eval("lastName") != null ? Eval("lastName").ToString() : "") %>
+                            <asp:LinkButton ID="lnkLastName" runat="server" CommandName="Edit" CssClass="editable-cell"
+                                Enabled='<%# IsOwner() %>'
+                                Text='<%# Connect.FixEncoding(Eval("lastName") != null ? Eval("lastName").ToString() : "") %>' />
                         </ItemTemplate>
+                        <EditItemTemplate>
+                            <asp:TextBox ID="txtEditLastName" runat="server" CssClass="grid-edit-input"
+                                Text='<%# Bind("lastName") %>' />
+                        </EditItemTemplate>
                     </asp:TemplateField>
                     <asp:TemplateField HeaderText="אימייל" ItemStyle-CssClass="email-cell">
                         <ItemTemplate>
-                            <%# Connect.FixEncoding(Eval("email") != null ? Eval("email").ToString() : "") %>
+                            <asp:LinkButton ID="lnkEmail" runat="server" CommandName="Edit" CssClass="editable-cell"
+                                Enabled='<%# IsOwner() %>'
+                                Text='<%# Connect.FixEncoding(Eval("email") != null ? Eval("email").ToString() : "") %>' />
                         </ItemTemplate>
+                        <EditItemTemplate>
+                            <asp:TextBox ID="txtEditEmail" runat="server" CssClass="grid-edit-input"
+                                Text='<%# Bind("email") %>' />
+                        </EditItemTemplate>
                     </asp:TemplateField>
                     <asp:TemplateField HeaderText="טלפון">
                         <ItemTemplate>
-                            <%# Connect.FixEncoding(Eval("phonenum") != null ? Eval("phonenum").ToString() : "") %>
+                            <asp:LinkButton ID="lnkPhone" runat="server" CommandName="Edit" CssClass="editable-cell"
+                                Enabled='<%# IsOwner() %>'
+                                Text='<%# Connect.FixEncoding(Eval("phonenum") != null ? Eval("phonenum").ToString() : "") %>' />
                         </ItemTemplate>
+                        <EditItemTemplate>
+                            <asp:TextBox ID="txtEditPhone" runat="server" CssClass="grid-edit-input"
+                                Text='<%# Bind("phonenum") %>' />
+                        </EditItemTemplate>
                     </asp:TemplateField>
                     <asp:TemplateField HeaderText="עיר">
                         <ItemTemplate>
                             <%# GetCity(Container) %>
                         </ItemTemplate>
+                        <EditItemTemplate>
+                            <%# GetCity(Container) %>
+                        </EditItemTemplate>
                     </asp:TemplateField>
                     <asp:TemplateField HeaderText="פעולות" ItemStyle-CssClass="actions-cell">
                         <ItemTemplate>
@@ -110,6 +155,18 @@
                                 </asp:LinkButton>
                             </div>
                         </ItemTemplate>
+                        <EditItemTemplate>
+                            <div class="action-buttons">
+                                <asp:LinkButton ID="btnSaveRow" runat="server" CommandName="Update"
+                                    CssClass="action-btn edit-btn" ToolTip="שמור">
+                                    <i class="fas fa-save"></i>
+                                </asp:LinkButton>
+                                <asp:LinkButton ID="btnCancelRow" runat="server" CommandName="Cancel"
+                                    CssClass="action-btn delete-btn" ToolTip="בטל">
+                                    <i class="fas fa-times"></i>
+                                </asp:LinkButton>
+                            </div>
+                        </EditItemTemplate>
                     </asp:TemplateField>
                 </Columns>
                 <EmptyDataTemplate>
@@ -123,6 +180,51 @@
     </section>
 
     <style>
+        .editable-cell {
+            color: inherit;
+            text-decoration: none;
+            border-bottom: 1px dashed transparent;
+            display: inline-block;
+            min-width: 40px;
+        }
+        .editable-cell:hover {
+            border-bottom-color: var(--brand, #c62828);
+            color: var(--brand, #c62828);
+            cursor: pointer;
+        }
+        a.editable-cell[disabled],
+        a.editable-cell[disabled]:hover {
+            cursor: default;
+            color: inherit;
+            border-bottom-color: transparent;
+            pointer-events: none;
+        }
+        .grid-edit-input {
+            width: 100%;
+            max-width: 180px;
+            padding: 6px 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .grid-message {
+            display: block;
+            margin: 0 auto 12px;
+            width: min(1400px, 98%);
+            padding: 10px 14px;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+        .grid-message.ok { background: #e6f4ea; color: #137333; }
+        .grid-message.err { background: #fce8e6; color: #c5221f; }
+        .grid-hint {
+            width: min(1400px, 98%);
+            margin: 0 auto 10px;
+            color: #6b7280;
+            font-size: 14px;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
         .users-shell {
             width: min(1400px, 98%);
             margin: 30px auto 60px;

@@ -3,6 +3,7 @@ using System.Data;
 
 public partial class Default3 : System.Web.UI.Page
 {
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";
@@ -38,3 +39,4 @@ public partial class Default3 : System.Web.UI.Page
         }
     }
 }
+

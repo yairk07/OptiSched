@@ -4,6 +4,7 @@ using System.Web.UI;
 
 public partial class danimaster : System.Web.UI.MasterPage
 {
+    // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";
@@ -48,9 +49,11 @@ public partial class danimaster : System.Web.UI.MasterPage
             lnkUserName.Visible = isLoggedIn;
     }
 
+    // טיפול בלחיצת קישור UserName
     protected void lnkUserName_Click(object sender, EventArgs e)
     {
         Session.Clear();
         Response.Redirect("login.aspx");
     }
 }
+
