@@ -150,47 +150,5 @@
             </article>
         </section>
 
-        <section class="insights-grid">
-            <article class="home-card quote-card">
-                <h3>השראה לדרך</h3>
-                <p class="quote">
-                    "כלי נשק, כמו כל כלי אחר, אינם טובים או רעים מטבעם - הם רק משקפים את הידיים שמחזיקות בהם. לפעמים האדם הכי מסוכן זה לא מי שיש לו נשק, אלא זה שאין לו נשק אלא סמכות."
-                </p>
-            </article>
-
-            <article class="home-card gallery-card">
-                <div class="card-header">
-                    <div>
-                        <h3>גלריית השראה</h3>
-                        <p class="card-subtitle">תן לתמונות להזכיר לך את היעדים והחזון</p>
-                    </div>
-                    <div class="gallery-controls">
-                        <button id="prevBtn" type="button" onclick="changeImage(-1)" aria-label="תמונה קודמת">&#10094;</button>
-                        <button id="nextBtn" type="button" onclick="changeImage(1)" aria-label="תמונה הבאה">&#10095;</button>
-                    </div>
-                </div>
-                <img id="galleryImage" src="pics/gun1.jpg" alt="Gallery Image" class="gallery-img" />
-            </article>
-
-            <article class="home-card roulette-card">
-                <h3>בחירת משימה אקראית</h3>
-                <p class="card-subtitle">הזן שתי פעילויות ותן למערכת להחליט מה לקבל עדיפות</p>
-                <div class="roulette-inputs">
-                    <input type="text" id="word1" class="word-input" placeholder="משימה א׳" />
-                    <input type="text" id="word2" class="word-input" placeholder="משימה ב׳" />
-                </div>
-                <button type="button" onclick="playRoulette()" class="roulette-btn">בחר בשבילי</button>
-
-                <div id="rouletteResult" class="roulette-result"></div>
-
-                <div id="lossSection" class="loss-section" style="display: none;">
-                    <div class="loss-wrapper">
-                        <img id="lossImage" src="pics/gunauto.gif" alt="המלצה" class="loss-gif" />
-                        <div id="loserName" class="loser-name-overlay"></div>
-                    </div>
-                </div>
-            </article>
-
-        </section>
     </asp:Panel>
 </asp:Content>

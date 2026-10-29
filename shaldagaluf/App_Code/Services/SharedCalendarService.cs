@@ -87,7 +87,8 @@ ORDER BY SC.CreatedDate DESC";
                     {
                         dt.Columns.Add("HasRequestedAccess", typeof(int));
                     }
-                    if (hasPermissionColumn && !dt.Columns.Contains("Permission"))
+                    // Always expose Permission for UI binding (Eval), even if DB column is missing
+                    if (!dt.Columns.Contains("Permission"))
                     {
                         dt.Columns.Add("Permission", typeof(string));
                     }
@@ -103,10 +104,7 @@ ORDER BY SC.CreatedDate DESC";
                         {
                             row["IsAdmin"] = 1;
                             row["IsMember"] = 0;
-                            if (hasPermissionColumn)
-                            {
-                                row["Permission"] = "ReadWrite";
-                            }
+                            row["Permission"] = "ReadWrite";
                         }
                         else
                         {
@@ -123,21 +121,17 @@ ORDER BY SC.CreatedDate DESC";
                                 {
                                     row["IsAdmin"] = 0;
                                     row["IsMember"] = 1;
-                                    // Get user's permission level if Permission column exists
-                                    if (hasPermissionColumn)
-                                    {
-                                        string permission = GetMemberPermission(con, calendarId, userId.Value);
-                                        row["Permission"] = permission ?? "Read";
-                                    }
+                                    // From DB if column exists; otherwise default Read
+                                    string permission = hasPermissionColumn
+                                        ? GetMemberPermission(con, calendarId, userId.Value)
+                                        : "Read";
+                                    row["Permission"] = permission ?? "Read";
                                 }
                                 else
                                 {
                                     row["IsAdmin"] = 0;
                                     row["IsMember"] = 0;
-                                    if (hasPermissionColumn)
-                                    {
-                                        row["Permission"] = "";
-                                    }
+                                    row["Permission"] = "";
                                 }
                             }
                         }

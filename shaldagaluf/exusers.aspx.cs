@@ -180,38 +180,44 @@ public partial class exusers : System.Web.UI.Page
         if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(firstName) ||
             string.IsNullOrEmpty(lastName) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(phone))
         {
-            ShowGridMessage("יש למלא שם משתמש, שם פרטי, שם משפחה, אימייל וטלפון.", false);
+            e.Cancel = true;
+            ShowGridMessage("לא ניתן לערוך: יש למלא שם משתמש, שם פרטי, שם משפחה, אימייל וטלפון.", false);
             return;
         }
 
         if (!UsernameRegex.IsMatch(userName))
         {
-            ShowGridMessage("שם משתמש חייב להכיל 3–30 תווים באנגלית, ספרות, נקודה, קו תחתון או מקף.", false);
+            e.Cancel = true;
+            ShowGridMessage("לא ניתן לערוך: שם משתמש לא תקין (3–30 תווים באנגלית, ספרות, נקודה, קו תחתון או מקף).", false);
             return;
         }
 
         if (firstName.Length < 2 || lastName.Length < 2)
         {
-            ShowGridMessage("שם פרטי ושם משפחה חייבים להכיל לפחות 2 תווים.", false);
+            e.Cancel = true;
+            ShowGridMessage("לא ניתן לערוך: שם פרטי ושם משפחה חייבים להכיל לפחות 2 תווים.", false);
             return;
         }
 
         if (!EmailRegex.IsMatch(email))
         {
-            ShowGridMessage("כתובת אימייל לא תקינה.", false);
+            e.Cancel = true;
+            ShowGridMessage("לא ניתן לערוך: מייל לא תקין.", false);
             return;
         }
 
         if (!PhoneRegex.IsMatch(phone))
         {
-            ShowGridMessage("מספר טלפון לא תקין. לדוגמה: 0501234567.", false);
+            e.Cancel = true;
+            ShowGridMessage("לא ניתן לערוך: מספר טלפון לא תקין (לדוגמה 0501234567).", false);
             return;
         }
 
         UsersService us = new UsersService();
         if (us.UsernameExistsForOtherUser(userName, userId))
         {
-            ShowGridMessage("שם המשתמש כבר קיים אצל משתמש אחר.", false);
+            e.Cancel = true;
+            ShowGridMessage("לא ניתן לערוך: שם המשתמש כבר קיים אצל משתמש אחר.", false);
             return;
         }
 
@@ -222,7 +228,8 @@ public partial class exusers : System.Web.UI.Page
             int existingId;
             if (int.TryParse(Convert.ToString(existingEmail[idCol]), out existingId) && existingId != userId)
             {
-                ShowGridMessage("כתובת האימייל כבר רשומה למשתמש אחר.", false);
+                e.Cancel = true;
+                ShowGridMessage("לא ניתן לערוך: כתובת האימייל כבר רשומה למשתמש אחר.", false);
                 return;
             }
         }

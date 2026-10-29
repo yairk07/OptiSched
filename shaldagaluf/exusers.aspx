@@ -98,6 +98,15 @@
                         <EditItemTemplate>
                             <asp:TextBox ID="txtEditEmail" runat="server" CssClass="grid-edit-input"
                                 Text='<%# Bind("email") %>' />
+                            <asp:RequiredFieldValidator ID="rfvEditEmail" runat="server"
+                                ControlToValidate="txtEditEmail" ValidationGroup="GridEditUser"
+                                ErrorMessage="לא ניתן לערוך: חובה להזין אימייל"
+                                CssClass="grid-field-error" Display="Dynamic" />
+                            <asp:RegularExpressionValidator ID="revEditEmail" runat="server"
+                                ControlToValidate="txtEditEmail" ValidationGroup="GridEditUser"
+                                ValidationExpression="^[^@\s]+@[^@\s]+\.[^@\s]+$"
+                                ErrorMessage="לא ניתן לערוך: מייל לא תקין"
+                                CssClass="grid-field-error" Display="Dynamic" />
                         </EditItemTemplate>
                     </asp:TemplateField>
                     <asp:TemplateField HeaderText="טלפון">
@@ -109,6 +118,15 @@
                         <EditItemTemplate>
                             <asp:TextBox ID="txtEditPhone" runat="server" CssClass="grid-edit-input"
                                 Text='<%# Bind("phonenum") %>' />
+                            <asp:RequiredFieldValidator ID="rfvEditPhone" runat="server"
+                                ControlToValidate="txtEditPhone" ValidationGroup="GridEditUser"
+                                ErrorMessage="לא ניתן לערוך: חובה להזין טלפון"
+                                CssClass="grid-field-error" Display="Dynamic" />
+                            <asp:RegularExpressionValidator ID="revEditPhone" runat="server"
+                                ControlToValidate="txtEditPhone" ValidationGroup="GridEditUser"
+                                ValidationExpression="^0(5\d|[2-489]|7[2-9])-?\d{7}$"
+                                ErrorMessage="לא ניתן לערוך: מספר טלפון לא תקין"
+                                CssClass="grid-field-error" Display="Dynamic" />
                         </EditItemTemplate>
                     </asp:TemplateField>
                     <asp:TemplateField HeaderText="עיר">
@@ -158,11 +176,13 @@
                         <EditItemTemplate>
                             <div class="action-buttons">
                                 <asp:LinkButton ID="btnSaveRow" runat="server" CommandName="Update"
-                                    CssClass="action-btn edit-btn" ToolTip="שמור">
+                                    CssClass="action-btn edit-btn" ToolTip="שמור"
+                                    ValidationGroup="GridEditUser" CausesValidation="true">
                                     <i class="fas fa-save"></i>
                                 </asp:LinkButton>
                                 <asp:LinkButton ID="btnCancelRow" runat="server" CommandName="Cancel"
-                                    CssClass="action-btn delete-btn" ToolTip="בטל">
+                                    CssClass="action-btn delete-btn" ToolTip="בטל"
+                                    CausesValidation="false">
                                     <i class="fas fa-times"></i>
                                 </asp:LinkButton>
                             </div>
@@ -206,6 +226,14 @@
             border: 1px solid #d1d5db;
             border-radius: 6px;
             font-size: 14px;
+        }
+        .grid-field-error {
+            display: block;
+            color: #c5221f;
+            font-size: 12px;
+            margin-top: 4px;
+            max-width: 180px;
+            line-height: 1.3;
         }
         .grid-message {
             display: block;

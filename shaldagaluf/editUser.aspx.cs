@@ -142,13 +142,13 @@ public partial class editUser : System.Web.UI.Page
 
         if (!EmailRegex.IsMatch(email))
         {
-            ShowError("אנא הכנס כתובת אימייל תקינה.");
+            ShowError("לא ניתן לערוך: מייל לא תקין.");
             return;
         }
 
         if (!PhoneRegex.IsMatch(phone))
         {
-            ShowError("מספר טלפון לא תקין. לדוגמה: 0501234567 או 03-1234567.");
+            ShowError("לא ניתן לערוך: מספר טלפון לא תקין (לדוגמה 0501234567).");
             return;
         }
 
@@ -177,10 +177,24 @@ public partial class editUser : System.Web.UI.Page
             }
         }
 
+        // עיר נשמרת במסד כמזהה מספרי (Citys.Id) ולא כטקסט — ממירים שם עיר למזהה לפני השמירה
+        int? cityId = null;
+        string cityText = txtCity.Text != null ? txtCity.Text.Trim() : "";
+        if (!string.IsNullOrWhiteSpace(cityText))
+        {
+            int resolvedCityId;
+            if (!TryResolveCityId(cityText, out resolvedCityId))
+            {
+                ShowError("העיר שהוזנה לא נמצאת ברשימת הערים. הזן שם עיר תקין או השאר את השדה ריק.");
+                return;
+            }
+            cityId = resolvedCityId;
+        }
+
         try
         {
             us.UpdateUserProfile(userId, userName, firstName, lastName, email, phone);
-            UpdateUserRoleAndCity(userId, roleValue, txtCity.Text != null ? txtCity.Text.Trim() : "");
+            UpdateUserRoleAndCity(userId, roleValue, cityId);
 
             lblMessage.Text = "המשתמש עודכן בהצלחה!";
             lblMessage.CssClass = "form-message success";
@@ -195,34 +209,84 @@ public partial class editUser : System.Web.UI.Page
         }
     }
 
-    // עדכון תפקיד ועיר אחרי עדכון הפרופיל
-    private void UpdateUserRoleAndCity(int id, string role, string city)
+    // המרת שם עיר (או מזהה) למזהה מספרי מטבלת Citys; מחזיר false אם העיר לא קיימת
+    private bool TryResolveCityId(string cityText, out int cityId)
     {
+        cityId = 0;
         string conStr = Connect.GetConnectionString();
         using (OleDbConnection con = new OleDbConnection(conStr))
         {
             con.Open();
 
+            int parsedId;
+            if (int.TryParse(cityText, out parsedId))
+            {
+                using (OleDbCommand cmd = new OleDbCommand("SELECT COUNT(*) FROM [Citys] WHERE [Id]=?", con))
+                {
+                    OleDbParameter p = new OleDbParameter("?", OleDbType.Integer);
+                    p.Value = parsedId;
+                    cmd.Parameters.Add(p);
+                    if (Convert.ToInt32(cmd.ExecuteScalar()) > 0)
+                    {
+                        cityId = parsedId;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            using (OleDbCommand cmd = new OleDbCommand("SELECT [Id] FROM [Citys] WHERE [CityName]=?", con))
+            {
+                OleDbParameter p = new OleDbParameter("?", OleDbType.WChar);
+                p.Value = cityText;
+                cmd.Parameters.Add(p);
+                object result = cmd.ExecuteScalar();
+                if (result != null && result != DBNull.Value && int.TryParse(Convert.ToString(result), out parsedId))
+                {
+                    cityId = parsedId;
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    // עדכון תפקיד ועיר (מזהה מספרי) אחרי עדכון הפרופיל
+    private void UpdateUserRoleAndCity(int id, string role, int? cityId)
+    {
+        string conStr = Connect.GetConnectionString();
+        using (OleDbConnection con = new OleDbConnection(conStr))
+        {
+            con.Open();
+            string idCol = ColumnExists(con, "Users", "Id") ? "[Id]" : "[id]";
+
             if (ColumnExists(con, "Users", "Role") || ColumnExists(con, "Users", "role"))
             {
                 string roleCol = ColumnExists(con, "Users", "Role") ? "[Role]" : "[role]";
-                string idCol = ColumnExists(con, "Users", "Id") ? "[Id]" : "[id]";
                 using (OleDbCommand cmd = new OleDbCommand("UPDATE [Users] SET " + roleCol + "=? WHERE " + idCol + "=?", con))
                 {
-                    cmd.Parameters.AddWithValue("?", role);
-                    cmd.Parameters.AddWithValue("?", id);
+                    OleDbParameter roleParam = new OleDbParameter("?", OleDbType.WChar);
+                    roleParam.Value = role;
+                    cmd.Parameters.Add(roleParam);
+                    OleDbParameter idParam = new OleDbParameter("?", OleDbType.Integer);
+                    idParam.Value = id;
+                    cmd.Parameters.Add(idParam);
                     cmd.ExecuteNonQuery();
                 }
             }
 
-            // City is displayed as name; store only if a free-text city column exists
-            if (ColumnExists(con, "Users", "city") && !string.IsNullOrWhiteSpace(city))
+            // Users.city / CityId הוא מספר (מזהה מטבלת Citys) — שומרים רק מזהה, לא שם כטקסט
+            if (cityId.HasValue)
             {
-                string idCol = ColumnExists(con, "Users", "Id") ? "[Id]" : "[id]";
-                using (OleDbCommand cityCmd = new OleDbCommand("UPDATE [Users] SET [city]=? WHERE " + idCol + "=?", con))
+                string cityCol = ColumnExists(con, "Users", "CityId") ? "[CityId]" : "[city]";
+                using (OleDbCommand cityCmd = new OleDbCommand("UPDATE [Users] SET " + cityCol + "=? WHERE " + idCol + "=?", con))
                 {
-                    cityCmd.Parameters.AddWithValue("?", city);
-                    cityCmd.Parameters.AddWithValue("?", id);
+                    OleDbParameter cityParam = new OleDbParameter("?", OleDbType.Integer);
+                    cityParam.Value = cityId.Value;
+                    cityCmd.Parameters.Add(cityParam);
+                    OleDbParameter idParam = new OleDbParameter("?", OleDbType.Integer);
+                    idParam.Value = id;
+                    cityCmd.Parameters.Add(idParam);
                     cityCmd.ExecuteNonQuery();
                 }
             }

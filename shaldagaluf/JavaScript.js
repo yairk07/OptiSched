@@ -1,49 +1,5 @@
 ﻿document.addEventListener("DOMContentLoaded", function () {
-    let images = [
-        "pics/gun1.jpg", 
-        "pics/gun2.jpg", 
-        "pics/knife3.jpg", 
-        "pics/knife 4.jpg",
-        "pics/image.png",
-        "pics/jud.png",
-        "pics/knife.png",
-        "pics/mul.png",
-        "pics/pis.png"
-    ];
-    let currentIndex = 0;
-    let imgElement = document.getElementById("galleryImage");
-
-    function showImage(index) {
-        if (imgElement) {
-            imgElement.src = images[index];
-        }
-    }
-
-    const prevButton = document.getElementById("prevBtn");
-    if (prevButton) {
-        prevButton.addEventListener("click", function (event) {
-            event.preventDefault();
-            currentIndex = (currentIndex - 1 + images.length) % images.length;
-            showImage(currentIndex);
-        });
-    }
-
-    const nextButton = document.getElementById("nextBtn");
-    if (nextButton) {
-        nextButton.addEventListener("click", function (event) {
-            event.preventDefault();
-            currentIndex = (currentIndex + 1) % images.length;
-            showImage(currentIndex);
-        });
-    }
-
-    showImage(currentIndex);
     initializeCalendarData();
-    
-    window.changeImage = function(direction) {
-        currentIndex = (currentIndex + direction + images.length) % images.length;
-        showImage(currentIndex);
-    };
 });
 
 // ווידג'ט מזג אוויר
@@ -75,48 +31,6 @@ function scrollToTop() {
 
 function navigateToURL(url) {
     window.location.href = url;
-}
-
-// 🎯 רולטה רוסית
-function playRoulette() {
-    const word1 = document.getElementById("word1").value.trim();
-    const word2 = document.getElementById("word2").value.trim();
-    const resultDiv = document.getElementById("rouletteResult");
-    const highlightSection = document.getElementById("lossSection");
-    const highlightLabel = document.getElementById("loserName");
-
-    if (!word1 || !word2) {
-        resultDiv.textContent = "אנא הזן שתי משימות.";
-        highlightSection.style.display = "none";
-        return;
-    }
-
-    const winningSlot = Math.floor(Math.random() * 3) + 1;
-    const pick1 = Math.floor(Math.random() * 3) + 1;
-    const pick2 = Math.floor(Math.random() * 3) + 1;
-
-    const word1Selected = pick1 === winningSlot;
-    const word2Selected = pick2 === winningSlot;
-
-    let result = "";
-
-    if (word1Selected && word2Selected) {
-        result = "שתי האפשרויות נראות מצוינות – בחר את זו שהכי מתאימה למהלך היום.";
-        highlightSection.style.display = "none";
-    } else if (word1Selected) {
-        result = `${word1} קיבלה עדיפות להמשך היום.`;
-        highlightSection.style.display = "block";
-        highlightLabel.textContent = `${word1} היא הבחירה`;
-    } else if (word2Selected) {
-        result = `${word2} קיבלה עדיפות להמשך היום.`;
-        highlightSection.style.display = "block";
-        highlightLabel.textContent = `${word2} היא הבחירה`;
-    } else {
-        result = "אין בחירה חד-משמעית, נסה שוב או החליט אינטואיטיבית.";
-        highlightSection.style.display = "none";
-    }
-
-    resultDiv.textContent = result;
 }
 
 function initializeCalendarData() {

@@ -218,7 +218,7 @@
                                 ErrorMessage="חובה להזין אימייל" CssClass="field-error" Display="Dynamic" ValidationGroup="EditUser" />
                             <asp:RegularExpressionValidator ID="revEmail" runat="server" ControlToValidate="txtEmail"
                                 ValidationExpression="^[^@\s]+@[^@\s]+\.[^@\s]+$"
-                                ErrorMessage="כתובת אימייל לא תקינה"
+                                ErrorMessage="לא ניתן לערוך: מייל לא תקין"
                                 CssClass="field-error" Display="Dynamic" ValidationGroup="EditUser" />
                         </div>
 
@@ -229,7 +229,7 @@
                                 ErrorMessage="חובה להזין טלפון" CssClass="field-error" Display="Dynamic" ValidationGroup="EditUser" />
                             <asp:RegularExpressionValidator ID="revPhone" runat="server" ControlToValidate="txtPhone"
                                 ValidationExpression="^0(5\d|[2-489]|7[2-9])-?\d{7}$"
-                                ErrorMessage="טלפון לא תקין (לדוגמה 0501234567)"
+                                ErrorMessage="לא ניתן לערוך: מספר טלפון לא תקין"
                                 CssClass="field-error" Display="Dynamic" ValidationGroup="EditUser" />
                         </div>
 
