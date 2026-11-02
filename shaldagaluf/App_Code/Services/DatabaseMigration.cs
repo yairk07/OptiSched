@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data;
 using System.Data.OleDb;
 
 /// <summary>
@@ -31,12 +32,166 @@ public static class DatabaseMigration
 
                 // 4. Migrate OTP and Verification codes to AuthCodes
                 MigrateAuthCodesTable(conn);
+
+                // 5. Reminders, notifications, invites, assignee/status
+                EnsureCollaborationFeatures(conn);
             }
             catch (Exception ex)
             {
                 throw new Exception("Database migration failed: " + ex.Message, ex);
             }
         }
+    }
+
+    /// <summary>
+    /// Public entry: ensure reminder/invite/notification schema (safe to call on every request).
+    /// </summary>
+    public static void EnsureCollaborationFeatures()
+    {
+        string connectionString = Connect.GetConnectionString();
+        using (OleDbConnection conn = new OleDbConnection(connectionString))
+        {
+            conn.Open();
+            EnsureCollaborationFeatures(conn);
+        }
+    }
+
+    private static void EnsureCollaborationFeatures(OleDbConnection conn)
+    {
+        EnsureSharedCalendarTables(conn);
+
+        AddColumnIfMissing(conn, "CalendarEvents", "ReminderMinutes", "INTEGER");
+        AddColumnIfMissing(conn, "CalendarEvents", "ReminderSent", "YESNO");
+        AddColumnIfMissing(conn, "SharedCalendarEvents", "ReminderMinutes", "INTEGER");
+        AddColumnIfMissing(conn, "SharedCalendarEvents", "ReminderSent", "YESNO");
+        AddColumnIfMissing(conn, "SharedCalendarEvents", "AssigneeUserId", "INTEGER");
+        AddColumnIfMissing(conn, "SharedCalendarEvents", "Status", "TEXT(50)");
+
+        if (!TableExists(conn, "Notifications"))
+        {
+            ExecuteNonQuery(conn, @"
+                CREATE TABLE Notifications (
+                    Id AUTOINCREMENT PRIMARY KEY,
+                    UserId INTEGER,
+                    Title MEMO,
+                    Message MEMO,
+                    LinkUrl MEMO,
+                    CreatedDate DATETIME,
+                    IsRead YESNO,
+                    RelatedEventId INTEGER
+                )");
+        }
+
+        if (!TableExists(conn, "CalendarInvites"))
+        {
+            ExecuteNonQuery(conn, @"
+                CREATE TABLE CalendarInvites (
+                    Id AUTOINCREMENT PRIMARY KEY,
+                    CalendarId INTEGER,
+                    Token TEXT(64),
+                    Permission TEXT(50),
+                    CreatedBy INTEGER,
+                    CreatedDate DATETIME,
+                    ExpiresDate DATETIME,
+                    MaxUses INTEGER,
+                    UseCount INTEGER,
+                    IsActive YESNO
+                )");
+        }
+
+        // One-time: repair mojibake already stored in Hebrew text columns
+        RepairHebrewTextData(conn);
+    }
+
+    private static bool _hebrewRepairDone;
+
+    /// <summary>
+    /// Re-writes Hebrew fields through Connect.FixEncoding so garbled UTF-8/1255 text is cleaned in-place.
+    /// </summary>
+    private static void RepairHebrewTextData(OleDbConnection conn)
+    {
+        if (_hebrewRepairDone) return;
+        _hebrewRepairDone = true;
+
+        try
+        {
+            RepairTableColumns(conn, "Notifications", new[] { "Title", "Message" });
+            RepairTableColumns(conn, "CalendarEvents", new[] { "Title", "EventTime", "Notes", "Category" });
+            RepairTableColumns(conn, "SharedCalendarEvents", new[] { "Title", "EventTime", "Notes", "Category" });
+            RepairTableColumns(conn, "SharedCalendars", new[] { "CalendarName", "Description" });
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("DatabaseMigration", "RepairHebrewTextData failed", ex);
+            _hebrewRepairDone = false;
+        }
+    }
+
+    private static void RepairTableColumns(OleDbConnection conn, string table, string[] columns)
+    {
+        if (!TableExists(conn, table)) return;
+
+        System.Collections.Generic.List<string> existing = new System.Collections.Generic.List<string>();
+        foreach (string col in columns)
+        {
+            if (ColumnExists(conn, table, col))
+                existing.Add(col);
+        }
+        if (existing.Count == 0) return;
+
+        string idCol = ColumnExists(conn, table, "Id") ? "Id" : null;
+        if (idCol == null) return;
+
+        string selectList = idCol + ", " + string.Join(", ", existing.ConvertAll(c => "[" + c + "]").ToArray());
+        string sql = "SELECT " + selectList + " FROM [" + table + "]";
+
+        System.Data.DataTable dt = new System.Data.DataTable();
+        using (OleDbDataAdapter adp = new OleDbDataAdapter(sql, conn))
+            adp.Fill(dt);
+
+        foreach (System.Data.DataRow row in dt.Rows)
+        {
+            bool changed = false;
+            System.Collections.Generic.List<string> sets = new System.Collections.Generic.List<string>();
+            System.Collections.Generic.List<object> vals = new System.Collections.Generic.List<object>();
+
+            foreach (string col in existing)
+            {
+                string original = row[col] == DBNull.Value ? "" : Convert.ToString(row[col]);
+                if (string.IsNullOrEmpty(original)) continue;
+                string fixedText = Connect.FixEncoding(original);
+                if (!string.Equals(original, fixedText, StringComparison.Ordinal))
+                {
+                    sets.Add("[" + col + "]=?");
+                    vals.Add(fixedText);
+                    changed = true;
+                }
+            }
+
+            if (!changed) continue;
+
+            string updateSql = "UPDATE [" + table + "] SET " + string.Join(", ", sets.ToArray()) + " WHERE [" + idCol + "]=?";
+            using (OleDbCommand cmd = new OleDbCommand(updateSql, conn))
+            {
+                foreach (object v in vals)
+                    cmd.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = v ?? "" });
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Integer) { Value = Convert.ToInt32(row[idCol]) });
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    private static void AddColumnIfMissing(OleDbConnection conn, string table, string column, string typeSql)
+    {
+        if (!TableExists(conn, table))
+            return;
+        if (ColumnExists(conn, table, column))
+            return;
+        try
+        {
+            ExecuteNonQuery(conn, string.Format("ALTER TABLE [{0}] ADD COLUMN [{1}] {2}", table, column, typeSql));
+        }
+        catch { }
     }
 
     /// <summary>

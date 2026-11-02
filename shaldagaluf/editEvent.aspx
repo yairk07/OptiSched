@@ -48,6 +48,16 @@
                     </div>
 
                     <div class="form-group">
+                        <label class="form-label">תזכורת</label>
+                        <asp:DropDownList ID="ddlReminder" runat="server" CssClass="form-input">
+                            <asp:ListItem Text="ללא תזכורת" Value="0"></asp:ListItem>
+                            <asp:ListItem Text="15 דקות לפני" Value="15"></asp:ListItem>
+                            <asp:ListItem Text="שעה לפני" Value="60" Selected="True"></asp:ListItem>
+                            <asp:ListItem Text="יום לפני" Value="1440"></asp:ListItem>
+                        </asp:DropDownList>
+                    </div>
+
+                    <div class="form-group">
                         <label class="form-label">קובץ מצורף</label>
                         <asp:FileUpload ID="fileUpload" runat="server" CssClass="form-input" />
                         <small style="color: #999; font-size: 12px; display: block; margin-top: 4px;">גודל מקסימלי: 5MB</small>

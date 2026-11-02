@@ -48,6 +48,15 @@
                     <asp:TextBox ID="txtNote" runat="server" CssClass="task-input" TextMode="MultiLine" Rows="2" placeholder="פרטים נוספים" />
                 </div>
                 <div class="calendar-meta-line">
+                    <span class="meta-label">תזכורת</span>
+                    <asp:DropDownList ID="ddlReminder" runat="server" CssClass="task-input">
+                        <asp:ListItem Text="ללא תזכורת" Value="0"></asp:ListItem>
+                        <asp:ListItem Text="15 דקות לפני" Value="15"></asp:ListItem>
+                        <asp:ListItem Text="שעה לפני" Value="60" Selected="True"></asp:ListItem>
+                        <asp:ListItem Text="יום לפני" Value="1440"></asp:ListItem>
+                    </asp:DropDownList>
+                </div>
+                <div class="calendar-meta-line">
                     <span class="meta-label">קובץ מצורף</span>
                     <asp:FileUpload ID="fileUpload" runat="server" CssClass="task-input" />
                     <small style="color: #999; font-size: 12px;">גודל מקסימלי: 5MB</small>

@@ -82,6 +82,13 @@ public partial class editEvent : System.Web.UI.Page
                             ddlCategory.SelectedValue = category;
                         }
                     }
+
+                    if (dr.Table.Columns.Contains("ReminderMinutes") && dr["ReminderMinutes"] != DBNull.Value)
+                    {
+                        string rm = Convert.ToInt32(dr["ReminderMinutes"]).ToString();
+                        if (ddlReminder.Items.FindByValue(rm) != null)
+                            ddlReminder.SelectedValue = rm;
+                    }
                 }
             }
         }
@@ -196,6 +203,9 @@ public partial class editEvent : System.Web.UI.Page
         {
             con.Open();
 
+            int reminderMinutes = 60;
+            int.TryParse(ddlReminder.SelectedValue, out reminderMinutes);
+
             // DSD Schema: Use CalendarEvents table with Title, EventDate, EventTime, Notes, Category columns
             string sql = @"
                 UPDATE CalendarEvents
@@ -203,7 +213,9 @@ public partial class editEvent : System.Web.UI.Page
                     EventDate = ?,
                     EventTime = ?,
                     Notes = ?,
-                    Category = ?
+                    Category = ?,
+                    ReminderMinutes = ?,
+                    ReminderSent = False
                 WHERE Id = ?";
 
             using (OleDbCommand cmd = new OleDbCommand(sql, con))
@@ -227,12 +239,32 @@ public partial class editEvent : System.Web.UI.Page
                 OleDbParameter categoryParam = new OleDbParameter("?", OleDbType.WChar);
                 categoryParam.Value = ddlCategory.SelectedValue != null ? ddlCategory.SelectedValue.Trim() : "";
                 cmd.Parameters.Add(categoryParam);
+
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Integer) { Value = reminderMinutes });
                 
                 OleDbParameter idParam = new OleDbParameter("?", OleDbType.Integer);
                 idParam.Value = eventId;
                 cmd.Parameters.Add(idParam);
 
-                cmd.ExecuteNonQuery();
+                try
+                {
+                    cmd.ExecuteNonQuery();
+                }
+                catch
+                {
+                    // Fallback if Reminder columns missing
+                    string sqlFallback = @"UPDATE CalendarEvents SET Title=?, EventDate=?, EventTime=?, Notes=?, Category=? WHERE Id=?";
+                    using (OleDbCommand fb = new OleDbCommand(sqlFallback, con))
+                    {
+                        fb.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = txtTitle.Text != null ? txtTitle.Text.Trim() : "" });
+                        fb.Parameters.Add(new OleDbParameter("?", OleDbType.Date) { Value = DateTime.Parse(txtDate.Text) });
+                        fb.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = txtTime.Text != null ? txtTime.Text.Trim() : "" });
+                        fb.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = txtNotes.Text != null ? txtNotes.Text.Trim() : "" });
+                        fb.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = ddlCategory.SelectedValue != null ? ddlCategory.SelectedValue.Trim() : "" });
+                        fb.Parameters.Add(new OleDbParameter("?", OleDbType.Integer) { Value = eventId });
+                        fb.ExecuteNonQuery();
+                    }
+                }
             }
 
             // Handle file upload

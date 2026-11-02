@@ -14,6 +14,18 @@
                     </asp:HyperLink>
                     <asp:Label ID="calendarTitle" runat="server" CssClass="calendar-title"></asp:Label>
                     <asp:Label ID="calendarDescription" runat="server" CssClass="calendar-description"></asp:Label>
+                    <asp:Panel ID="pnlInvite" runat="server" Visible="false" CssClass="invite-panel" style="margin-top:16px;padding:14px;border:1px solid rgba(255,255,255,0.12);border-radius:10px;">
+                        <strong>הזמנת חברים בקישור</strong>
+                        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;">
+                            <asp:DropDownList ID="ddlInvitePermission" runat="server" CssClass="task-input" style="max-width:180px;">
+                                <asp:ListItem Text="ראיה בלבד" Value="Read" Selected="True"></asp:ListItem>
+                                <asp:ListItem Text="עריכה + ראיה" Value="ReadWrite"></asp:ListItem>
+                            </asp:DropDownList>
+                            <asp:Button ID="btnCreateInvite" runat="server" Text="צור קישור הזמנה" CssClass="task-button" OnClick="btnCreateInvite_Click" />
+                        </div>
+                        <asp:TextBox ID="txtInviteLink" runat="server" CssClass="task-input" style="margin-top:10px;width:100%;" ReadOnly="true" />
+                        <asp:Label ID="lblInviteMsg" runat="server" CssClass="form-message" />
+                    </asp:Panel>
                 </div>
 
                 <asp:Panel ID="pnlNotMember" runat="server" Visible="false" CssClass="not-member-panel">
@@ -63,6 +75,27 @@
                                 <div class="calendar-meta-line">
                                     <span class="meta-label">הערות</span>
                                     <asp:TextBox ID="txtEventNotes" runat="server" CssClass="task-input" TextMode="MultiLine" Rows="2" placeholder="פרטים נוספים" />
+                                </div>
+                                <div class="calendar-meta-line">
+                                    <span class="meta-label">תזכורת</span>
+                                    <asp:DropDownList ID="ddlEventReminder" runat="server" CssClass="task-input">
+                                        <asp:ListItem Text="ללא תזכורת" Value="0"></asp:ListItem>
+                                        <asp:ListItem Text="15 דקות לפני" Value="15"></asp:ListItem>
+                                        <asp:ListItem Text="שעה לפני" Value="60" Selected="True"></asp:ListItem>
+                                        <asp:ListItem Text="יום לפני" Value="1440"></asp:ListItem>
+                                    </asp:DropDownList>
+                                </div>
+                                <div class="calendar-meta-line">
+                                    <span class="meta-label">אחראי</span>
+                                    <asp:DropDownList ID="ddlAssignee" runat="server" CssClass="task-input" />
+                                </div>
+                                <div class="calendar-meta-line">
+                                    <span class="meta-label">סטטוס</span>
+                                    <asp:DropDownList ID="ddlStatus" runat="server" CssClass="task-input">
+                                        <asp:ListItem Text="ממתין" Value="Pending" Selected="True"></asp:ListItem>
+                                        <asp:ListItem Text="בתהליך" Value="InProgress"></asp:ListItem>
+                                        <asp:ListItem Text="בוצע" Value="Done"></asp:ListItem>
+                                    </asp:DropDownList>
                                 </div>
                                 <asp:Button ID="btnSaveEvent" runat="server" Text="שמור אירוע" CssClass="task-button" OnClick="btnSaveEvent_Click" />
                                 <asp:Label ID="lblSaveError" runat="server" CssClass="form-error" Visible="false" />

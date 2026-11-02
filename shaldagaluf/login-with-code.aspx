@@ -32,7 +32,8 @@
                     <div class="form-field">
                         <label for="txtCode">קוד אימות</label>
                         <asp:TextBox ID="txtCode" runat="server" CssClass="textbox verification-code-input" placeholder="000000" MaxLength="6" style="text-align: center; font-size: 24px; letter-spacing: 8px;" />
-                        <p style="font-size: 13px; color: var(--muted); margin-top: 8px; text-align: center;">הזן את הקוד בן 6 הספרות שנשלח לאימייל שלך</p>
+                        <asp:Label ID="lblCodeHint" runat="server" CssClass="code-hint"
+                            Text="הזן את הקוד בן 6 הספרות שנשלח לאימייל שלך" />
                     </div>
 
                     <asp:Button ID="btnVerifyCode" runat="server" Text="אמת קוד" OnClick="btnVerifyCode_Click" CssClass="button" />
@@ -54,6 +55,17 @@
 
     <style>
         .verification-code-input { font-family: monospace; }
+        .code-hint {
+            display: block;
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 8px;
+            text-align: center;
+        }
+        .code-hint.vip {
+            color: var(--brand, #e50914);
+            font-weight: 600;
+        }
         .auth-link { color: var(--brand); text-decoration: none; font-weight: 600; }
         .auth-link:hover { text-decoration: underline; }
     </style>

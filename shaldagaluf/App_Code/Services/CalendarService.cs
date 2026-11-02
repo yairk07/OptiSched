@@ -19,7 +19,9 @@ public class CalendarService
                     EventTime TEXT,
                     Notes MEMO,
                     Category TEXT,
-                    CreatedDate DATETIME
+                    CreatedDate DATETIME,
+                    ReminderMinutes INTEGER,
+                    ReminderSent YESNO
                 )";
             try
             {
@@ -35,6 +37,8 @@ public class CalendarService
                 throw;
             }
         }
+
+        try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
     }
 
     // Checks if a database table exists by attempting to query it
@@ -56,7 +60,7 @@ public class CalendarService
     }
 
     // Inserts a new calendar event and returns the generated event ID
-    public int InsertEvent(string title, DateTime date, string time, string notes, string category, int? userId = null)
+    public int InsertEvent(string title, DateTime date, string time, string notes, string category, int? userId = null, int reminderMinutes = 60)
     {
         // Validate that userId is provided
         if (!userId.HasValue)
@@ -69,7 +73,10 @@ public class CalendarService
             conn.Open();
             EnsureCalendarEventsTable(conn);
 
-            string sql = "INSERT INTO CalendarEvents (UserId, Title, EventDate, EventTime, Notes, Category, CreatedDate) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            bool hasReminder = ColumnExists(conn, "CalendarEvents", "ReminderMinutes");
+            string sql = hasReminder
+                ? "INSERT INTO CalendarEvents (UserId, Title, EventDate, EventTime, Notes, Category, CreatedDate, ReminderMinutes, ReminderSent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                : "INSERT INTO CalendarEvents (UserId, Title, EventDate, EventTime, Notes, Category, CreatedDate) VALUES (?, ?, ?, ?, ?, ?, ?)";
             LoggingService.Log("CalendarService", string.Format("Inserting event: Title={0}, UserId={1}", title, userId.Value));
 
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
@@ -103,6 +110,12 @@ public class CalendarService
                 createdDateParam.Value = DateTime.Now;
                 cmd.Parameters.Add(createdDateParam);
 
+                if (hasReminder)
+                {
+                    cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Integer) { Value = reminderMinutes });
+                    cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Boolean) { Value = false });
+                }
+
                 try
                 {
                     cmd.ExecuteNonQuery();
@@ -124,6 +137,20 @@ public class CalendarService
                 }
             }
         }
+    }
+
+    private static bool ColumnExists(OleDbConnection conn, string tableName, string columnName)
+    {
+        try
+        {
+            using (OleDbCommand cmd = new OleDbCommand(
+                string.Format("SELECT TOP 1 [{0}] FROM [{1}]", columnName, tableName), conn))
+            {
+                cmd.ExecuteScalar();
+                return true;
+            }
+        }
+        catch { return false; }
     }
 
     // Loads all personal events and optionally shared events, fixes Hebrew encoding, and returns as DataSet

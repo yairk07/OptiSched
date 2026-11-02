@@ -515,6 +515,51 @@ public class UsersService
         return null;
     }
 
+    // שליפת משתמש לפי שם משתמש
+    public DataRow GetUserByUsername(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+            return null;
+
+        DataSet ds = new DataSet();
+        string connectionString = Connect.GetConnectionString();
+        string key = username.Trim();
+
+        using (OleDbConnection myConnection = new OleDbConnection(connectionString))
+        {
+            myConnection.Open();
+            string[] queries =
+            {
+                "SELECT * FROM Users WHERE username=?",
+                "SELECT * FROM Users WHERE userName=?",
+                "SELECT * FROM Users WHERE UserName=?"
+            };
+
+            foreach (string sql in queries)
+            {
+                try
+                {
+                    ds.Reset();
+                    using (OleDbCommand cmd = new OleDbCommand(sql, myConnection))
+                    {
+                        OleDbParameter p = new OleDbParameter("?", OleDbType.WChar);
+                        p.Value = key;
+                        cmd.Parameters.Add(p);
+                        new OleDbDataAdapter(cmd).Fill(ds, "Users");
+                    }
+                    if (ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
+                        return ds.Tables[0].Rows[0];
+                }
+                catch
+                {
+                    continue;
+                }
+            }
+        }
+
+        return null;
+    }
+
     // שמירה/עדכון במסד: UpdatePassword
     public void UpdatePassword(int userId, string newPassword)
     {

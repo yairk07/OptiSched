@@ -239,6 +239,8 @@ public partial class tasks : System.Web.UI.Page
         string time = txtTime.Text.Trim();
         string note = txtNote.Text.Trim();
         string category = ddlCategory.SelectedValue;
+        int reminderMinutes = 60;
+        int.TryParse(ddlReminder.SelectedValue, out reminderMinutes);
 
         if (!string.IsNullOrEmpty(title))
         {
@@ -249,7 +251,7 @@ public partial class tasks : System.Web.UI.Page
             }
 
             // Insert event and get the new event ID
-            int eventId = calnderService.InsertEvent(title, selectedDate, time, note, category, userId);
+            int eventId = calnderService.InsertEvent(title, selectedDate, time, note, category, userId, reminderMinutes);
 
             // Handle file upload if file was provided
             if (fileUpload.HasFile)

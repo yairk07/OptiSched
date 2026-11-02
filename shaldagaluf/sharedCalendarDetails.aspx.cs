@@ -135,6 +135,8 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         else
             calendarDescription.Text = "";
 
+        pnlInvite.Visible = isAdmin;
+
         if (!isMember)
         {
             pnlNotMember.Visible = true;
@@ -152,6 +154,7 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
             bool userIsOwner = string.Equals(userRole, "owner", StringComparison.OrdinalIgnoreCase);
             bool canEdit = isAdmin || userIsOwner || service.CanUserEdit(calendarId, currentUserId);
             
+            BindAssigneeList();
             BindCalendar();
             
             if (!IsPostBack)
@@ -167,6 +170,45 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
                     ShowEvents(calEvents.SelectedDate);
                 }
             }
+        }
+    }
+
+    private void BindAssigneeList()
+    {
+        string selected = ddlAssignee.SelectedValue;
+        ddlAssignee.Items.Clear();
+        ddlAssignee.Items.Add(new ListItem("ללא אחראי", "0"));
+        DataTable members = service.GetCalendarMembers(calendarId);
+        foreach (DataRow row in members.Rows)
+        {
+            string uid = Convert.ToString(row["UserId"]);
+            string uname = Connect.FixEncoding(Convert.ToString(row["UserName"]));
+            ddlAssignee.Items.Add(new ListItem(uname, uid));
+        }
+        if (!string.IsNullOrEmpty(selected) && ddlAssignee.Items.FindByValue(selected) != null)
+            ddlAssignee.SelectedValue = selected;
+    }
+
+    protected void btnCreateInvite_Click(object sender, EventArgs e)
+    {
+        if (!isAdmin)
+        {
+            lblInviteMsg.Text = "רק מנהל יכול ליצור קישור הזמנה.";
+            return;
+        }
+        try
+        {
+            string perm = ddlInvitePermission.SelectedValue;
+            string token = CalendarInviteService.CreateInvite(calendarId, currentUserId, perm, 50, 30);
+            string baseUrl = Request.Url.GetLeftPart(UriPartial.Authority) + ResolveUrl("~/acceptInvite.aspx");
+            txtInviteLink.Text = baseUrl + "?token=" + token;
+            lblInviteMsg.Text = "הקישור נוצר — העתק ושלח לחברים.";
+            lblInviteMsg.CssClass = "form-message auth-success";
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("sharedCalendarDetails", "Create invite failed", ex);
+            lblInviteMsg.Text = "שגיאה ביצירת קישור: " + ex.Message;
         }
     }
 
@@ -446,6 +488,13 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
             if (IsInvalidValue(category))
                 category = "אחר";
 
+            int reminderMinutes = 60;
+            int.TryParse(ddlEventReminder.SelectedValue, out reminderMinutes);
+            int assigneeId = 0;
+            int.TryParse(ddlAssignee.SelectedValue, out assigneeId);
+            int? assignee = assigneeId > 0 ? (int?)assigneeId : null;
+            string status = ddlStatus.SelectedValue ?? "Pending";
+
             DateTime eventDate;
             if (!DateTime.TryParse(dateStr, out eventDate))
             {
@@ -458,11 +507,11 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
             
             if (editingId.HasValue)
             {
-                service.UpdateSharedCalendarEvent(editingId.Value, title, eventDate, time, notes, category);
+                service.UpdateSharedCalendarEvent(editingId.Value, title, eventDate, time, notes, category, reminderMinutes, assignee, status);
             }
             else
             {
-                service.AddSharedCalendarEvent(calendarId, title, eventDate, time, notes, category, currentUserId);
+                service.AddSharedCalendarEvent(calendarId, title, eventDate, time, notes, category, currentUserId, reminderMinutes, assignee, status);
             }
 
             ViewState["EditingEventId"] = null;
@@ -537,6 +586,27 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
                 if (category != "...." && category != "..." && ddlEventCategory.Items.FindByValue(category) != null)
                     ddlEventCategory.SelectedValue = category;
             }
+
+            BindAssigneeList();
+            if (row.Table.Columns.Contains("ReminderMinutes") && row["ReminderMinutes"] != DBNull.Value)
+            {
+                string rm = Convert.ToInt32(row["ReminderMinutes"]).ToString();
+                if (ddlEventReminder.Items.FindByValue(rm) != null)
+                    ddlEventReminder.SelectedValue = rm;
+            }
+            if (row.Table.Columns.Contains("AssigneeUserId") && row["AssigneeUserId"] != DBNull.Value)
+            {
+                string aid = Convert.ToInt32(row["AssigneeUserId"]).ToString();
+                if (ddlAssignee.Items.FindByValue(aid) != null)
+                    ddlAssignee.SelectedValue = aid;
+            }
+            if (row.Table.Columns.Contains("Status") && row["Status"] != DBNull.Value)
+            {
+                string st = Convert.ToString(row["Status"]);
+                if (ddlStatus.Items.FindByValue(st) != null)
+                    ddlStatus.SelectedValue = st;
+            }
+
             ViewState["EditingEventId"] = eventId;
             if (row.Table.Columns.Contains("EventDate") && row["EventDate"] != DBNull.Value && row["EventDate"] != null)
             {
@@ -639,6 +709,11 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         txtEventTime.Text = "";
         txtEventNotes.Text = "";
         ddlEventCategory.SelectedIndex = 0;
+        if (ddlEventReminder.Items.FindByValue("60") != null)
+            ddlEventReminder.SelectedValue = "60";
+        if (ddlAssignee.Items.Count > 0)
+            ddlAssignee.SelectedIndex = 0;
+        ddlStatus.SelectedValue = "Pending";
     }
 
     // החזרת מחרוזת בטוחה מה-DB (עם תיקון קידוד)
@@ -887,12 +962,19 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
             builder.Append("<th>כותרת</th>");
             builder.Append("<th>קטגוריה</th>");
             builder.Append("<th>שעה</th>");
+            builder.Append("<th>אחראי</th>");
+            builder.Append("<th>סטטוס</th>");
             builder.Append("<th>הערות</th>");
             builder.Append("<th>נוצר על ידי</th>");
             builder.Append("<th>פעולות</th>");
             builder.Append("</tr>");
             builder.Append("</thead>");
             builder.Append("<tbody>");
+
+            DataTable membersLookup = service.GetCalendarMembers(calendarId);
+            Dictionary<string, string> memberNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (DataRow m in membersLookup.Rows)
+                memberNames[Convert.ToString(m["UserId"])] = Connect.FixEncoding(Convert.ToString(m["UserName"]));
 
             foreach (DataRow row in eventsData.Rows)
             {
@@ -935,10 +1017,30 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
                             bool userIsAdmin = isAdmin || isOwner;
                             bool canEdit = userIsAdmin || service.CanUserEdit(calendarId, currentUserId);
 
+                            string assigneeName = "";
+                            if (row.Table.Columns.Contains("AssigneeUserId") && row["AssigneeUserId"] != DBNull.Value)
+                            {
+                                string aid = Convert.ToString(row["AssigneeUserId"]);
+                                if (!memberNames.TryGetValue(aid, out assigneeName))
+                                    assigneeName = aid;
+                            }
+
+                            string statusLabel = "";
+                            if (row.Table.Columns.Contains("Status") && row["Status"] != DBNull.Value)
+                            {
+                                string st = Convert.ToString(row["Status"]);
+                                if (st == "Done") statusLabel = "בוצע";
+                                else if (st == "InProgress") statusLabel = "בתהליך";
+                                else if (st == "Pending") statusLabel = "ממתין";
+                                else statusLabel = st;
+                            }
+
                             builder.Append("<tr>");
                             builder.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(title));
                             builder.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(category));
                             builder.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(time));
+                            builder.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(assigneeName));
+                            builder.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(statusLabel));
                             builder.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(notes));
                             builder.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(createdByName));
                             

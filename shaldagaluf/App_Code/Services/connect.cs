@@ -77,7 +77,7 @@ public class Connect
         }
     }
 
-    // Fixes Hebrew text encoding by trying multiple encoding conversions until valid Hebrew is found
+    // Fixes Hebrew text encoding / classic UTF-8↔Windows-1255 mojibake
     public static string FixEncoding(object value)
     {
         if (value == null || value == DBNull.Value)
@@ -87,61 +87,49 @@ public class Connect
         if (string.IsNullOrEmpty(text))
             return "";
 
-        // Check if text already contains valid Hebrew - if yes, return as-is
-        if (IsValidHebrewText(text))
-        {
+        text = SanitizeCorruptedSeparators(text);
+
+        // Already clean Hebrew/ASCII — leave alone (do NOT run strategies that can corrupt good text)
+        if (IsCleanText(text))
             return text;
-        }
 
         try
         {
+            string best = text;
+            int bestScore = ScoreText(text);
+
             Encoding hebrew1255 = Encoding.GetEncoding("Windows-1255");
             Encoding utf8 = Encoding.UTF8;
+            Encoding latin1 = Encoding.GetEncoding("ISO-8859-1");
 
-            // Strategy 1: Text might be UTF-8 bytes interpreted as Windows-1255
-            // Convert: read as Windows-1255 bytes, interpret as UTF-8
-            try
+            // Strategy 1: UTF-8 bytes misread as Windows-1255 / Latin-1 (׳×׳–׳›׳•׳¨׳× → תזכורת)
+            TryImprove(ref best, ref bestScore, () => utf8.GetString(hebrew1255.GetBytes(text)));
+            TryImprove(ref best, ref bestScore, () => utf8.GetString(latin1.GetBytes(text)));
+
+            // Strategy 2: Windows-1255 bytes misread as UTF-8 — only if source has no real Hebrew letters
+            if (!HasHebrewLetters(text))
             {
-                byte[] as1255Bytes = hebrew1255.GetBytes(text);
-                string asUtf8 = utf8.GetString(as1255Bytes);
-                if (IsValidHebrewText(asUtf8))
-                    return asUtf8;
+                TryImprove(ref best, ref bestScore, () => hebrew1255.GetString(utf8.GetBytes(text)));
             }
-            catch { }
 
-            // Strategy 2: Text might be Windows-1255 bytes interpreted as UTF-8
-            // Convert: read as UTF-8 bytes, interpret as Windows-1255
-            try
+            // Strategy 3: Default ANSI ↔ UTF-8 / 1255
+            TryImprove(ref best, ref bestScore, () => utf8.GetString(Encoding.Default.GetBytes(text)));
+            TryImprove(ref best, ref bestScore, () => hebrew1255.GetString(Encoding.Default.GetBytes(text)));
+
+            // Mixed strings: repair token-by-token when whole-string conversion isn't enough
+            if (LooksLikeMojibake(text) || LooksLikeMojibake(best))
             {
-                byte[] asUtf8Bytes = utf8.GetBytes(text);
-                string as1255 = hebrew1255.GetString(asUtf8Bytes);
-                if (IsValidHebrewText(as1255))
-                    return as1255;
+                string mixed = FixMixedTokens(text);
+                TryImprove(ref best, ref bestScore, () => mixed);
+                string mixedBest = FixMixedTokens(best);
+                TryImprove(ref best, ref bestScore, () => mixedBest);
             }
-            catch { }
 
-            // Strategy 3: Text might be in default encoding, convert to UTF-8 via Windows-1255
-            try
-            {
-                byte[] asDefaultBytes = Encoding.Default.GetBytes(text);
-                string as1255FromDefault = hebrew1255.GetString(asDefaultBytes);
-                if (IsValidHebrewText(as1255FromDefault))
-                    return as1255FromDefault;
-            }
-            catch { }
-
-            // Strategy 4: Try reading the original string as if it's already UTF-8
-            try
-            {
-                byte[] originalBytes = Encoding.Default.GetBytes(text);
-                string asUtf8FromDefault = utf8.GetString(originalBytes);
-                if (IsValidHebrewText(asUtf8FromDefault))
-                    return asUtf8FromDefault;
-            }
-            catch { }
-
-            // Return original if no valid conversion found
-            return text;
+            best = SanitizeCorruptedSeparators(best);
+            // Cleanup leftovers from partial historical repairs (ת + junk + כורת)
+            best = System.Text.RegularExpressions.Regex.Replace(
+                best, @"ת[^\u05D0-\u05EA]{0,3}כורת", "תזכורת");
+            return best;
         }
         catch (Exception ex)
         {
@@ -150,31 +138,131 @@ public class Connect
         }
     }
 
-    // Checks if text contains valid Hebrew characters and no invalid control characters
-    private static bool IsValidHebrewText(string text)
+    private static void TryImprove(ref string best, ref int bestScore, Func<string> candidateFactory)
     {
-        if (string.IsNullOrEmpty(text))
-            return false;
-
-        bool hasHebrew = false;
-        bool hasInvalidChars = false;
-
-        foreach (char c in text)
+        try
         {
-            // Check if character is in Hebrew Unicode range (0x0590-0x05FF)
-            if (c >= 0x0590 && c <= 0x05FF)
+            string candidate = candidateFactory();
+            if (string.IsNullOrEmpty(candidate)) return;
+            candidate = SanitizeCorruptedSeparators(candidate);
+            int score = ScoreText(candidate);
+            if (score > bestScore)
             {
-                hasHebrew = true;
-            }
-            // Check for invalid control characters (excluding non-breaking space 0x00A0)
-            else if (c >= 0x0080 && c <= 0x009F && c != 0x00A0)
-            {
-                hasInvalidChars = true;
+                best = candidate;
+                bestScore = score;
             }
         }
+        catch { }
+    }
 
-        // Text is valid if it contains Hebrew characters and no invalid control chars
-        return hasHebrew && !hasInvalidChars;
+    private static string FixMixedTokens(string text)
+    {
+        // Split on spaces/punctuation while keeping delimiters
+        // Do NOT split on en-dash/× — they appear inside classic Hebrew mojibake sequences
+        var parts = System.Text.RegularExpressions.Regex.Split(text, @"(\s+|[:|/]+)");
+        for (int i = 0; i < parts.Length; i++)
+        {
+            string p = parts[i];
+            if (string.IsNullOrEmpty(p) || !LooksLikeMojibake(p))
+                continue;
+
+            string fixedPart = p;
+            int score = ScoreText(p);
+            Encoding hebrew1255 = Encoding.GetEncoding("Windows-1255");
+            Encoding utf8 = Encoding.UTF8;
+            Encoding latin1 = Encoding.GetEncoding("ISO-8859-1");
+            try
+            {
+                string c1 = utf8.GetString(hebrew1255.GetBytes(p));
+                if (ScoreText(c1) > score) { fixedPart = c1; score = ScoreText(c1); }
+            }
+            catch { }
+            try
+            {
+                string c2 = utf8.GetString(latin1.GetBytes(p));
+                if (ScoreText(c2) > score) { fixedPart = c2; score = ScoreText(c2); }
+            }
+            catch { }
+            parts[i] = fixedPart;
+        }
+        return string.Concat(parts);
+    }
+
+    // Higher = better. Rewards Hebrew letters, penalizes mojibake markers / replacement chars.
+    private static int ScoreText(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return -1000;
+        int score = 0;
+        int hebrewLetters = 0;
+        int mojibakeHits = 0;
+        for (int i = 0; i < text.Length; i++)
+        {
+            char c = text[i];
+            if (c >= 0x05D0 && c <= 0x05EA) hebrewLetters++;
+            // Classic UTF-8→1255 mojibake uses geresh (׳) + Latin symbols
+            if (c == '׳' || c == '״') mojibakeHits++;
+            if (c == '×' || c == '–' || c == '›' || c == '«' || c == '»') mojibakeHits++;
+            if (c == '\uFFFD' || c == '¿' || c == 'Â' || c == 'Ã') mojibakeHits += 2;
+            if (c >= 0x0080 && c <= 0x009F) mojibakeHits += 2;
+        }
+        score += hebrewLetters * 4;
+        score -= mojibakeHits * 6;
+        if (LooksLikeMojibake(text)) score -= 20;
+        return score;
+    }
+
+    private static bool IsCleanText(string text)
+    {
+        if (LooksLikeMojibake(text)) return false;
+        // ASCII / digits / punctuation only
+        if (!HasHebrewLetters(text) && !HasHighAnsi(text)) return true;
+        // Real Hebrew letters and no mojibake markers
+        return HasHebrewLetters(text) && !LooksLikeMojibake(text);
+    }
+
+    private static bool HasHebrewLetters(string text)
+    {
+        foreach (char c in text)
+        {
+            if (c >= 0x05D0 && c <= 0x05EA) return true;
+        }
+        return false;
+    }
+
+    private static bool HasHighAnsi(string text)
+    {
+        foreach (char c in text)
+        {
+            if (c > 127) return true;
+        }
+        return false;
+    }
+
+    // Detects classic Hebrew UTF-8 misdecoded as Windows-1255/Latin-1 (e.g. ׳×׳–׳›׳•׳¨׳×)
+    private static bool LooksLikeMojibake(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+        if (text.IndexOf("׳×", StringComparison.Ordinal) >= 0) return true;
+        if (text.IndexOf("×׳", StringComparison.Ordinal) >= 0) return true;
+        // geresh/gershayim mixed with Latin-1 symbols typical of mojibake
+        bool hasGeresh = text.IndexOf('׳') >= 0 || text.IndexOf('״') >= 0;
+        bool hasLatinJunk = text.IndexOf('×') >= 0 || text.IndexOf('›') >= 0
+            || text.IndexOf('«') >= 0 || text.IndexOf('Â') >= 0 || text.IndexOf('Ã') >= 0;
+        if (hasGeresh && hasLatinJunk) return true;
+        // Corrupted middle-dot separator seen in notifications
+        if (text.IndexOf('\u05B2') >= 0) return true;
+        return false;
+    }
+
+    private static string SanitizeCorruptedSeparators(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        // Access/ANSI sometimes mangles middle-dot into Hebrew point + dot
+        text = text.Replace("\u05B2·", " - ");
+        text = text.Replace("\u05B2", "");
+        text = text.Replace(" · ", " - ");
+        text = text.Replace("·", " - ");
+        return text;
     }
 }
 

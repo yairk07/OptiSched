@@ -13,7 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Trocchi&display=swap" rel="stylesheet">
     
     <!-- External CSS -->
-    <link href="StyleSheet.css?v=20261019" rel="stylesheet" />
+    <link href="StyleSheet.css?v=20261102c" rel="stylesheet" />
     
     <!-- Placeholder for additional head content -->
     <asp:ContentPlaceHolder ID="head" runat="server"></asp:ContentPlaceHolder>
@@ -21,9 +21,9 @@
 
 <body id="Body" runat="server" style="direction: rtl; text-align: right;">
     <form id="form1" runat="server">
-        <!-- Header with Logo + Navigation -->
+        <!-- Header: מותג מימין, חשבון+התראות משמאל (כמו Google Calendar / LinkedIn) -->
         <header id="headerMenu">
-            <div class="header-inner">
+            <div class="header-inner header-shell">
                 <div class="logo-block">
                     <img src="pics/optisched-logo.png" alt="OptiSched" class="logo"/>
                     <div class="logo-text">
@@ -32,25 +32,161 @@
                     </div>
                 </div>
 
-                <nav class="nav-bar">
-                    <a href="home.aspx">בית</a>
-                    <a href="register.aspx" runat="server" id="linkRegister">הרשמה</a>
-                    <a href="tasks.aspx" runat="server" id="linkTasks">טופס משימות</a>
-                    <a href="sharedCalendars.aspx" runat="server" id="linkSharedCalendars">טבלאות משותפות</a>
-                    <a href="contactus.aspx">צור קשר</a>
-                    <a href="contant.aspx" runat="server" id="linkContent">תוכן</a>
-                    <a href="login.aspx" runat="server" id="linkLogin">כניסה</a>
-                    <a href="termofservice.aspx" runat="server" id="linkTerms">תנאי שירות</a>
+                <div class="header-account" id="headerAccount" runat="server">
+                    <div id="notifBellWrap" runat="server" class="notif-anchor" visible="false">
+                        <asp:LinkButton ID="btnNotifToggle" runat="server" CssClass="notif-bell" OnClick="btnNotifToggle_Click" CausesValidation="false" ToolTip="התראות" aria-label="התראות">
+                            <svg class="notif-bell-svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+                                <path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm6-6V11a6 6 0 1 0-12 0v5l-2 2v1h16v-1l-2-2z"/>
+                            </svg>
+                            <asp:Label ID="lblNotifCount" runat="server" CssClass="notif-badge" Visible="false" />
+                        </asp:LinkButton>
+                        <asp:Panel ID="pnlNotifDropdown" runat="server" CssClass="notif-panel" Visible="false">
+                            <div class="notif-dropdown-header">
+                                <strong>התראות</strong>
+                                <asp:LinkButton ID="btnMarkAllRead" runat="server" OnClick="btnMarkAllRead_Click" CssClass="notif-mark-all" CausesValidation="false" Text="סמן הכל כנקרא" />
+                            </div>
+                            <asp:Repeater ID="rptNotifications" runat="server" OnItemCommand="rptNotifications_ItemCommand">
+                                <ItemTemplate>
+                                    <div class='<%# Convert.ToBoolean(Eval("IsRead")) ? "notif-item read" : "notif-item unread" %>'>
+                                        <asp:LinkButton ID="lnkNotif" runat="server" CommandName="Open" CommandArgument='<%# Eval("Id") + "|" + Eval("LinkUrl") %>' CssClass="notif-link" CausesValidation="false">
+                                            <span class="notif-title"><%# Eval("Title") %></span>
+                                            <span class="notif-msg"><%# Eval("Message") %></span>
+                                            <span class="notif-date"><%# Eval("CreatedDate") != DBNull.Value ? Convert.ToDateTime(Eval("CreatedDate")).ToString("dd/MM HH:mm") : "" %></span>
+                                        </asp:LinkButton>
+                                    </div>
+                                </ItemTemplate>
+                            </asp:Repeater>
+                            <asp:Label ID="lblNoNotifs" runat="server" CssClass="notif-empty" Text="אין התראות" Visible="false" />
+                        </asp:Panel>
+                    </div>
 
-                    <a href="exusers.aspx" id="linkUsers" runat="server">משתמשים</a>
-                    <a href="allEvents.aspx" id="linkAllEvents" runat="server">כל האירועים</a>
-                    <a href="exportGoogle.aspx" id="linkExportGoogle" runat="server">ייצוא ל-Google</a>
-
-                    <asp:LinkButton ID="lnkUserName" runat="server" CssClass="logout-btn"
-                        OnClick="lnkUserName_Click">התנתק</asp:LinkButton>
-                </nav>
+                    <asp:LinkButton ID="lnkUserName" runat="server" CssClass="account-logout" OnClick="lnkUserName_Click">התנתק</asp:LinkButton>
+                </div>
             </div>
+
+            <nav class="nav-bar">
+                <a href="home.aspx">בית</a>
+                <a href="register.aspx" runat="server" id="linkRegister">הרשמה</a>
+                <a href="tasks.aspx" runat="server" id="linkTasks">טופס משימות</a>
+                <a href="sharedCalendars.aspx" runat="server" id="linkSharedCalendars">טבלאות משותפות</a>
+                <a href="contactus.aspx">צור קשר</a>
+                <a href="contant.aspx" runat="server" id="linkContent">תוכן</a>
+                <a href="login.aspx" runat="server" id="linkLogin">כניסה</a>
+                <a href="termofservice.aspx" runat="server" id="linkTerms">תנאי שירות</a>
+
+                <a href="exusers.aspx" id="linkUsers" runat="server">משתמשים</a>
+                <a href="allEvents.aspx" id="linkAllEvents" runat="server">כל האירועים</a>
+                <a href="exportGoogle.aspx" id="linkExportGoogle" runat="server">ייצוא ל-Google</a>
+            </nav>
         </header>
+
+        <style>
+            #headerMenu { overflow: visible; position: relative; z-index: 100; }
+            .header-shell {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+                width: 100%;
+            }
+            /* אשכול חשבון מול הלוגו — כמו Google Calendar / Outlook / LinkedIn */
+            .header-account {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-shrink: 0;
+                margin-inline-start: auto;
+            }
+            .notif-anchor { position: relative; z-index: 1200; }
+            .notif-bell {
+                position: relative;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                border: 1px solid rgba(255,255,255,0.14);
+                background: rgba(255,255,255,0.06);
+                color: #fff;
+                text-decoration: none;
+            }
+            .notif-bell:hover {
+                background: rgba(229,9,20,0.2);
+                border-color: rgba(229,9,20,0.55);
+                color: #fff;
+                text-decoration: none;
+            }
+            .notif-bell-svg { display: block; }
+            .notif-badge {
+                position: absolute;
+                top: -4px;
+                inset-inline-end: -4px;
+                min-width: 18px;
+                height: 18px;
+                padding: 0 5px;
+                border-radius: 999px;
+                background: #e50914;
+                color: #fff;
+                font-size: 11px;
+                font-weight: 700;
+                line-height: 18px;
+                text-align: center;
+                box-shadow: 0 0 0 2px #121214;
+            }
+            .account-logout {
+                display: inline-flex;
+                align-items: center;
+                padding: 8px 14px;
+                border-radius: 999px;
+                border: 1px solid rgba(255,255,255,0.14);
+                background: transparent;
+                color: #fff;
+                text-decoration: none;
+                font-size: 13px;
+                font-weight: 600;
+                white-space: nowrap;
+            }
+            .account-logout:hover {
+                background: var(--brand, #e50914);
+                border-color: transparent;
+                color: #fff;
+                text-decoration: none;
+            }
+            .notif-panel {
+                position: absolute;
+                top: calc(100% + 10px);
+                inset-inline-start: 0;
+                width: min(360px, calc(100vw - 24px));
+                max-height: 420px;
+                overflow-y: auto;
+                background: #121214;
+                border: 1px solid rgba(255,255,255,0.12);
+                border-radius: 12px;
+                box-shadow: 0 18px 40px rgba(0,0,0,0.55);
+                z-index: 1400;
+                padding: 6px 0 10px;
+            }
+            .notif-dropdown-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px 16px;
+                border-bottom: 1px solid rgba(255,255,255,0.08);
+                color: #fff;
+                font-size: 14px;
+            }
+            .notif-mark-all { color: #ff6b81; font-size: 12px; text-decoration: none; }
+            .notif-mark-all:hover { text-decoration: underline; }
+            .notif-item { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+            .notif-item.unread { background: rgba(229,9,20,0.08); }
+            .notif-link { display: block; text-decoration: none; color: #eee; text-align: right; }
+            .notif-title { display: block; font-weight: 600; margin-bottom: 3px; color: #fff; }
+            .notif-msg { display: block; font-size: 13px; color: rgba(255,255,255,0.78); line-height: 1.35; }
+            .notif-date { display: block; font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 6px; }
+            .notif-empty { display: block; padding: 20px 16px; text-align: center; color: #888; }
+            .nav-bar { margin-top: 16px; }
+        </style>
 
         <!-- Main Content Area -->
         <main class="content-container">

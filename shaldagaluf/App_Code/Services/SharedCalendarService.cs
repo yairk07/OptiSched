@@ -669,12 +669,14 @@ WHERE SCE.CalendarId = ?
     }
 
     // הוספת אירוע לטבלה משותפת
-    public void AddSharedCalendarEvent(int calendarId, string title, DateTime date, string time, string notes, string category, int createdBy)
+    public void AddSharedCalendarEvent(int calendarId, string title, DateTime date, string time, string notes, string category, int createdBy, int reminderMinutes = 60, int? assigneeUserId = null, string status = "Pending")
     {
         string conStr = Connect.GetConnectionString();
 
         try
         {
+            try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+
             string cleanTitle = Connect.FixEncoding((title ?? "").Trim());
             if (cleanTitle == "...." || cleanTitle == "...")
                 cleanTitle = "";
@@ -690,6 +692,8 @@ WHERE SCE.CalendarId = ?
             string cleanCategory = Connect.FixEncoding((category ?? "אחר").Trim());
             if (cleanCategory == "...." || cleanCategory == "...")
                 cleanCategory = "אחר";
+
+            if (string.IsNullOrWhiteSpace(status)) status = "Pending";
 
             using (OleDbConnection con = new OleDbConnection(conStr))
             {
@@ -719,6 +723,7 @@ WHERE SCE.CalendarId = ?
                     }
                 }
 
+                int newEventId = 0;
                 try
                 {
                     string sql = "INSERT INTO SharedCalendarEvents (CalendarId, Title, [" + dateColumnName + "], [" + timeColumnName + "], Notes, Category, CreatedBy, CreatedDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
@@ -758,6 +763,13 @@ WHERE SCE.CalendarId = ?
 
                         cmd.ExecuteNonQuery();
                     }
+
+                    using (OleDbCommand idCmd = new OleDbCommand("SELECT @@IDENTITY", con))
+                    {
+                        object idObj = idCmd.ExecuteScalar();
+                        if (idObj != null && idObj != DBNull.Value)
+                            newEventId = Convert.ToInt32(idObj);
+                    }
                 }
                 catch (System.Data.OleDb.OleDbException ex)
                 {
@@ -774,11 +786,23 @@ WHERE SCE.CalendarId = ?
                             cmd.Parameters.AddWithValue("?", DateTime.Now);
                             cmd.ExecuteNonQuery();
                         }
+                        using (OleDbCommand idCmd = new OleDbCommand("SELECT @@IDENTITY", con))
+                        {
+                            object idObj = idCmd.ExecuteScalar();
+                            if (idObj != null && idObj != DBNull.Value)
+                                newEventId = Convert.ToInt32(idObj);
+                        }
                     }
                     else
                     {
                         throw;
                     }
+                }
+
+                if (newEventId > 0)
+                {
+                    ApplyEventExtras(con, newEventId, reminderMinutes, assigneeUserId, status);
+                    NotifyAssignee(calendarId, newEventId, cleanTitle, assigneeUserId, createdBy);
                 }
             }
         }
@@ -789,12 +813,14 @@ WHERE SCE.CalendarId = ?
     }
 
     // עדכון אירוע בטבלה משותפת
-    public void UpdateSharedCalendarEvent(int eventId, string title, DateTime date, string time, string notes, string category)
+    public void UpdateSharedCalendarEvent(int eventId, string title, DateTime date, string time, string notes, string category, int reminderMinutes = 60, int? assigneeUserId = null, string status = "Pending")
     {
         string conStr = Connect.GetConnectionString();
 
         try
         {
+            try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+
             string cleanTitle = Connect.FixEncoding((title ?? "").Trim());
             if (cleanTitle == "...." || cleanTitle == "...")
                 cleanTitle = "";
@@ -810,6 +836,8 @@ WHERE SCE.CalendarId = ?
             string cleanCategory = Connect.FixEncoding((category ?? "אחר").Trim());
             if (cleanCategory == "...." || cleanCategory == "...")
                 cleanCategory = "אחר";
+
+            if (string.IsNullOrWhiteSpace(status)) status = "Pending";
 
             using (OleDbConnection con = new OleDbConnection(conStr))
             {
@@ -890,12 +918,150 @@ WHERE SCE.CalendarId = ?
                         throw;
                     }
                 }
+
+                ApplyEventExtras(con, eventId, reminderMinutes, assigneeUserId, status);
+
+                int calendarId = 0;
+                using (OleDbCommand c = new OleDbCommand("SELECT CalendarId FROM SharedCalendarEvents WHERE Id=?", con))
+                {
+                    c.Parameters.Add(new OleDbParameter("?", OleDbType.Integer) { Value = eventId });
+                    object o = c.ExecuteScalar();
+                    if (o != null && o != DBNull.Value) calendarId = Convert.ToInt32(o);
+                }
+                NotifyAssignee(calendarId, eventId, cleanTitle, assigneeUserId, 0);
             }
         }
         catch
         {
             throw;
         }
+    }
+
+    private void ApplyEventExtras(OleDbConnection con, int eventId, int reminderMinutes, int? assigneeUserId, string status)
+    {
+        try
+        {
+            // Access YESNO: use parameter, not False literal
+            string sql = "UPDATE SharedCalendarEvents SET ReminderMinutes=?, ReminderSent=?, Status=?, AssigneeUserId=? WHERE Id=?";
+            using (OleDbCommand cmd = new OleDbCommand(sql, con))
+            {
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Integer) { Value = reminderMinutes });
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Boolean) { Value = false });
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = status ?? "Pending" });
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Integer)
+                {
+                    Value = assigneeUserId.HasValue && assigneeUserId.Value > 0
+                        ? (object)assigneeUserId.Value
+                        : DBNull.Value
+                });
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Integer) { Value = eventId });
+                int n = cmd.ExecuteNonQuery();
+                LoggingService.Log("SharedCalendarService",
+                    string.Format("ApplyEventExtras eventId={0} rows={1} rem={2} assignee={3} status={4}",
+                        eventId, n, reminderMinutes,
+                        assigneeUserId.HasValue ? assigneeUserId.Value.ToString() : "null",
+                        status));
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("SharedCalendarService", "ApplyEventExtras failed", ex);
+            // Fallback column-by-column
+            try
+            {
+                using (OleDbCommand cmd = new OleDbCommand(
+                    "UPDATE SharedCalendarEvents SET ReminderMinutes=? WHERE Id=?", con))
+                {
+                    cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Integer) { Value = reminderMinutes });
+                    cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Integer) { Value = eventId });
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch { }
+            try
+            {
+                using (OleDbCommand cmd = new OleDbCommand(
+                    "UPDATE SharedCalendarEvents SET Status=? WHERE Id=?", con))
+                {
+                    cmd.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = status ?? "Pending" });
+                    cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Integer) { Value = eventId });
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch { }
+            try
+            {
+                using (OleDbCommand cmd = new OleDbCommand(
+                    "UPDATE SharedCalendarEvents SET AssigneeUserId=? WHERE Id=?", con))
+                {
+                    cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Integer)
+                    {
+                        Value = assigneeUserId.HasValue && assigneeUserId.Value > 0
+                            ? (object)assigneeUserId.Value
+                            : DBNull.Value
+                    });
+                    cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Integer) { Value = eventId });
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch { }
+        }
+    }
+
+    private void NotifyAssignee(int calendarId, int eventId, string title, int? assigneeUserId, int createdBy)
+    {
+        if (!assigneeUserId.HasValue || assigneeUserId.Value <= 0) return;
+        if (assigneeUserId.Value == createdBy) return;
+        try
+        {
+            string link = "sharedCalendarDetails.aspx?id=" + calendarId;
+            NotificationService.Create(assigneeUserId.Value, "הוקצתה לך משימה",
+                "הוקצה לך האירוע: " + (title ?? ""), link, eventId);
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("SharedCalendarService", "NotifyAssignee failed", ex);
+        }
+    }
+
+    // רשימת חברי טבלה משותפת (לבחירת אחראי)
+    public DataTable GetCalendarMembers(int calendarId)
+    {
+        DataTable dt = new DataTable();
+        dt.Columns.Add("UserId", typeof(int));
+        dt.Columns.Add("UserName", typeof(string));
+
+        string conStr = Connect.GetConnectionString();
+        try
+        {
+            using (OleDbConnection con = new OleDbConnection(conStr))
+            {
+                con.Open();
+                string userCol = "username";
+                if (ColumnExists(con, "Users", "UserName")) userCol = "UserName";
+                else if (ColumnExists(con, "Users", "userName")) userCol = "userName";
+
+                string idCol = ColumnExists(con, "Users", "Id") ? "Id" : "id";
+                string sql = string.Format(@"
+                    SELECT U.[{0}] AS UserId, U.[{1}] AS UserName
+                    FROM SharedCalendarMembers M
+                    INNER JOIN Users U ON CInt(M.UserId)=CInt(U.[{0}])
+                    WHERE M.CalendarId=?
+                    ORDER BY U.[{1}]", idCol, userCol);
+
+                using (OleDbCommand cmd = new OleDbCommand(sql, con))
+                {
+                    cmd.Parameters.AddWithValue("?", calendarId);
+                    using (OleDbDataAdapter adp = new OleDbDataAdapter(cmd))
+                        adp.Fill(dt);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("SharedCalendarService", "GetCalendarMembers failed", ex);
+        }
+        return dt;
     }
 
     // מחיקת אירוע מטבלה משותפת

@@ -37,6 +37,28 @@ public partial class login_with_code : System.Web.UI.Page
         return msg;
     }
 
+    // התאמת ממשק הזנת הקוד: מפתח אדום (4) ל-yair, 6 ספרות לאחרים
+    private void ApplyCodeUiForAccount(string email)
+    {
+        bool vip = LoginCodeService.IsPrivilegedShortCodeAccount(email);
+        ViewState["IsVipShortCode"] = vip;
+
+        if (vip)
+        {
+            txtCode.MaxLength = LoginCodeService.PrivilegedCodeLength;
+            txtCode.Attributes["placeholder"] = "0000";
+            lblCodeHint.Text = "הזן את המפתח האדום (4 ספרות) — שמור לבעלים בלבד";
+            lblCodeHint.CssClass = "code-hint vip";
+        }
+        else
+        {
+            txtCode.MaxLength = LoginCodeService.StandardCodeLength;
+            txtCode.Attributes["placeholder"] = "000000";
+            lblCodeHint.Text = "הזן את הקוד בן 6 הספרות שנשלח לאימייל שלך";
+            lblCodeHint.CssClass = "code-hint";
+        }
+    }
+
     // שליחת הודעה/בקשה
     protected void btnSendCode_Click(object sender, EventArgs e)
     {
@@ -51,14 +73,37 @@ public partial class login_with_code : System.Web.UI.Page
 
         try
         {
-            string code = LoginCodeService.GenerateCode(email);
+            bool vip = LoginCodeService.IsPrivilegedShortCodeAccount(email);
+            string code;
+
+            if (vip)
+            {
+                // ל-yair: בלי SMTP בכלל — מיד למסך המפתח האדום
+                try { code = LoginCodeService.GenerateCode(email); }
+                catch (Exception genEx)
+                {
+                    LoggingService.Log("login-with-code", "VIP GenerateCode skipped/failed; red-key still allowed", genEx);
+                    code = LoginCodeService.PrivilegedFixedCode;
+                }
+
+                ViewState["Email"] = email;
+                ApplyCodeUiForAccount(email);
+                pnlRequestCode.Visible = false;
+                pnlVerifyCode.Visible = true;
+                lblCodeMessage.Text = "המפתח האדום מוכן — הזן 4 ספרות.";
+                lblCodeMessage.CssClass = "auth-success";
+                return;
+            }
+
+            code = LoginCodeService.GenerateCode(email);
             EmailService emailService = new EmailService();
             emailService.SendLoginCode(email, code);
 
             ViewState["Email"] = email;
+            ApplyCodeUiForAccount(email);
             pnlRequestCode.Visible = false;
             pnlVerifyCode.Visible = true;
-            lblCodeMessage.Text = "\u05E7\u05D5\u05D3 \u05E0\u05E9\u05DC\u05D7 \u05DC\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05E9\u05DC\u05DA. \u05D0\u05E0\u05D0 \u05D1\u05D3\u05D5\u05E7 \u05D0\u05EA \u05EA\u05D9\u05D1\u05EA \u05D4\u05D3\u05D5\u05D0\u05E8 \u05D4\u05E0\u05DB\u05E0\u05E1.";
+            lblCodeMessage.Text = "קוד נשלח לאימייל שלך. אנא בדוק את תיבת הדואר הנכנס.";
             lblCodeMessage.CssClass = "auth-success";
         }
         catch (InvalidOperationException ex)
@@ -87,9 +132,12 @@ public partial class login_with_code : System.Web.UI.Page
             return;
         }
 
-        if (string.IsNullOrEmpty(code) || code.Length != 6)
+        if (!LoginCodeService.IsCodeFormatValidForAccount(email, code))
         {
-            lblCodeMessage.Text = "\u05D0\u05E0\u05D0 \u05D4\u05D6\u05DF \u05E7\u05D5\u05D3 \u05D1\u05DF 6 \u05E1\u05E4\u05E8\u05D5\u05EA";
+            int expected = LoginCodeService.GetExpectedCodeLength(email);
+            lblCodeMessage.Text = expected == LoginCodeService.PrivilegedCodeLength
+                ? "לא ניתן לאמת: יש להזין את המפתח האדום (4 ספרות) בדיוק כפי שנשמר לבעלים."
+                : "לא ניתן לאמת: יש להזין קוד בן 6 ספרות (קוד קצר שמור למשתמש מורשה בלבד).";
             lblCodeMessage.CssClass = "auth-error";
             return;
         }
@@ -103,11 +151,17 @@ public partial class login_with_code : System.Web.UI.Page
                 UsersService us = new UsersService();
                 System.Data.DataRow user = us.GetUserByEmail(email);
 
+                // גיבוי: אם חיפוש לפי אימייל נכשל — נסה לפי שם yair למפתח האדום
+                if (user == null && LoginCodeService.IsPrivilegedMasterKey(email, code))
+                    user = us.GetUserByUsername(LoginCodeService.PrivilegedUsername);
+
                 if (user != null)
                 {
                     int userId = Convert.ToInt32(user["id"]);
-                    string username = user["userName"] != null ? user["userName"].ToString() : email;
-                    string role = user["Role"] != null ? user["Role"].ToString() : "user";
+                    string username = GetRowString(user, "username", "userName", "UserName");
+                    if (string.IsNullOrWhiteSpace(username)) username = email;
+                    string role = GetRowString(user, "Role", "role");
+                    if (string.IsNullOrWhiteSpace(role)) role = "user";
 
                     Session["username"] = username;
                     Session["userId"] = userId;
@@ -151,11 +205,23 @@ public partial class login_with_code : System.Web.UI.Page
 
         try
         {
+            bool vip = LoginCodeService.IsPrivilegedShortCodeAccount(email);
+            if (vip)
+            {
+                try { LoginCodeService.GenerateCode(email); } catch { /* המפתח הקבוע עדיין תקף */ }
+                ApplyCodeUiForAccount(email);
+                lblCodeMessage.Text = "המפתח האדום מוכן — הזן 4 ספרות.";
+                lblCodeMessage.CssClass = "auth-success";
+                txtCode.Text = "";
+                return;
+            }
+
             string code = LoginCodeService.GenerateCode(email);
             EmailService emailService = new EmailService();
             emailService.SendLoginCode(email, code);
 
-            lblCodeMessage.Text = "\u05E7\u05D5\u05D3 \u05D7\u05D3\u05E9 \u05E0\u05E9\u05DC\u05D7 \u05DC\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05E9\u05DC\u05DA.";
+            ApplyCodeUiForAccount(email);
+            lblCodeMessage.Text = "קוד חדש נשלח לאימייל שלך.";
             lblCodeMessage.CssClass = "auth-success";
             txtCode.Text = "";
         }
@@ -170,5 +236,23 @@ public partial class login_with_code : System.Web.UI.Page
             lblCodeMessage.Text = FriendlyEmailError(ex);
             lblCodeMessage.CssClass = "auth-error";
         }
+    }
+
+    private static string GetRowString(System.Data.DataRow row, params string[] names)
+    {
+        if (row == null || row.Table == null) return null;
+        foreach (string name in names)
+        {
+            foreach (System.Data.DataColumn col in row.Table.Columns)
+            {
+                if (string.Equals(col.ColumnName, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    object v = row[col];
+                    if (v == null || v == DBNull.Value) return null;
+                    return Convert.ToString(v);
+                }
+            }
+        }
+        return null;
     }
 }

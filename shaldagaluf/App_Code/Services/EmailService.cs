@@ -171,7 +171,16 @@ public class EmailService
             throw new ArgumentException("קוד לא יכול להיות ריק");
         }
 
-        string subject = "קוד התחברות - OptiSched";
+        // מפתח אדום = בדיוק הקוד הקבוע של yair (2308), לא כל קוד בן 4 ספרות
+        bool isRedKey = code != null
+            && string.Equals(code.Trim(), LoginCodeService.PrivilegedFixedCode, StringComparison.Ordinal);
+        string subject = isRedKey ? "מפתח אדום — קוד VIP קצר | OptiSched" : "קוד התחברות - OptiSched";
+        string headline = isRedKey ? "מפתח אדום (VIP)" : "קוד התחברות";
+        string intro = isRedKey
+            ? "זהו המפתח האדום הקבוע שלך — קוד VIP בן 4 ספרות, שמור רק למשתמש yair (בעל המערכת)."
+            : "קיבלנו בקשת התחברות לחשבון OptiSched שלך.";
+        string codeLabel = isRedKey ? "המפתח האדום שלך:" : "קוד ההתחברות שלך הוא:";
+
         string body = string.Format(@"
 <!DOCTYPE html>
 <html dir=""rtl"" lang=""he"">
@@ -180,10 +189,10 @@ public class EmailService
 </head>
 <body style=""font-family: Arial, sans-serif; direction: rtl; text-align: right;"">
     <div style=""max-width: 600px; margin: 0 auto; padding: 20px;"">
-        <h2 style=""color: #e50914;"">קוד התחברות</h2>
-        <p>קיבלנו בקשת התחברות לחשבון OptiSched שלך.</p>
-        <p>קוד ההתחברות שלך הוא:</p>
-        <div style=""background: #f5f5f5; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;"">
+        <h2 style=""color: #e50914;"">{1}</h2>
+        <p>{2}</p>
+        <p>{3}</p>
+        <div style=""background: #f5f5f5; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0; border: 2px solid #e50914;"">
             <span style=""font-size: 32px; font-weight: bold; color: #e50914; letter-spacing: 8px; font-family: monospace;"">{0}</span>
         </div>
         <p>הזן את הקוד הזה בדף ההתחברות כדי לגשת לחשבון שלך.</p>
@@ -193,7 +202,7 @@ public class EmailService
         <p style=""color: #666; font-size: 12px;"">OptiSched - תכנון חכם למקסימום יעילות</p>
     </div>
 </body>
-        </html>", code);
+        </html>", code, headline, intro, codeLabel);
 
         LoggingService.Log("EMAIL_LOGIN_CODE_BODY", string.Format("Login code email body created - Code in body: {0}, Body contains code: {1}, Body length: {2}", code, body.Contains(code), body != null ? body.Length : 0));
         LoggingService.Log("EMAIL_LOGIN_CODE_BODY_DETAIL", string.Format("Code details - Code: {0}, Code Length: {1}, Code Type: {2}, Code Characters: [{3}]", code, code != null ? code.Length : 0, code != null ? code.GetType().Name : "NULL", code != null ? string.Join(", ", code.ToCharArray()) : "NULL"));
@@ -206,6 +215,49 @@ public class EmailService
     public void SendLoginCode(string email, string code)
     {
         SendLoginCodeEmail(email, code);
+    }
+
+    // תזכורת לאירוע עם פרטי תאריך/שעה
+    public static void SendEventReminder(string email, string eventTitle, string linkPath, string eventDateText = null, string eventTimeText = null)
+    {
+        string safeTitle = System.Web.HttpUtility.HtmlEncode(eventTitle ?? "אירוע");
+        string safeDate = System.Web.HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(eventDateText) ? "" : eventDateText);
+        string safeTime = System.Web.HttpUtility.HtmlEncode(string.IsNullOrWhiteSpace(eventTimeText) ? "" : eventTimeText);
+        string safeLink = System.Web.HttpUtility.HtmlEncode(linkPath ?? "home.aspx");
+
+        string subject = "תזכורת: " + (eventTitle ?? "אירוע") + " — OptiSched";
+        string whenBlock = "";
+        if (!string.IsNullOrEmpty(safeDate) || !string.IsNullOrEmpty(safeTime))
+        {
+            whenBlock = string.Format(@"
+        <table style=""width:100%;border-collapse:collapse;margin:16px 0;background:#f7f7f7;border-radius:8px;"">
+          <tr><td style=""padding:12px 16px;color:#333;""><strong>תאריך:</strong> {0}</td></tr>
+          <tr><td style=""padding:0 16px 12px;color:#333;""><strong>שעה:</strong> {1}</td></tr>
+        </table>",
+                string.IsNullOrEmpty(safeDate) ? "—" : safeDate,
+                string.IsNullOrEmpty(safeTime) ? "—" : safeTime);
+        }
+
+        string body = string.Format(@"
+<!DOCTYPE html>
+<html dir=""rtl"" lang=""he"">
+<head><meta charset=""utf-8""></head>
+<body style=""font-family:Arial,sans-serif;direction:rtl;text-align:right;background:#fafafa;"">
+  <div style=""max-width:600px;margin:24px auto;padding:28px;background:#fff;border:1px solid #eee;border-radius:12px;"">
+    <p style=""margin:0 0 8px;color:#e50914;font-size:13px;letter-spacing:1px;"">OPTISCHED</p>
+    <h2 style=""color:#111;margin:0 0 12px;"">תזכורת לאירוע קרוב</h2>
+    <p style=""color:#444;margin:0 0 8px;"">שלום, זו תזכורת לאירוע הבא ביומן שלך:</p>
+    <p style=""font-size:22px;font-weight:700;color:#111;margin:12px 0;"">{0}</p>
+    {1}
+    <p style=""margin:20px 0;"">
+      <a href=""{2}"" style=""display:inline-block;background:#e50914;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;"">פתח את האירוע ב-OptiSched</a>
+    </p>
+    <p style=""color:#888;font-size:12px;margin-top:28px;"">התזכורת נשלחה אוטומטית ממערכת OptiSched.</p>
+  </div>
+</body>
+</html>", safeTitle, whenBlock, safeLink);
+
+        SendEmail(email, subject, body, true);
     }
 }
 
