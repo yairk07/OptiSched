@@ -368,15 +368,22 @@ public partial class home : System.Web.UI.Page
         lblSelectedDate.Text = string.Format("בחרת את התאריך: {0:dd/MM/yyyy}", date);
         hfSelectedDate.Value = date.ToString("yyyy-MM-dd");
 
-        var hebrewInfo = FetchHebrewInfo(date);
-        string hebrewDateText = string.IsNullOrEmpty(hebrewInfo.HebrewDate) ? string.Empty : hebrewInfo.HebrewDate;
+        JewishCalendarService.Place place = JewishCalendarService.ResolveForUser(Session["userId"]);
+        hfShabbatZone.Value = place.Key;
+        lblShabbatPlace.Text = string.IsNullOrEmpty(place.Display) ? "תל אביב" : place.Display;
+
+        var jewishDay = JewishCalendarService.GetDay(date, place);
+        string hebrewDateText = jewishDay.HebrewDate ?? string.Empty;
 
         lblMetaFullDate.Text = string.IsNullOrEmpty(hebrewDateText)
             ? date.ToString("dd MMM yyyy", heCulture)
             : string.Format("{0:dd MMM yyyy} / {1}", date, hebrewDateText);
 
         lblHebrewDate.Text = string.IsNullOrEmpty(hebrewDateText) ? "—" : hebrewDateText;
-        lblHoliday.Text = string.IsNullOrEmpty(hebrewInfo.Holiday) ? "—" : hebrewInfo.Holiday;
+        lblHoliday.Text = string.IsNullOrEmpty(jewishDay.Holiday) ? "—" : jewishDay.Holiday;
+        lblParsha.Text = string.IsNullOrEmpty(jewishDay.Parasha) ? "—" : jewishDay.Parasha;
+        lblCandleLighting.Text = string.IsNullOrEmpty(jewishDay.CandleLighting) ? "—" : jewishDay.CandleLighting;
+        lblHavdalah.Text = string.IsNullOrEmpty(jewishDay.Havdalah) ? "—" : jewishDay.Havdalah;
 
         lblYear.Text = CurrentMode == CalendarDisplayMode.Gregorian
             ? date.Year.ToString()
@@ -384,20 +391,6 @@ public partial class home : System.Web.UI.Page
 
         if (string.IsNullOrEmpty(lblYear.Text))
             lblYear.Text = date.Year.ToString();
-
-        var shabbatReference = date.DayOfWeek == DayOfWeek.Saturday ? date.AddDays(-1) : date;
-        var shabbatTimes = FetchShabbatTimes(shabbatReference);
-        string parashaText = !string.IsNullOrEmpty(shabbatTimes.Parasha) ? shabbatTimes.Parasha : hebrewInfo.Parasha;
-        lblParsha.Text = string.IsNullOrEmpty(parashaText) ? "—" : parashaText;
-
-        string candleText = "—";
-        string havdalahText = "—";
-        if (date.DayOfWeek == DayOfWeek.Friday && !string.IsNullOrEmpty(shabbatTimes.CandleLighting))
-            candleText = shabbatTimes.CandleLighting;
-        if (date.DayOfWeek == DayOfWeek.Saturday && !string.IsNullOrEmpty(shabbatTimes.Havdalah))
-            havdalahText = shabbatTimes.Havdalah;
-        lblCandleLighting.Text = candleText;
-        lblHavdalah.Text = havdalahText;
     }
 
     // טעינה וקישור נתונים: BindMonthNavigation
@@ -596,90 +589,13 @@ public partial class home : System.Web.UI.Page
     // פונקציה: FetchHebrewInfo
     public static HebrewInfo FetchHebrewInfo(DateTime date)
     {
-        var info = new HebrewInfo();
-        var serializer = new JavaScriptSerializer();
-
-        try
+        JewishCalendarService.DayInfo day = JewishCalendarService.GetDay(date);
+        return new HebrewInfo
         {
-            string converterUrl = string.Format("https://www.hebcal.com/converter?cfg=json&gy={0}&gm={1}&gd={2}&g2h=1", date.Year, date.Month, date.Day);
-            info.ConverterUrl = converterUrl;
-            var converterJson = GetJson(converterUrl);
-            if (!string.IsNullOrEmpty(converterJson))
-            {
-                var data = serializer.Deserialize<Dictionary<string, object>>(converterJson);
-                if (data != null)
-                {
-                    if (data.ContainsKey("hebrew"))
-                        info.HebrewDate = Convert.ToString(data["hebrew"]);
-
-                    if (string.IsNullOrEmpty(info.Parasha))
-                    {
-                        object eventsObj;
-                        if (data.TryGetValue("events", out eventsObj))
-                        {
-                            object[] converterEvents = eventsObj as object[];
-                            if (converterEvents != null)
-                            {
-                                foreach (var evt in converterEvents)
-                                {
-                                    string evtText = Convert.ToString(evt);
-                                    if (string.IsNullOrWhiteSpace(evtText))
-                                        continue;
-
-                                    if (evtText.StartsWith("Parashat", StringComparison.OrdinalIgnoreCase) || evtText.StartsWith("Parshat", StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        info.Parasha = NormalizeParshaTitle(evtText);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            string eventsUrl = string.Format("https://www.hebcal.com/hebcal?v=1&cfg=json&start={0:yyyy-MM-dd}&end={0:yyyy-MM-dd}&maj=on&min=on&mod=on&nx=on&mf=on&c=on&geo=pos&latitude=32.0853&longitude=34.7818&tzid=Asia/Jerusalem", date);
-            info.EventsUrl = eventsUrl;
-            var eventsJson = GetJson(eventsUrl);
-            if (!string.IsNullOrEmpty(eventsJson))
-            {
-                var data = serializer.Deserialize<Dictionary<string, object>>(eventsJson);
-                if (data != null)
-                {
-                    object itemsObj;
-                    if (data.TryGetValue("items", out itemsObj))
-                    {
-                        object[] items = itemsObj as object[];
-                        if (items != null)
-                        {
-                            foreach (var itemObj in items)
-                            {
-                                Dictionary<string, object> item = itemObj as Dictionary<string, object>;
-                                if (item != null)
-                                {
-                            string category = item.ContainsKey("category") ? Convert.ToString(item["category"]) : string.Empty;
-                            string title = item.ContainsKey("title") ? Convert.ToString(item["title"]) : string.Empty;
-                            if (string.IsNullOrEmpty(title))
-                                continue;
-
-                            if (string.Equals(category, "parashat", StringComparison.OrdinalIgnoreCase) && string.IsNullOrEmpty(info.Parasha))
-                                info.Parasha = NormalizeParshaTitle(title);
-
-                            if (string.IsNullOrEmpty(info.Holiday) && IsHolidayCandidate(category, title))
-                                info.Holiday = NormalizeHolidayTitle(title);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            LoggingService.Log("HOME", "Error fetching Hebrew info", ex);
-        }
-
-        return info;
+            HebrewDate = day.HebrewDate,
+            Parasha = day.Parasha,
+            Holiday = day.Holiday
+        };
     }
 
     // פונקציה: FetchShabbatTimes

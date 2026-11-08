@@ -13,24 +13,27 @@ public class ParashaProxy : IHttpHandler
         DateTime date = DateTime.Today;
         string dateParam = context.Request["date"];
         DateTime parsed;
-        if (!string.IsNullOrEmpty(dateParam) && DateTime.TryParse(dateParam, out parsed))
-            date = parsed;
+            if (!string.IsNullOrEmpty(dateParam) && DateTime.TryParse(dateParam, out parsed))
+                date = parsed.Date;
 
         try
         {
-            var info = home.FetchHebrewInfo(date);
+            int cityId;
+            int? city = int.TryParse(context.Request["cityId"], out cityId) ? (int?)cityId : null;
+            JewishCalendarService.Place place = JewishCalendarService.ParseZone(context.Request["zone"], city, context.Request["city"]);
+            JewishCalendarService.DayInfo info = JewishCalendarService.GetDay(date, place);
             var serializer = new JavaScriptSerializer();
-            var payload = new
+            context.Response.Write(serializer.Serialize(new
             {
                 date = date.ToString("yyyy-MM-dd"),
                 hebrewDate = info != null ? (info.HebrewDate ?? string.Empty) : string.Empty,
                 parasha = info != null ? (info.Parasha ?? string.Empty) : string.Empty,
                 holiday = info != null ? (info.Holiday ?? string.Empty) : string.Empty,
-                converterUrl = info != null ? (info.ConverterUrl ?? string.Empty) : string.Empty,
-                eventsUrl = info != null ? (info.EventsUrl ?? string.Empty) : string.Empty
-            };
-
-            context.Response.Write(serializer.Serialize(payload));
+                candleLighting = info != null ? (info.CandleLighting ?? string.Empty) : string.Empty,
+                havdalah = info != null ? (info.Havdalah ?? string.Empty) : string.Empty,
+                zone = info != null ? (info.ZoneKey ?? string.Empty) : string.Empty,
+                place = info != null ? (info.Place ?? string.Empty) : string.Empty
+            }));
         }
         catch (Exception ex)
         {
@@ -44,4 +47,3 @@ public class ParashaProxy : IHttpHandler
         get { return false; }
     }
 }
-

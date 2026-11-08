@@ -39,11 +39,13 @@ function initializeCalendarData() {
         return;
     }
     const dateValue = dateField.value || new Date().toISOString().split("T")[0];
-    fetchZmanimData(dateValue);
+    const zoneField = document.getElementById("hfShabbatZone");
+    const zoneValue = zoneField && zoneField.value ? zoneField.value : "telaviv";
+    fetchZmanimData(dateValue, zoneValue);
 }
 
-function fetchZmanimData(dateValue) {
-    const params = new URLSearchParams({ date: dateValue });
+function fetchZmanimData(dateValue, zoneValue) {
+    const params = new URLSearchParams({ date: dateValue, zone: zoneValue || "telaviv" });
     fetch(`zmanimProxy.ashx?${params.toString()}`, { method: "GET", credentials: "same-origin" })
         .then(response => {
             if (!response.ok) {
@@ -51,21 +53,28 @@ function fetchZmanimData(dateValue) {
             }
             return response.json();
         })
-        .then(data => applyZmanimData(data, dateValue))
+        .then(data => applyZmanimData(data))
         .catch(() => { });
 }
 
-function applyZmanimData(data, dateValue) {
-    if (data && data.parasha) {
-        setElementText("lblParsha", data.parasha);
-    }
-    const targetDate = new Date(dateValue);
-    if (isNaN(targetDate)) {
+function applyZmanimData(data) {
+    if (!data) {
         return;
     }
-    const day = targetDate.getDay();
-    const candleValue = day === 5 ? formatTimeValue(data ? data.kenisatShabbat22 : null) : "—";
-    const havdalahValue = day === 6 ? formatTimeValue(data ? data.yetziatShabbat : null) : "—";
+    if (data.hebrewDate) {
+        setElementText("lblHebrewDate", data.hebrewDate);
+    }
+    if (data.parasha) {
+        setElementText("lblParsha", data.parasha);
+    }
+    if (data.holiday) {
+        setElementText("lblHoliday", data.holiday);
+    }
+    if (data.place) {
+        setElementText("lblShabbatPlace", data.place);
+    }
+    const candleValue = data.candleLighting || formatTimeValue(data.kenisatShabbat22);
+    const havdalahValue = data.havdalah || formatTimeValue(data.yetziatShabbat);
     setElementText("lblCandleLighting", candleValue || "—");
     setElementText("lblHavdalah", havdalahValue || "—");
 }
@@ -81,10 +90,13 @@ function formatTimeValue(value) {
     if (!value) {
         return "";
     }
+    const match = String(value).match(/T(\d{2}):(\d{2})/);
+    if (match) {
+        return match[1] + ":" + match[2];
+    }
     const parsed = new Date(value);
     if (isNaN(parsed)) {
         return "";
     }
-    const adjusted = new Date(parsed.getTime() - 2 * 60 * 60 * 1000);
-    return adjusted.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+    return parsed.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
 }

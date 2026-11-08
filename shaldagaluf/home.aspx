@@ -8,6 +8,7 @@
 <asp:Content ID="Content2" ContentPlaceHolderID="ContentPlaceHolder1" Runat="Server">
     <asp:Panel ID="pnlAbout" runat="server" CssClass="about-section home-shell">
         <asp:HiddenField ID="hfSelectedDate" runat="server" ClientIDMode="Static" />
+        <asp:HiddenField ID="hfShabbatZone" runat="server" ClientIDMode="Static" />
 
         <section class="home-hero">
             <div class="hero-text">
@@ -50,7 +51,7 @@
                         <div class="calendar-hebrew-meta">
                             <div class="calendar-meta-line">
                                 <span class="meta-label">תאריך עברי</span>
-                                <asp:Label ID="lblHebrewDate" runat="server" CssClass="meta-value" />
+                                <asp:Label ID="lblHebrewDate" runat="server" CssClass="meta-value" ClientIDMode="Static" />
                             </div>
                             <div class="calendar-meta-line">
                                 <span class="meta-label">פרשת השבוע</span>
@@ -58,7 +59,7 @@
                             </div>
                             <div class="calendar-meta-line">
                                 <span class="meta-label">אירועים/חגים</span>
-                                <asp:Label ID="lblHoliday" runat="server" CssClass="meta-value" />
+                                <asp:Label ID="lblHoliday" runat="server" CssClass="meta-value" ClientIDMode="Static" />
                             </div>
                         </div>
 
@@ -70,6 +71,10 @@
                             <div class="calendar-meta-line">
                                 <span class="meta-label">צאת שבת</span>
                                 <asp:Label ID="lblHavdalah" runat="server" CssClass="meta-value highlight" ClientIDMode="Static" />
+                            </div>
+                            <div class="calendar-meta-line">
+                                <span class="meta-label">אזור זמנים</span>
+                                <asp:Label ID="lblShabbatPlace" runat="server" CssClass="meta-value" ClientIDMode="Static" />
                             </div>
                         </div>
 

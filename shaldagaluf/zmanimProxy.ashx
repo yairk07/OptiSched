@@ -1,7 +1,6 @@
 <%@ WebHandler Language="C#" Class="ZmanimProxy" %>
 
 using System;
-using System.Net;
 using System.Web;
 using System.Web.Script.Serialization;
 
@@ -13,39 +12,28 @@ public class ZmanimProxy : IHttpHandler
 
         try
         {
-            using (var client = new WebClient())
+            DateTime date = DateTime.Today;
+            string dateParam = context.Request["date"];
+            DateTime parsed;
+            if (!string.IsNullOrWhiteSpace(dateParam) && DateTime.TryParse(dateParam, out parsed))
+                date = parsed.Date;
+
+            JewishCalendarService.Place place = ResolvePlace(context);
+            JewishCalendarService.DayInfo day = JewishCalendarService.GetDay(date, place);
+            var serializer = new JavaScriptSerializer();
+            context.Response.Write(serializer.Serialize(new
             {
-                client.Headers[HttpRequestHeader.ContentType] = "application/json";
-                client.Headers[HttpRequestHeader.Accept] = "application/json";
-                client.Encoding = System.Text.Encoding.UTF8;
-
-                string body = string.Empty;
-                if (string.Equals(context.Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase) && context.Request.ContentLength > 0)
-                {
-                    using (var reader = new System.IO.StreamReader(context.Request.InputStream))
-                        body = reader.ReadToEnd();
-                }
-
-                if (string.IsNullOrWhiteSpace(body))
-                {
-                    double latitude = ParseDouble(context.Request["latitude"], 31.7683);
-                    double longitude = ParseDouble(context.Request["longitude"], -35.2137);
-                    string date = string.IsNullOrWhiteSpace(context.Request["date"])
-                        ? DateTime.Today.ToString("yyyy-MM-dd")
-                        : context.Request["date"];
-
-                    var serializer = new JavaScriptSerializer();
-                    body = serializer.Serialize(new
-                    {
-                        latitude,
-                        longitude,
-                        date
-                    });
-                }
-
-                var response = client.UploadString("https://times.rabaz.co.il/api/zmanim", "POST", body);
-                context.Response.Write(response);
-            }
+                date = date.ToString("yyyy-MM-dd"),
+                hebrewDate = day.HebrewDate ?? string.Empty,
+                parasha = day.Parasha ?? string.Empty,
+                holiday = day.Holiday ?? string.Empty,
+                candleLighting = day.CandleLighting ?? string.Empty,
+                havdalah = day.Havdalah ?? string.Empty,
+                zone = day.ZoneKey ?? string.Empty,
+                place = day.Place ?? string.Empty,
+                kenosatShabbat22 = day.CandleLighting ?? string.Empty,
+                yetziatShabbat = day.Havdalah ?? string.Empty
+            }));
         }
         catch (Exception ex)
         {
@@ -59,12 +47,10 @@ public class ZmanimProxy : IHttpHandler
         get { return false; }
     }
 
-    private static double ParseDouble(string value, double fallback)
+    private static JewishCalendarService.Place ResolvePlace(HttpContext context)
     {
-        double result;
-        if (double.TryParse(value, out result))
-            return result;
-        return fallback;
+        int cityId;
+        int? city = int.TryParse(context.Request["cityId"], out cityId) ? (int?)cityId : null;
+        return JewishCalendarService.ParseZone(context.Request["zone"], city, context.Request["city"]);
     }
 }
-
