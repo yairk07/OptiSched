@@ -3,7 +3,8 @@ using System.Text;
 
 public class PasswordHelper
 {
-    // Hashes a password using SHA256 algorithm and returns hexadecimal string representation
+    // מקבלת סיסמה ומחזירה את הגיבוב שלה ב-SHA256.
+    // אם הסיסמה ריקה, מחזירה מחרוזת ריקה ולא מנסה להצפין.
     public static string HashPassword(string password)
     {
         if (string.IsNullOrEmpty(password))

@@ -6,8 +6,9 @@ public class Connect
 {
     private static string _cachedConnectionString;
 
-    // Gets the database connection string for Microsoft Access database
-    // Automatically detects the best available provider (ACE 16.0 or 12.0)
+    // בונה את מחרוזת החיבור לקובץ Access שבתיקיית App_Data.
+    // מנסה קודם את הספק החדש 16.0, ואם הוא לא מותקן עוברת ל-12.0.
+    // אחרי הצלחה ראשונה שומרת את המחרוזת בזיכרון כדי לא לבדוק שוב בכל בקשה.
     public static string GetConnectionString()
     {
         if (!string.IsNullOrEmpty(_cachedConnectionString))

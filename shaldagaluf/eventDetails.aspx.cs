@@ -40,38 +40,11 @@ public partial class eventDetails : System.Web.UI.Page
             {
                 con.Open();
 
-                string sql = "SELECT * FROM CalendarEvents WHERE Id = ?";
-                using (OleDbCommand cmd = new OleDbCommand(sql, con))
-                {
-                    cmd.Parameters.AddWithValue("?", eventId);
-                    using (OleDbDataReader dr = cmd.ExecuteReader())
-                    {
-                        if (dr.Read())
-                        {
-                            found = true;
-                            LoadEventData(dr, con);
-                            return;
-                        }
-                    }
-                }
+                if (TryLoadEvent(con, "CalendarEvents", false))
+                    return;
 
-                if (!found)
-                {
-                    sql = "SELECT * FROM SharedCalendarEvents WHERE Id = ?";
-                    using (OleDbCommand cmd = new OleDbCommand(sql, con))
-                    {
-                        cmd.Parameters.AddWithValue("?", eventId);
-                        using (OleDbDataReader dr = cmd.ExecuteReader())
-                        {
-                            if (dr.Read())
-                            {
-                                found = true;
-                                LoadEventData(dr, con);
-                                return;
-                            }
-                        }
-                    }
-                }
+                if (TryLoadEvent(con, "SharedCalendarEvents", true))
+                    return;
             }
 
             if (!found)
@@ -86,61 +59,101 @@ public partial class eventDetails : System.Web.UI.Page
         }
     }
 
+    // אירוע משותף נשמר בלי עמודת UserId. אם קוראים לעמודה חסרה, הדף זורק שגיאה ומציג "not found".
+    private bool TryLoadEvent(OleDbConnection con, string tableName, bool shared)
+    {
+        try
+        {
+            using (OleDbCommand cmd = new OleDbCommand("SELECT * FROM [" + tableName + "] WHERE Id = ?", con))
+            {
+                cmd.Parameters.AddWithValue("?", eventId);
+                using (OleDbDataReader dr = cmd.ExecuteReader())
+                {
+                    if (dr == null || !dr.Read())
+                        return false;
+                    if (!CanViewEvent(dr, con, shared))
+                        return false;
+                    LoadEventData(dr, con);
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("EVENTDETAILS", "Skip table " + tableName, ex);
+            return false;
+        }
+    }
+
+    private bool CanViewEvent(OleDbDataReader dr, OleDbConnection con, bool shared)
+    {
+        int currentUserId = Session["userId"] != null ? Convert.ToInt32(Session["userId"]) : 0;
+        string role = Session["Role"] != null ? Session["Role"].ToString() : "user";
+        if (string.Equals(role, "owner", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        object ownerValue = ReadField(dr, "UserId", "CreatedBy");
+        int rowUserId = ownerValue != null ? Convert.ToInt32(ownerValue) : 0;
+        if (rowUserId == currentUserId && currentUserId > 0)
+            return true;
+
+        if (!shared)
+            return false;
+
+        object calendarValue = ReadField(dr, "CalendarId");
+        if (calendarValue == null)
+            return false;
+
+        int calendarId = Convert.ToInt32(calendarValue);
+        SharedCalendarService service = new SharedCalendarService();
+        return service.IsCalendarMember(calendarId, currentUserId) || service.IsCalendarAdmin(calendarId, currentUserId);
+    }
+
+    private static bool HasColumn(OleDbDataReader dr, string name)
+    {
+        for (int i = 0; i < dr.FieldCount; i++)
+        {
+            if (string.Equals(dr.GetName(i), name, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    private static object ReadField(OleDbDataReader dr, params string[] names)
+    {
+        foreach (string name in names)
+        {
+            if (HasColumn(dr, name) && dr[name] != DBNull.Value && dr[name] != null)
+                return dr[name];
+        }
+        return null;
+    }
+
     // טעינה וקישור נתונים: LoadEventData
     private void LoadEventData(OleDbDataReader dr, OleDbConnection con)
     {
-        int rowUserId = dr["UserId"] != DBNull.Value ? Convert.ToInt32(dr["UserId"]) : 0;
-        int currentUserId = Session["userId"] != null ? Convert.ToInt32(Session["userId"]) : 0;
-        string role = Session["Role"] != null ? Session["Role"].ToString() : "user";
-
-        if (role != "owner" && rowUserId != currentUserId)
-        {
-            ShowNotFound();
-            return;
-        }
+        object ownerValue = ReadField(dr, "UserId", "CreatedBy");
+        int rowUserId = ownerValue != null ? Convert.ToInt32(ownerValue) : 0;
 
         pnlContent.Visible = true;
         pnlNotFound.Visible = false;
 
-        if (dr["Title"] != DBNull.Value && dr["Title"] != null)
-        {
-            lblTitle.Text = dr["Title"].ToString();
-        }
-        else
-        {
-            lblTitle.Text = "(No Title)";
-        }
+        object title = ReadField(dr, "Title");
+        lblTitle.Text = title != null ? title.ToString() : "(No Title)";
 
-        if (dr["EventTime"] != DBNull.Value && dr["EventTime"] != null)
-        {
-            lblTime.Text = dr["EventTime"].ToString();
-        }
-        else
-        {
-            lblTime.Text = "-";
-        }
+        object time = ReadField(dr, "EventTime", "Time");
+        lblTime.Text = time != null ? time.ToString() : "-";
 
-        if (dr["Category"] != DBNull.Value && dr["Category"] != null)
-        {
-            lblCategory.Text = dr["Category"].ToString();
-        }
-        else
-        {
-            lblCategory.Text = "Other";
-        }
+        object category = ReadField(dr, "Category");
+        lblCategory.Text = category != null ? category.ToString() : "Other";
 
-        if (dr["Notes"] != DBNull.Value && dr["Notes"] != null)
-        {
-            lblNotes.Text = dr["Notes"].ToString();
-        }
-        else
-        {
-            lblNotes.Text = "-";
-        }
+        object notes = ReadField(dr, "Notes");
+        lblNotes.Text = notes != null ? notes.ToString() : "-";
 
-        if (dr["EventDate"] != DBNull.Value && dr["EventDate"] != null)
+        object eventDate = ReadField(dr, "EventDate", "Date");
+        if (eventDate != null)
         {
-            lblDate.Text = Convert.ToDateTime(dr["EventDate"]).ToString("dd/MM/yyyy");
+            lblDate.Text = Convert.ToDateTime(eventDate).ToString("dd/MM/yyyy");
         }
         else
         {

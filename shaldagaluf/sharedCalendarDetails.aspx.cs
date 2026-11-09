@@ -851,10 +851,6 @@ public partial class sharedCalendarDetails : System.Web.UI.Page
         try
         {
             e.Cell.CssClass = "day-cell";
-            e.Cell.Controls.Clear();
-
-            LiteralControl dayNumber = new LiteralControl(string.Format("<div class='day-number'>{0}</div>", e.Day.Date.Day));
-            e.Cell.Controls.Add(dayNumber);
 
             if (!e.Day.IsOtherMonth)
             {

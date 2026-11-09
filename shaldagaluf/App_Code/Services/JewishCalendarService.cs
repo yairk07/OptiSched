@@ -64,6 +64,8 @@ public static class JewishCalendarService
         return GetDay(date, place.Zone, place);
     }
 
+    // מוצאת את העיר של המשתמש המחובר וממפה אותה לאחד מארבעה אזורי שבת.
+    // אם אין עיר או שהשאילתה נכשלת, חוזרים לאזור תל אביב.
     public static Place ResolveForUser(object userIdValue)
     {
         int userId;
@@ -117,6 +119,8 @@ public static class JewishCalendarService
         }
     }
 
+    // מקבלת מזהה עיר ושם עיר ומחליטה אם האזור הוא ירושלים, חיפה, באר שבע או תל אביב.
+    // עיר שלא מתאימה לאף רשימה נשארת בתל אביב, שזה אזור ברירת המחדל.
     public static Place ResolvePlace(int? cityId, string cityName)
     {
         string cleanName = NormalizeCity(cityName);
@@ -183,6 +187,9 @@ public static class JewishCalendarService
         return info;
     }
 
+    // קוראת ל-API של Hebcal עבור האזור שנבחר.
+    // מתוך התשובה שולפת פרשה, שעת הדלקת נרות ושעת הבדלה.
+    // חג נשמר רק אם התאריך שלו הוא בדיוק היום שנבחר.
     private static void ApplyShabbat(DayInfo info, DateTime day, ShabbatZone zone)
     {
         int minutes = zone == ShabbatZone.Jerusalem ? 40 : 22;

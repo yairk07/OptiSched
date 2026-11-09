@@ -97,7 +97,8 @@ public partial class tasks : System.Web.UI.Page
         }
     }
 
-    // Parses JSON events from text parser, saves them to database, and redirects with result
+    // מקבלת JSON שהגיע מהדפדפן, הופכת אותו לרשימת אירועים,
+    // ושומרת כל אירוע בנפרד. אם שמירה של אירוע אחד נכשלת, ממשיכים לשאר.
     private void SaveParsedEvents(string json)
     {
         try
@@ -381,13 +382,28 @@ public partial class tasks : System.Web.UI.Page
                     }
 
                     builder.Append("<tr>");
-                    builder.Append("<td>").Append(title).Append("</td>");
+                    builder.Append("<td>");
+                    if (table.TableName == "PersonalEvents" && !string.IsNullOrEmpty(eventId))
+                    {
+                        builder.Append("<a class='task-event-link' href='eventDetails.aspx?id=").Append(eventId).Append("'>").Append(title).Append("</a>");
+                        builder.Append(BuildAttachments(eventId));
+                    }
+                    else
+                    {
+                        builder.Append(title);
+                    }
+                    builder.Append("</td>");
                     builder.Append("<td>").Append(category).Append("</td>");
                     builder.Append("<td>").Append(string.IsNullOrEmpty(time) ? "—" : time).Append("</td>");
                     builder.Append("<td>").Append(string.IsNullOrEmpty(note) ? "—" : note).Append("</td>");
                     builder.Append("<td>").Append(eventType).Append("</td>");
                     builder.Append("<td>");
                     
+                    if (table.TableName == "PersonalEvents" && !string.IsNullOrEmpty(eventId))
+                    {
+                        builder.Append("<a class='task-view-link' href='eventDetails.aspx?id=").Append(eventId).Append("'>צפה</a> ");
+                    }
+
                     if (canDelete && !string.IsNullOrEmpty(eventId))
                     {
                         builder.Append("<form method='post' style='display: inline;'>");
@@ -395,7 +411,7 @@ public partial class tasks : System.Web.UI.Page
                         builder.Append("<button type='submit' onclick=\"return confirm('האם אתה בטוח שברצונך למחוק את האירוע הזה?');\" class='delete-link'>מחק</button>");
                         builder.Append("</form>");
                     }
-                    else
+                    else if (table.TableName != "PersonalEvents" || string.IsNullOrEmpty(eventId))
                     {
                         builder.Append("—");
                     }
@@ -420,10 +436,63 @@ public partial class tasks : System.Web.UI.Page
         lblEvents.Text = builder.ToString();
     }
 
+    private string BuildAttachments(string eventIdText)
+    {
+        int eventId;
+        if (!int.TryParse(eventIdText, out eventId))
+            return "";
+
+        var markup = new StringBuilder();
+        try
+        {
+            DataTable images = new ImageService().GetImagesByEvent(eventId);
+            DataTable files = new FileService().GetFilesByEvent(eventId);
+            if (images.Rows.Count == 0 && files.Rows.Count == 0)
+                return "";
+
+            markup.Append("<div class='task-attachments'>");
+            foreach (DataRow image in images.Rows)
+            {
+                string imageId = Convert.ToString(image["Id"]);
+                string imageName = HttpUtility.HtmlEncode(Convert.ToString(image["image_name"]));
+                markup.Append("<a class='task-attachment-image' href='showImage.ashx?id=")
+                    .Append(imageId)
+                    .Append("' target='_blank' title='")
+                    .Append(imageName)
+                    .Append("'><img src='showImage.ashx?id=")
+                    .Append(imageId)
+                    .Append("' alt='")
+                    .Append(imageName)
+                    .Append("' /></a>");
+            }
+
+            foreach (DataRow file in files.Rows)
+            {
+                string fileId = Convert.ToString(file["Id"]);
+                string fileName = HttpUtility.HtmlEncode(Convert.ToString(file["file_name"]));
+                markup.Append("<a class='task-attachment-file' href='downloadFile.ashx?id=")
+                    .Append(fileId)
+                    .Append("' target='_blank'>")
+                    .Append(fileName)
+                    .Append("</a>");
+            }
+            markup.Append("</div>");
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("tasks", "Error loading attachments", ex);
+        }
+
+        return markup.ToString();
+    }
+
     // Renders calendar days with event indicators and styling
     protected void calendar_DayRender(object sender, DayRenderEventArgs e)
     {
         DateTime currentDay = e.Day.Date;
+        if (currentDay.Date == DateTime.Today)
+            e.Cell.CssClass = (e.Cell.CssClass + " is-today").Trim();
+
         int dayCount = 0;
 
         foreach (DataTable table in allEvents.Tables)

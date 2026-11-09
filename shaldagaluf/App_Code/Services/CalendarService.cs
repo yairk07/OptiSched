@@ -59,7 +59,9 @@ public class CalendarService
         }
     }
 
-    // Inserts a new calendar event and returns the generated event ID
+    // שומרת אירוע אישי חדש בטבלת CalendarEvents.
+    // בלי מזהה משתמש הפונקציה זורקת חריגה ולא כותבת כלום.
+    // אחרי ההוספה קוראת את @@IDENTITY ומחזירה את המספר של השורה החדשה.
     public int InsertEvent(string title, DateTime date, string time, string notes, string category, int? userId = null, int reminderMinutes = 60)
     {
         // Validate that userId is provided
@@ -153,7 +155,8 @@ public class CalendarService
         catch { return false; }
     }
 
-    // Loads all personal events and optionally shared events, fixes Hebrew encoding, and returns as DataSet
+    // שולפת אירועים אישיים, ואם יש גם אירועים מלוחות משותפים.
+    // כשמעבירים userId, משתמש רגיל רואה רק את האירועים שלו. בעלים יכול לקבל null ולראות הכול.
     public DataSet GetAllEvents(int? userId = null)
     {
         DataSet data = new DataSet();

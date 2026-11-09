@@ -48,7 +48,7 @@
                     </div>
 
                     <asp:Panel ID="pnlEvents" runat="server">
-                        <section class="calendar-board tasks-board">
+                        <section class="calendar-board tasks-board selected-day-layout">
                             <div class="calendar-meta tasks-meta">
                                 <div class="calendar-meta-line">
                                     <span class="meta-label">כותרת <span class="required">*</span></span>
@@ -139,7 +139,7 @@
                                         OnVisibleMonthChanged="calEvents_VisibleMonthChanged" />
                                 </div>
                                 
-                                <div class="calendar-events-pane tasks-events-pane" style="margin-top: 24px;">
+                                <div class="calendar-events-pane tasks-events-pane">
                                     <div class="calendar-events-header">
                                         <span>אירועים בתאריך הנבחר</span>
                                     </div>

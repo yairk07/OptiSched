@@ -5,7 +5,9 @@ using System.Web.UI.WebControls;
 
 public partial class danimaster : System.Web.UI.MasterPage
 {
-    // טעינת הדף והפעלת לוגיקה ראשונית
+    // רץ בכל דף כי זה ה-Master Page.
+    // מראה או מסתיר קישורי תפריט לפי התחברות ולפי תפקיד owner.
+    // למשתמש מחובר גם בודק תזכורות ומעדכן את פעמון ההתראות.
     protected void Page_Load(object sender, EventArgs e)
     {
         Response.ContentType = "text/html; charset=utf-8";

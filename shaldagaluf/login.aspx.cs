@@ -30,6 +30,8 @@ public partial class login : System.Web.UI.Page
         }
     }
 
+    // בודקת שהכתובת אחרי ההתחברות היא דף פנימי של האתר בלבד.
+    // אם הכתובת חיצונית או מכילה "..", מחזירים false כדי למנוע הפניה מסוכנת.
     private static bool IsSafeLocalUrl(string url)
     {
         if (string.IsNullOrWhiteSpace(url)) return false;
@@ -129,7 +131,8 @@ public partial class login : System.Web.UI.Page
         }
     }
 
-    // הצפנת סיסמה ב-SHA256
+    // הופכת את הסיסמה שהמשתמש הקליד למחרוזת SHA256.
+    // במסד לא נשמרת הסיסמה עצמה, אלא התוצאה של הפונקציה הזאת.
     private string HashPassword(string password)
     {
         using (SHA256 sha256 = SHA256.Create())
@@ -142,7 +145,9 @@ public partial class login : System.Web.UI.Page
         }
     }
 
-    // טיפול בלחיצת התחברות
+    // לחיצה על "כניסה למערכת".
+    // קוראת את שם המשתמש והסיסמה, משווה למסד, ואם הם נכונים שומרת Session ועוברת לדף הבית.
+    // אם אחד מהם שגוי, מציגה הודעת שגיאה ונשארת בדף.
     protected void btnLogin_Click(object sender, EventArgs e)
     {
         string username = txtUserName.Text.Trim();
@@ -183,6 +188,8 @@ public partial class login : System.Web.UI.Page
 
                 bool passwordMatch = false;
 
+                // סיסמה מוצפנת היא תמיד 64 תווים הקסדצימליים. משווים אותה לגיבוב החדש.
+                // סיסמה ישנה שנשמרה כטקסט רגיל מושווית כמו שהיא, ואז מוחלפת בגיבוב.
                 if (dbPassword.Length == 64 && System.Text.RegularExpressions.Regex.IsMatch(dbPassword, @"^[a-f0-9]{64}$"))
                 {
                     passwordMatch = (dbPassword == hashedPassword);

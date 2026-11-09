@@ -1728,6 +1728,9 @@ WHERE JR.Id = ?";
     // Gets a user's permission level (Read or ReadWrite) for a shared calendar
     public string GetUserPermission(int calendarId, int userId)
     {
+        if (IsOwner(userId))
+            return "ReadWrite";
+
         string conStr = Connect.GetConnectionString();
         try
         {

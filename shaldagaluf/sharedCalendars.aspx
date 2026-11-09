@@ -61,10 +61,11 @@
                             <div class="calendar-card-header">
                                 <h3 class="calendar-name"><%# Eval("CalendarName") ?? "ללא שם" %></h3>
                                 <div class="calendar-badges">
-                                    <%# Convert.ToInt32(Eval("IsAdmin") ?? 0) == 1 ? "<span class='badge admin'>מנהל</span>" : "" %>
-                                    <%# Convert.ToInt32(Eval("IsMember") ?? 0) == 1 ? "<span class='badge member'>חבר</span>" : "" %>
-                                    <%# Convert.ToInt32(Eval("IsMember") ?? 0) == 1 && Eval("Permission") != null && Eval("Permission").ToString() == "ReadWrite" ? "<span class='badge permission'>עריכה</span>" : "" %>
-                                    <%# Convert.ToInt32(Eval("IsMember") ?? 0) == 1 && Eval("Permission") != null && Eval("Permission").ToString() == "Read" ? "<span class='badge permission read-only'>ראיה בלבד</span>" : "" %>
+                                    <%# Convert.ToInt32(Eval("IsSiteOwner") ?? 0) == 1 ? "<span class='badge admin'>בעלים</span><span class='badge permission'>עריכה</span>" : "" %>
+                                    <%# Convert.ToInt32(Eval("IsSiteOwner") ?? 0) != 1 && Convert.ToInt32(Eval("IsAdmin") ?? 0) == 1 ? "<span class='badge admin'>מנהל</span>" : "" %>
+                                    <%# Convert.ToInt32(Eval("IsSiteOwner") ?? 0) != 1 && Convert.ToInt32(Eval("IsMember") ?? 0) == 1 ? "<span class='badge member'>חבר</span>" : "" %>
+                                    <%# Convert.ToInt32(Eval("IsSiteOwner") ?? 0) != 1 && Convert.ToInt32(Eval("IsMember") ?? 0) == 1 && Eval("Permission") != null && Eval("Permission").ToString() == "ReadWrite" ? "<span class='badge permission'>עריכה</span>" : "" %>
+                                    <%# Convert.ToInt32(Eval("IsSiteOwner") ?? 0) != 1 && Convert.ToInt32(Eval("IsMember") ?? 0) == 1 && Eval("Permission") != null && Eval("Permission").ToString() == "Read" ? "<span class='badge permission read-only'>ראיה בלבד</span>" : "" %>
                                 </div>
                             </div>
                             <div class="calendar-card-body">

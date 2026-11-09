@@ -85,8 +85,23 @@ public partial class sharedCalendars : System.Web.UI.Page
                 }
             }
             
+            bool siteOwner = string.Equals(Convert.ToString(Session["Role"]), "owner", StringComparison.OrdinalIgnoreCase);
+            if (!dt.Columns.Contains("IsSiteOwner"))
+                dt.Columns.Add("IsSiteOwner", typeof(int));
+
             foreach (DataRow row in dt.Rows)
             {
+                if (siteOwner)
+                {
+                    row["IsSiteOwner"] = 1;
+                    if (dt.Columns.Contains("Permission"))
+                        row["Permission"] = "ReadWrite";
+                }
+                else
+                {
+                    row["IsSiteOwner"] = 0;
+                }
+
                 if (dt.Columns.Contains("CalendarName") && row["CalendarName"] != DBNull.Value)
                 {
                     string original = row["CalendarName"].ToString();
@@ -209,10 +224,15 @@ public partial class sharedCalendars : System.Web.UI.Page
             int calendarId = Convert.ToInt32(row["CalendarId"]);
             int isAdmin = row["IsAdmin"] != DBNull.Value ? Convert.ToInt32(row["IsAdmin"]) : 0;
             int isMember = row["IsMember"] != DBNull.Value ? Convert.ToInt32(row["IsMember"]) : 0;
+            int isSiteOwner = row.Table.Columns.Contains("IsSiteOwner") && row["IsSiteOwner"] != DBNull.Value ? Convert.ToInt32(row["IsSiteOwner"]) : 0;
             int hasRequestedAccess = row["HasRequestedAccess"] != DBNull.Value ? Convert.ToInt32(row["HasRequestedAccess"]) : 0;
             string requestStatus = row["RequestStatus"] != DBNull.Value ? row["RequestStatus"].ToString() : "";
 
-            if (isAdmin == 1 || isMember == 1)
+            if (isSiteOwner == 1)
+            {
+                return string.Format("<a href='sharedCalendarDetails.aspx?id={0}' class='btn-view'>ערוך טבלה</a>", calendarId);
+            }
+            else if (isAdmin == 1 || isMember == 1)
             {
                 return string.Format("<a href='sharedCalendarDetails.aspx?id={0}' class='btn-view'>צפה בטבלה</a>", calendarId);
             }

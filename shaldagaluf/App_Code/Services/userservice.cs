@@ -76,7 +76,9 @@ public class UsersService
         return 1;
     }
 
-    // הוספת משתמש חדש למסד הנתונים
+    // מוסיפה שורת משתמש חדשה לטבלת Users.
+    // בודקת אילו עמודות באמת קיימות, כי סכמת Access השתנתה בין גרסאות.
+    // הסיסמה נשמרת אחרי גיבוב, והפונקציה מחזירה מזהה הצלחה.
     public int insertIntoDB(string userName, string firstName, string lastName, string email, string password,
                 int gender, int yearOfBirth, string userId, string phonenum, int city)
     {
@@ -424,9 +426,8 @@ public class UsersService
         }
     }
 
-    // ------------------------------
-    // LOGIN CHECK
-    // ------------------------------
+    // בודקת אם קיים משתמש עם שם וסיסמה תואמים.
+    // הסיסמה עוברת גיבוב לפני ההשוואה. מחזירה true רק אם נמצאה שורה.
     public bool IsExist(string userName, string password)
     {
         DataSet ds = new DataSet();

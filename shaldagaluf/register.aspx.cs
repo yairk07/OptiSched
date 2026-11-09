@@ -195,6 +195,9 @@ public partial class register : System.Web.UI.Page
     }
 
     // טיפול בלחיצת הרשמה
+    // לחיצה על הרשמה. עוברת על כל השדות לפי הסדר.
+    // ברגע שתנאי אחד נכשל, מציגה שגיאה ויוצאת בלי לשמור.
+    // רק אם כל הבדיקות עברו נוצר אובייקט User ונשמר במסד.
     protected void btnRegister_Click(object sender, EventArgs e)
     {
         Page.Validate("Register");
@@ -321,7 +324,9 @@ public partial class register : System.Web.UI.Page
         lblMessage.CssClass = "form-message ok";
     }
 
-    // בדיקת תקינות תעודת זהות ישראלית
+    // אלגוריתם ספרת הביקורת של תעודת זהות ישראלית.
+    // כל ספרה במקום זוגי מוכפלת. אם התוצאה גדולה מ-9 מחסירים 9.
+    // תעודה תקינה רק כשסכום כל הספרות מתחלק ב-10.
     private static bool IsValidIsraeliId(string id)
     {
         if (string.IsNullOrEmpty(id) || !Regex.IsMatch(id, @"^\d{5,9}$"))

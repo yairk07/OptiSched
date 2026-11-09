@@ -239,7 +239,9 @@ public partial class allEvents : System.Web.UI.Page
         }
     }
 
-    // Filters events by search text, category, and user, then binds to DataList with encoding fixes
+    // טוענת את כל האירועים ומסננת אותם לפי שלושה תנאים יחד:
+    // טקסט חיפוש, קטגוריה ומשתמש. שורה נשמרת רק אם שלושתם מתקיימים.
+    // בסוף קושרת את הטבלה המסוננת ל-DataList ומציגה כמה תוצאות נמצאו.
     private void BindData(string filter = "", string categoryFilter = "", string userFilter = "")
     {
         DataTable dt = LoadEventsData();
@@ -588,10 +590,6 @@ public partial class allEvents : System.Web.UI.Page
         try
         {
             e.Cell.CssClass = "day-cell";
-            e.Cell.Controls.Clear();
-
-            LiteralControl dayNumber = new LiteralControl(string.Format("<div class='day-number'>{0}</div>", e.Day.Date.Day));
-            e.Cell.Controls.Add(dayNumber);
 
             if (!e.Day.IsOtherMonth)
             {

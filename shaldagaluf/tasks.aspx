@@ -23,7 +23,7 @@
             </div>
         </section>
 
-        <section class="calendar-board tasks-board">
+        <section class="calendar-board tasks-board selected-day-layout">
             <div class="calendar-meta tasks-meta">
                 <div class="calendar-meta-line">
                     <span class="meta-label">כותרת</span>
@@ -58,13 +58,21 @@
                 </div>
                 <div class="calendar-meta-line">
                     <span class="meta-label">קובץ מצורף</span>
-                    <asp:FileUpload ID="fileUpload" runat="server" CssClass="task-input" />
-                    <small style="color: #999; font-size: 12px;">גודל מקסימלי: 5MB</small>
+                    <div class="file-picker">
+                        <asp:FileUpload ID="fileUpload" runat="server" CssClass="file-picker-input" />
+                        <span class="file-picker-btn">בחר קובץ</span>
+                        <span class="file-picker-name" data-empty="לא נבחר קובץ">לא נבחר קובץ</span>
+                    </div>
+                    <small class="file-picker-hint">עד 5MB. אחרי השמירה הקובץ מופיע בשורת האירוע מתחת ללוח.</small>
                 </div>
                 <div class="calendar-meta-line">
                     <span class="meta-label">תמונה</span>
-                    <asp:FileUpload ID="imageUpload" runat="server" CssClass="task-input" Accept="image/*" />
-                    <small style="color: #999; font-size: 12px;">JPG, PNG, GIF - גודל מקסימלי: 5MB</small>
+                    <div class="file-picker">
+                        <asp:FileUpload ID="imageUpload" runat="server" CssClass="file-picker-input" Accept="image/*" />
+                        <span class="file-picker-btn">בחר תמונה</span>
+                        <span class="file-picker-name" data-empty="לא נבחרה תמונה">לא נבחרה תמונה</span>
+                    </div>
+                    <small class="file-picker-hint">JPG, PNG או GIF, עד 5MB. התמונה תופיע כתצוגה מקדימה מתחת ללוח.</small>
                 </div>
                 <asp:Button ID="btnAddEvent" runat="server" Text="שמור אירוע" CssClass="task-button" OnClick="AddEvent" />
 
@@ -83,14 +91,6 @@
                     </div>
                 </div>
 
-                <div class="calendar-events-pane tasks-events-pane">
-                    <div class="calendar-events-header">
-                        <span>אירועים בתאריך הנבחר</span>
-                    </div>
-                    <div class="task-events-container">
-                        <asp:Literal ID="lblEvents" runat="server" />
-                    </div>
-                </div>
             </div>
 
             <div class="calendar-surface tasks-surface">
@@ -102,11 +102,35 @@
                 </div>
                 <div class="calendar-wrapper">
                     <asp:Calendar ID="calendar" runat="server"
-                        CssClass="calendar calendar-modern"
-                        ShowTitle="false"
-                        ShowNextPrevMonth="false"
+                        CssClass="calendar calendar-modern tasks-calendar"
+                        ShowTitle="true"
+                        ShowNextPrevMonth="true"
+                        NextPrevFormat="CustomText"
+                        NextMonthText="החודש הבא"
+                        PrevMonthText="החודש הקודם"
+                        DayStyle-CssClass="calendar-day"
+                        DayStyle-BackColor="#26262b"
+                        DayStyle-ForeColor="White"
+                        SelectedDayStyle-CssClass="calendar-day selected"
+                        SelectedDayStyle-BackColor="#e50914"
+                        SelectedDayStyle-ForeColor="White"
+                        TodayDayStyle-CssClass="calendar-day is-today"
+                        OtherMonthDayStyle-CssClass="calendar-day other-month"
+                        OtherMonthDayStyle-BackColor="#1b1b1f"
+                        OtherMonthDayStyle-ForeColor="#8b909c"
+                        WeekendDayStyle-CssClass="calendar-day weekend"
+                        TitleStyle-BackColor="Transparent"
+                        TitleStyle-ForeColor="White"
                         OnSelectionChanged="calendar_SelectionChanged"
                         OnDayRender="calendar_DayRender" />
+                </div>
+                <div class="calendar-events-pane tasks-events-pane">
+                    <div class="calendar-events-header">
+                        <span>אירועים בתאריך הנבחר</span>
+                    </div>
+                    <div class="task-events-container">
+                        <asp:Literal ID="lblEvents" runat="server" />
+                    </div>
                 </div>
             </div>
         </section>
@@ -122,6 +146,15 @@
             const saveBtn = document.getElementById('btnSaveParsedEvents');
             const cancelBtn = document.getElementById('btnCancelParsedEvents');
             let parsedEvents = [];
+
+            document.querySelectorAll('.file-picker-input').forEach(function (input) {
+                input.addEventListener('change', function () {
+                    var nameEl = input.parentElement.querySelector('.file-picker-name');
+                    if (!nameEl) return;
+                    var file = input.files && input.files[0];
+                    nameEl.textContent = file ? file.name : nameEl.getAttribute('data-empty');
+                });
+            });
 
             if (parseBtn) {
                 parseBtn.addEventListener('click', function() {

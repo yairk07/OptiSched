@@ -361,6 +361,8 @@ public partial class home : System.Web.UI.Page
     }
 
     // שמירה/עדכון במסד: UpdateCalendarMeta
+    // מעדכנת את כרטיס היום שנבחר בלוח: תאריך לועזי, תאריך עברי,
+    // פרשת השבוע, חג, וכניסה ויציאה של שבת לפי העיר של המשתמש.
     private void UpdateCalendarMeta(DateTime date)
     {
         lblMetaDay.Text = date.ToString("dd");
