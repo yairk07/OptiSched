@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Data;
 using System.Linq;
 
@@ -127,7 +127,7 @@ public partial class exuserdetails : System.Web.UI.Page
         if (val == null || val == DBNull.Value) return string.Empty;
         
         string result = Convert.ToString(val);
-        return Connect.FixEncoding(result);
+        return Utilities.FixEncoding(result);
     }
 
     // החזרת שם עיר משורת הנתונים
@@ -141,7 +141,7 @@ public partial class exuserdetails : System.Web.UI.Page
         {
             if (row.Table.Columns.Contains(n) && row[n] != DBNull.Value && row[n] != null)
             {
-                return Connect.FixEncoding(Convert.ToString(row[n]));
+                return Utilities.FixEncoding(Convert.ToString(row[n]));
             }
         }
 

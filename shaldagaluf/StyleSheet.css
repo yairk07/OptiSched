@@ -95,7 +95,8 @@ textarea,
     }
 
 /* ========== BUTTONS (בסיס + וריאציות) ========== */
-button,
+/* לא חל על כפתורי סרגל הנגישות */
+button:not(.a11y-btn):not(.a11y-toggle),
 .addEventBtn {
     background-color: var(--brand);
     color: #fff;
@@ -110,12 +111,12 @@ button,
     text-align: center;
 }
 
-    button:hover,
+    button:not(.a11y-btn):not(.a11y-toggle):hover,
     .addEventBtn:hover {
         background-color: var(--brand-dark);
     }
 
-    button:active,
+    button:not(.a11y-btn):not(.a11y-toggle):active,
     .addEventBtn:active {
         transform: translateY(1px);
     }
@@ -671,10 +672,21 @@ button,
 .calendar-modern .calendar-day {
     background: #2d2d2d;
     color: #ffffff;
-    height: 80px;
+    height: 92px;
     vertical-align: top;
     padding: 10px;
     position: relative;
+}
+
+/* מספר היום בפינה העליונה; האירועים מתחתיו בלי חפיפה */
+.calendar-modern td.calendar-day > a {
+    justify-content: flex-end;
+    align-items: flex-start;
+    padding: 6px 10px 0 10px;
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1.1;
+    color: inherit !important; /* מבטל style שחור אינליין של ASP.NET Calendar */
 }
 
 .calendar-modern .calendar-day.other-month {
@@ -702,20 +714,28 @@ button,
 }
 
 .calendar-cell-events {
-    margin-top: 6px;
+    position: relative;
+    z-index: 2;
+    margin-top: 40px; /* מרווח ברור מתחת למספר היום (הקישור ממלא את התא ב-absolute) */
     display: flex;
     flex-direction: column;
     gap: 4px;
+    max-height: calc(100% - 40px);
+    overflow: hidden;
+    pointer-events: none;
 }
 
 .calendar-cell-event {
     font-size: 10px;
-    background: rgba(28, 28, 28, 0.74);
+    background: rgba(12, 12, 12, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 999px;
-    padding: 2px 6px;
+    padding: 2px 8px;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+    text-align: center;
+    color: #fff;
 }
 
 @media (max-width: 768px) {
@@ -1974,5 +1994,668 @@ a:active {
 
     .guide-explanation {
         font-size: 13px;
+    }
+}
+
+/* ========== THEME TOGGLE BUTTON ========== */
+.btn-pill.theme-toggle {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.btn-pill.theme-toggle:hover {
+    background: rgba(229, 9, 20, 0.18);
+    border-color: rgba(229, 9, 20, 0.45);
+    color: #fff;
+}
+
+/* ========== LIGHT THEME ========== */
+html[data-theme="light"],
+body[data-theme="light"] {
+    --bg: #eef2f7;
+    --surface: #ffffff;
+    --surface-alt: #f5f7fb;
+    --text: #1c2430;
+    --heading: #101826;
+    --muted: #5b677a;
+    --border: rgba(16, 24, 38, 0.12);
+    --brand: #d0121c;
+    --brand-dark: #a50d16;
+    --success: #1f9d57;
+    --success-dark: #187a43;
+    --nav: #ffffff;
+    --shadow-sm: 0 8px 22px rgba(16, 24, 38, 0.08);
+    --shadow-md: 0 18px 40px rgba(16, 24, 38, 0.12);
+}
+
+html[data-theme="light"],
+body[data-theme="light"] {
+    background:
+        radial-gradient(circle at top right, rgba(208, 18, 28, 0.10), transparent 42%),
+        linear-gradient(180deg, #f7f9fc 0%, #e8eef6 100%);
+    color: var(--text);
+}
+
+html[data-theme="light"] .nav-bar,
+body[data-theme="light"] .nav-bar {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(16, 24, 38, 0.10);
+    box-shadow: var(--shadow-sm);
+}
+
+html[data-theme="light"] .nav-bar a,
+html[data-theme="light"] .nav-bar .logout-btn,
+body[data-theme="light"] .nav-bar a,
+body[data-theme="light"] .nav-bar .logout-btn {
+    color: #1c2430;
+}
+
+html[data-theme="light"] .nav-bar a:hover,
+html[data-theme="light"] .nav-bar .logout-btn:hover,
+body[data-theme="light"] .nav-bar a:hover,
+body[data-theme="light"] .nav-bar .logout-btn:hover {
+    background: var(--brand);
+    color: #fff;
+}
+
+html[data-theme="light"] #headerMenu,
+body[data-theme="light"] #headerMenu {
+    background: linear-gradient(120deg, #ffffff, #f4f7fb);
+    border-color: rgba(16, 24, 38, 0.10);
+    box-shadow: var(--shadow-md);
+}
+
+html[data-theme="light"] .logo-name,
+body[data-theme="light"] .logo-name {
+    color: #101826;
+}
+
+html[data-theme="light"] .logo-tagline,
+body[data-theme="light"] .logo-tagline {
+    color: #c43b4a;
+}
+
+html[data-theme="light"] .notif-bell,
+html[data-theme="light"] .account-logout,
+body[data-theme="light"] .notif-bell,
+body[data-theme="light"] .account-logout {
+    border-color: rgba(16, 24, 38, 0.14);
+    background: rgba(16, 24, 38, 0.04);
+    color: #1c2430;
+}
+
+html[data-theme="light"] .notif-bell:hover,
+html[data-theme="light"] .account-logout:hover,
+body[data-theme="light"] .notif-bell:hover,
+body[data-theme="light"] .account-logout:hover {
+    background: rgba(208, 18, 28, 0.12);
+    color: #101826;
+}
+
+html[data-theme="light"] .notif-badge,
+body[data-theme="light"] .notif-badge {
+    box-shadow: 0 0 0 2px #ffffff;
+}
+
+html[data-theme="light"] .notif-panel,
+body[data-theme="light"] .notif-panel {
+    background: #ffffff;
+    border-color: rgba(16, 24, 38, 0.12);
+    box-shadow: var(--shadow-md);
+}
+
+html[data-theme="light"] .notif-dropdown-header,
+html[data-theme="light"] .notif-title,
+body[data-theme="light"] .notif-dropdown-header,
+body[data-theme="light"] .notif-title {
+    color: #101826;
+}
+
+html[data-theme="light"] .notif-link,
+body[data-theme="light"] .notif-link {
+    color: #243041;
+}
+
+html[data-theme="light"] .notif-msg,
+body[data-theme="light"] .notif-msg {
+    color: rgba(28, 36, 48, 0.78);
+}
+
+html[data-theme="light"] .notif-date,
+html[data-theme="light"] .notif-empty,
+body[data-theme="light"] .notif-date,
+body[data-theme="light"] .notif-empty {
+    color: #6a7588;
+}
+
+html[data-theme="light"] .notif-item,
+body[data-theme="light"] .notif-item {
+    border-bottom-color: rgba(16, 24, 38, 0.06);
+}
+
+html[data-theme="light"] .home-hero,
+html[data-theme="light"] .home-card,
+html[data-theme="light"] .calendar-card,
+html[data-theme="light"] .about-section,
+body[data-theme="light"] .home-hero,
+body[data-theme="light"] .home-card,
+body[data-theme="light"] .calendar-card,
+body[data-theme="light"] .about-section {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(16, 24, 38, 0.08);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
+}
+
+html[data-theme="light"] .hero-eyebrow,
+body[data-theme="light"] .hero-eyebrow {
+    color: #c43b4a;
+}
+
+html[data-theme="light"] .hero-description,
+html[data-theme="light"] .chip-value.muted,
+body[data-theme="light"] .hero-description,
+body[data-theme="light"] .chip-value.muted {
+    color: var(--muted);
+}
+
+html[data-theme="light"] .stat-chip,
+body[data-theme="light"] .stat-chip {
+    background: #f3f6fb;
+    border-color: rgba(16, 24, 38, 0.08);
+    color: var(--text);
+}
+
+html[data-theme="light"] .btn-pill.ghost,
+body[data-theme="light"] .btn-pill.ghost {
+    color: #1c2430;
+    border-color: rgba(16, 24, 38, 0.16);
+    background: #ffffff;
+}
+
+html[data-theme="light"] .btn-pill.theme-toggle,
+body[data-theme="light"] .btn-pill.theme-toggle {
+    color: #1c2430;
+    border-color: rgba(16, 24, 38, 0.16);
+    background: #ffffff;
+}
+
+html[data-theme="light"] .calendar,
+html[data-theme="light"] .calendar-board,
+html[data-theme="light"] .tasks-calendar,
+html[data-theme="light"] .task-calendar-wrapper,
+body[data-theme="light"] .calendar,
+body[data-theme="light"] .calendar-board,
+body[data-theme="light"] .tasks-calendar,
+body[data-theme="light"] .task-calendar-wrapper {
+    background: #ffffff;
+    border-color: rgba(16, 24, 38, 0.10);
+    box-shadow: var(--shadow-sm);
+}
+
+html[data-theme="light"] .calendar th,
+html[data-theme="light"] .calendar td,
+html[data-theme="light"] .calendar-modern .calendar-day,
+html[data-theme="light"] .tasks-board .calendar th,
+html[data-theme="light"] .tasks-board .calendar td,
+body[data-theme="light"] .calendar th,
+body[data-theme="light"] .calendar td,
+body[data-theme="light"] .calendar-modern .calendar-day,
+body[data-theme="light"] .tasks-board .calendar th,
+body[data-theme="light"] .tasks-board .calendar td {
+    background: #f4f7fb;
+    color: #1c2430;
+}
+
+html[data-theme="light"] .calendar-modern .calendar-day.other-month,
+body[data-theme="light"] .calendar-modern .calendar-day.other-month {
+    background: #e8edf5;
+    color: #7a8699;
+}
+
+html[data-theme="light"] .calendar-modern .calendar-day.selected,
+body[data-theme="light"] .calendar-modern .calendar-day.selected {
+    background: var(--brand);
+    color: #fff;
+}
+
+html[data-theme="light"] .calendar-cell-event,
+body[data-theme="light"] .calendar-cell-event {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(16, 24, 38, 0.14);
+    color: #1c2430;
+}
+
+html[data-theme="light"] .calendar-meta,
+html[data-theme="light"] .calendar-events-pane,
+html[data-theme="light"] .tasks-events-pane,
+body[data-theme="light"] .calendar-meta,
+body[data-theme="light"] .calendar-events-pane,
+body[data-theme="light"] .tasks-events-pane {
+    background: linear-gradient(160deg, #d0121c, #9e0d16);
+    color: #fff;
+}
+
+html[data-theme="light"] .footer,
+body[data-theme="light"] .footer {
+    color: var(--muted);
+}
+
+html[data-theme="light"] .auth-card,
+html[data-theme="light"] .content-container .card,
+html[data-theme="light"] .task-card,
+body[data-theme="light"] .auth-card,
+body[data-theme="light"] .content-container .card,
+body[data-theme="light"] .task-card {
+    background: #ffffff;
+    border-color: rgba(16, 24, 38, 0.10);
+    color: var(--text);
+}
+
+html[data-theme="light"] input[type="text"],
+html[data-theme="light"] textarea,
+html[data-theme="light"] .inputEvent,
+html[data-theme="light"] .task-input,
+html[data-theme="light"] select,
+body[data-theme="light"] input[type="text"],
+body[data-theme="light"] textarea,
+body[data-theme="light"] .inputEvent,
+body[data-theme="light"] .task-input,
+body[data-theme="light"] select {
+    background: #ffffff;
+    color: #1c2430;
+    border-color: rgba(16, 24, 38, 0.16);
+}
+
+html[data-theme="light"] .calendar-year-label,
+html[data-theme="light"] .calendar-mode-options label,
+html[data-theme="light"] .month-picker button,
+body[data-theme="light"] .calendar-year-label,
+body[data-theme="light"] .calendar-mode-options label,
+body[data-theme="light"] .month-picker button {
+    color: #1c2430;
+}
+
+html[data-theme="light"] .month-picker button,
+body[data-theme="light"] .month-picker button {
+    background: #ffffff;
+    border-color: rgba(16, 24, 38, 0.12);
+}
+
+html[data-theme="light"] .month-picker button.active,
+body[data-theme="light"] .month-picker button.active {
+    background: var(--brand);
+    color: #fff;
+    border-color: transparent;
+}
+
+/* ========== ACCESSIBILITY (ת״י 5568 / WCAG 2.0 AA) ========== */
+.sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+.skip-link {
+    position: absolute;
+    inset-inline-start: 12px;
+    top: -100px;
+    z-index: 10000;
+    padding: 12px 18px;
+    background: #000;
+    color: #fff;
+    font-weight: 700;
+    text-decoration: underline;
+    border-radius: 8px;
+    border: 2px solid #fff;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+    top: 12px;
+    outline: 3px solid #ffe066;
+    outline-offset: 2px;
+}
+
+.footer-a11y {
+    margin: 8px 0 0;
+    font-size: 14px;
+}
+
+.footer-a11y a {
+    color: inherit;
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.footer-a11y a:hover,
+.footer-a11y a:focus-visible {
+    color: var(--brand);
+}
+
+/* מיקוד גלוי לניווט מקלדת */
+:focus {
+    outline: none;
+}
+
+:focus-visible {
+    outline: 3px solid var(--brand);
+    outline-offset: 3px;
+}
+
+a:focus-visible,
+button:focus-visible,
+.nav-bar a:focus-visible,
+.button:focus-visible,
+.btn-pill:focus-visible,
+.a11y-btn:focus-visible,
+.a11y-toggle:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: 3px solid #ffe066;
+    outline-offset: 2px;
+}
+
+/* סרגל כלי נגישות — ווידג'ט קומפקטי שלא נשבר מכלל button הגלובלי */
+.a11y-toolbar {
+    position: fixed;
+    /* פינה שמאלית קבועה — לא מכסה תוכן RTL בצד ימין */
+    left: 16px;
+    right: auto;
+    bottom: 88px;
+    z-index: 99990;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 10px;
+    width: auto;
+    max-width: min(300px, calc(100vw - 24px));
+    font-family: 'Segoe UI', 'Heebo', sans-serif;
+}
+
+.a11y-toggle {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 !important;
+    width: auto;
+    min-width: 48px;
+    min-height: 48px;
+    padding: 12px 18px !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background: #1a1d24 !important;
+    color: #fff !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    cursor: pointer;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    transition: background .2s ease, transform .15s ease, box-shadow .2s ease;
+}
+
+.a11y-toggle::before {
+    content: "\267F";
+    font-size: 18px;
+    line-height: 1;
+}
+
+.a11y-toggle:hover {
+    background: #2a2f3a !important;
+    transform: translateY(-1px);
+}
+
+.a11y-toggle[aria-expanded="true"] {
+    background: #111 !important;
+    box-shadow: 0 0 0 2px #fff, 0 10px 28px rgba(0, 0, 0, 0.4);
+}
+
+.a11y-panel {
+    display: none;
+    width: 280px;
+    max-width: calc(100vw - 24px);
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: #ffffff;
+    color: #1a1a1a;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+}
+
+.a11y-panel.is-open,
+.a11y-panel:not([hidden]) {
+    display: block;
+}
+
+.a11y-panel[hidden] {
+    display: none !important;
+}
+
+.a11y-panel-title {
+    margin: 0 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e8e8e8;
+    font-size: 15px;
+    font-weight: 700;
+    color: #111;
+    text-align: right;
+}
+
+.a11y-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.a11y-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 6px !important;
+    border-radius: 10px !important;
+    border: 1px solid #d8d8d8 !important;
+    background: #f6f7f9 !important;
+    color: #1a1a1a !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.a11y-btn:hover {
+    background: #eceff3 !important;
+    border-color: #b8bec8 !important;
+}
+
+.a11y-btn.is-active {
+    background: #1a1d24 !important;
+    color: #fff !important;
+    border-color: #1a1d24 !important;
+}
+
+.a11y-btn-wide {
+    grid-column: 1 / -1;
+}
+
+.a11y-btn-reset {
+    grid-column: 1 / -1;
+    background: #fff !important;
+    border-style: dashed !important;
+}
+
+.a11y-statement-link {
+    display: block;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #e8e8e8;
+    color: #1a1d24;
+    font-weight: 700;
+    font-size: 13px;
+    text-align: center;
+    text-decoration: underline;
+}
+
+/* גודל טקסט — zoom כי רוב האתר ב-px קבוע */
+html[data-a11y-font="large"] {
+    font-size: 112.5%;
+    zoom: 1.12;
+}
+
+html[data-a11y-font="xlarge"] {
+    font-size: 125%;
+    zoom: 1.25;
+}
+
+@supports not (zoom: 1) {
+    html[data-a11y-font="large"] body {
+        transform: scale(1.12);
+        transform-origin: top center;
+        width: 89.3%;
+        margin-inline: auto;
+    }
+    html[data-a11y-font="xlarge"] body {
+        transform: scale(1.25);
+        transform-origin: top center;
+        width: 80%;
+        margin-inline: auto;
+    }
+}
+
+/* הדגשת קישורים */
+html[data-a11y-underline="true"] a {
+    text-decoration: underline !important;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 2px !important;
+}
+
+/* השהיית אנימציות */
+html[data-a11y-reduce-motion="true"] *,
+html[data-a11y-reduce-motion="true"] *::before,
+html[data-a11y-reduce-motion="true"] *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+}
+
+/* ניגודיות גבוהה */
+html[data-a11y-contrast="high"],
+html[data-a11y-contrast="high"] body {
+    --bg: #000000;
+    --surface: #000000;
+    --surface-alt: #111111;
+    --text: #ffffff;
+    --heading: #ffffff;
+    --muted: #ffff00;
+    --border: #ffffff;
+    --brand: #ffff00;
+    --brand-dark: #ffd700;
+    --nav: #000000;
+    background: #000 !important;
+    color: #fff !important;
+}
+
+html[data-a11y-contrast="high"] a {
+    color: #ffff00 !important;
+    text-decoration: underline !important;
+}
+
+html[data-a11y-contrast="high"] .nav-bar,
+html[data-a11y-contrast="high"] #headerMenu,
+html[data-a11y-contrast="high"] .footer,
+html[data-a11y-contrast="high"] .auth-card,
+html[data-a11y-contrast="high"] .home-card,
+html[data-a11y-contrast="high"] .terms-content,
+html[data-a11y-contrast="high"] .content-container,
+html[data-a11y-contrast="high"] .shared-calendars-shell,
+html[data-a11y-contrast="high"] .shared-calendar-details-shell {
+    background: #000 !important;
+    color: #fff !important;
+    border-color: #fff !important;
+}
+
+html[data-a11y-contrast="high"] .nav-bar a,
+html[data-a11y-contrast="high"] .button,
+html[data-a11y-contrast="high"] .btn-pill {
+    background: #000 !important;
+    color: #ffff00 !important;
+    border: 2px solid #ffff00 !important;
+}
+
+html[data-a11y-contrast="high"] .button:hover,
+html[data-a11y-contrast="high"] .nav-bar a:hover {
+    background: #ffff00 !important;
+    color: #000 !important;
+}
+
+html[data-a11y-contrast="high"] .a11y-toggle {
+    background: #000 !important;
+    color: #ffff00 !important;
+    border: 2px solid #ffff00 !important;
+}
+
+html[data-a11y-contrast="high"] .a11y-panel {
+    background: #000 !important;
+    color: #fff !important;
+    border: 2px solid #ffff00 !important;
+}
+
+html[data-a11y-contrast="high"] .a11y-panel-title,
+html[data-a11y-contrast="high"] .a11y-statement-link {
+    color: #ffff00 !important;
+    border-color: #ffff00 !important;
+}
+
+html[data-a11y-contrast="high"] .a11y-btn {
+    background: #000 !important;
+    color: #ffff00 !important;
+    border: 2px solid #ffff00 !important;
+}
+
+html[data-a11y-contrast="high"] .a11y-btn.is-active {
+    background: #ffff00 !important;
+    color: #000 !important;
+}
+
+html[data-a11y-contrast="high"] input,
+html[data-a11y-contrast="high"] textarea,
+html[data-a11y-contrast="high"] select,
+html[data-a11y-contrast="high"] .textbox,
+html[data-a11y-contrast="high"] .form-input {
+    background: #000 !important;
+    color: #fff !important;
+    border: 2px solid #fff !important;
+}
+
+html[data-a11y-contrast="high"] :focus-visible {
+    outline: 3px solid #ffff00 !important;
+    outline-offset: 3px;
+}
+
+html[data-theme="light"] .a11y-toggle {
+    background: #1a1d24 !important;
+    color: #fff !important;
+}
+
+@media (max-width: 640px) {
+    .a11y-toolbar {
+        left: 10px;
+        right: auto;
+        bottom: 76px;
+    }
+    .a11y-panel {
+        width: min(280px, calc(100vw - 20px));
     }
 }

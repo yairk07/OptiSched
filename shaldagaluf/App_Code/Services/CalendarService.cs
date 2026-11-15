@@ -184,13 +184,13 @@ public class CalendarService
                 foreach (DataRow row in data.Tables["PersonalEvents"].Rows)
                 {
                     if (row.Table.Columns.Contains("Title"))
-                        row["Title"] = Connect.FixEncoding(Convert.ToString(row["Title"]));
+                        row["Title"] = Utilities.FixEncoding(Convert.ToString(row["Title"]));
                     if (row.Table.Columns.Contains("EventTime"))
-                        row["EventTime"] = Connect.FixEncoding(Convert.ToString(row["EventTime"]));
+                        row["EventTime"] = Utilities.FixEncoding(Convert.ToString(row["EventTime"]));
                     if (row.Table.Columns.Contains("Notes"))
-                        row["Notes"] = Connect.FixEncoding(Convert.ToString(row["Notes"]));
+                        row["Notes"] = Utilities.FixEncoding(Convert.ToString(row["Notes"]));
                     if (row.Table.Columns.Contains("Category"))
-                        row["Category"] = Connect.FixEncoding(Convert.ToString(row["Category"]));
+                        row["Category"] = Utilities.FixEncoding(Convert.ToString(row["Category"]));
                 }
             }
 
@@ -218,13 +218,13 @@ ORDER BY Id";
                         foreach (DataRow row in data.Tables["SharedEvents"].Rows)
                         {
                             if (row.Table.Columns.Contains("Title"))
-                                row["Title"] = Connect.FixEncoding(Convert.ToString(row["Title"]));
+                                row["Title"] = Utilities.FixEncoding(Convert.ToString(row["Title"]));
                             if (row.Table.Columns.Contains("EventTime"))
-                                row["EventTime"] = Connect.FixEncoding(Convert.ToString(row["EventTime"]));
+                                row["EventTime"] = Utilities.FixEncoding(Convert.ToString(row["EventTime"]));
                             if (row.Table.Columns.Contains("Notes"))
-                                row["Notes"] = Connect.FixEncoding(Convert.ToString(row["Notes"]));
+                                row["Notes"] = Utilities.FixEncoding(Convert.ToString(row["Notes"]));
                             if (row.Table.Columns.Contains("Category"))
-                                row["Category"] = Connect.FixEncoding(Convert.ToString(row["Category"]));
+                                row["Category"] = Utilities.FixEncoding(Convert.ToString(row["Category"]));
                         }
                     }
                 }

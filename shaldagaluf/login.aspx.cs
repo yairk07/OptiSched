@@ -167,24 +167,24 @@ public partial class login : System.Web.UI.Page
                 return;
         }
 
-        string hashedPassword = HashPassword(password);
+        string hashedPassword = PasswordHelper.HashPassword(password);
         string connStr = Connect.GetConnectionString();
 
         using (OleDbConnection conn = new OleDbConnection(connStr))
         {
             conn.Open();
 
-            string sql = "SELECT id, userName, role, [password] FROM Users WHERE userName=?";
+            // הרשמה חדשה שומרת ב-PasswordHash; משתמשים ישנים עשויים להיות ב-[password]
+            string sql = "SELECT * FROM Users WHERE userName=? OR UserName=?";
             OleDbCommand cmd = new OleDbCommand(sql, conn);
+            cmd.Parameters.AddWithValue("?", username);
             cmd.Parameters.AddWithValue("?", username);
 
             OleDbDataReader dr = cmd.ExecuteReader();
 
             if (dr.Read())
             {
-                string dbPassword = dr["password"] != null && dr["password"] != DBNull.Value
-                    ? dr["password"].ToString()
-                    : "";
+                string dbPassword = ReadPasswordFromRow(dr);
 
                 bool passwordMatch = false;
 
@@ -192,28 +192,27 @@ public partial class login : System.Web.UI.Page
                 // סיסמה ישנה שנשמרה כטקסט רגיל מושווית כמו שהיא, ואז מוחלפת בגיבוב.
                 if (dbPassword.Length == 64 && System.Text.RegularExpressions.Regex.IsMatch(dbPassword, @"^[a-f0-9]{64}$"))
                 {
-                    passwordMatch = (dbPassword == hashedPassword);
+                    passwordMatch = string.Equals(dbPassword, hashedPassword, StringComparison.OrdinalIgnoreCase);
                 }
                 else if (!string.IsNullOrEmpty(dbPassword))
                 {
                     passwordMatch = (dbPassword == password);
-
-                    if (passwordMatch)
-                    {
-                        string updateSql = "UPDATE Users SET [password]=? WHERE id=?";
-                        OleDbCommand updateCmd = new OleDbCommand(updateSql, conn);
-                        updateCmd.Parameters.AddWithValue("?", hashedPassword);
-                        updateCmd.Parameters.AddWithValue("?", dr["id"]);
-                        updateCmd.ExecuteNonQuery();
-                    }
                 }
 
                 if (passwordMatch)
                 {
-                    Session["username"] = dr["userName"].ToString();
-                    Session["Role"] = dr["role"] != null && dr["role"] != DBNull.Value ? dr["role"].ToString() : "user";
-                    Session["userId"] = dr["id"].ToString();
+                    string uname = GetReaderString(dr, "userName", "UserName");
+                    string role = GetReaderString(dr, "role", "Role");
+                    if (string.IsNullOrWhiteSpace(role)) role = "user";
+
+                    Session["username"] = uname;
+                    Session["Role"] = role;
+                    Session["userId"] = Convert.ToString(dr["id"]);
                     Session["loggedIn"] = true;
+
+                    dr.Close();
+                    // סנכרון עמודות סיסמה כדי שגם password וגם PasswordHash יהיו מעודכנים
+                    SyncPasswordHashes(conn, Convert.ToString(Session["userId"]), hashedPassword);
 
                     RedirectAfterLogin();
                     return;
@@ -222,6 +221,62 @@ public partial class login : System.Web.UI.Page
 
             lblError.Text = "שם משתמש או סיסמה שגויים.";
             lblError.Visible = true;
+        }
+    }
+
+    private static string GetReaderString(OleDbDataReader dr, params string[] names)
+    {
+        foreach (string name in names)
+        {
+            try
+            {
+                int ord = dr.GetOrdinal(name);
+                if (!dr.IsDBNull(ord))
+                {
+                    string val = Convert.ToString(dr.GetValue(ord));
+                    if (!string.IsNullOrEmpty(val)) return val;
+                }
+            }
+            catch (IndexOutOfRangeException) { }
+        }
+        return "";
+    }
+
+    private static string ReadPasswordFromRow(OleDbDataReader dr)
+    {
+        // מעדיפים PasswordHash (משתמשים חדשים), ואם ריק נופלים ל-[password]
+        string hash = GetReaderString(dr, "PasswordHash");
+        if (!string.IsNullOrEmpty(hash)) return hash;
+        return GetReaderString(dr, "password");
+    }
+
+    private static void SyncPasswordHashes(OleDbConnection conn, string userId, string hashedPassword)
+    {
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(hashedPassword)) return;
+        try
+        {
+            using (OleDbCommand updateCmd = new OleDbCommand(
+                "UPDATE Users SET [password]=?, PasswordHash=? WHERE id=?", conn))
+            {
+                updateCmd.Parameters.AddWithValue("?", hashedPassword);
+                updateCmd.Parameters.AddWithValue("?", hashedPassword);
+                updateCmd.Parameters.AddWithValue("?", userId);
+                updateCmd.ExecuteNonQuery();
+            }
+        }
+        catch
+        {
+            try
+            {
+                using (OleDbCommand updateCmd = new OleDbCommand(
+                    "UPDATE Users SET PasswordHash=? WHERE id=?", conn))
+                {
+                    updateCmd.Parameters.AddWithValue("?", hashedPassword);
+                    updateCmd.Parameters.AddWithValue("?", userId);
+                    updateCmd.ExecuteNonQuery();
+                }
+            }
+            catch { }
         }
     }
 

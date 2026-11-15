@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Data;
 using System.Linq;
 using System.Web.UI;
@@ -221,9 +221,9 @@ public partial class allEvents : System.Web.UI.Page
                 {
                     string userName = "";
                     if (row.Table.Columns.Contains("UserName") && row["UserName"] != DBNull.Value && row["UserName"] != null)
-                        userName = Connect.FixEncoding(row["UserName"].ToString());
+                        userName = Utilities.FixEncoding(row["UserName"].ToString());
                     else if (row.Table.Columns.Contains("userName") && row["userName"] != DBNull.Value && row["userName"] != null)
-                        userName = Connect.FixEncoding(row["userName"].ToString());
+                        userName = Utilities.FixEncoding(row["userName"].ToString());
                     
                     if (!string.IsNullOrWhiteSpace(userName) && !uniqueUsers.ContainsKey(userName))
                     {
@@ -652,13 +652,13 @@ public partial class allEvents : System.Web.UI.Page
                             {
                                 string title = "";
                                 if (eventsData.Columns.Contains("Title") && row.Table.Columns.Contains("Title") && row["Title"] != DBNull.Value && row["Title"] != null)
-                                    title = Connect.FixEncoding(row["Title"].ToString());
+                                    title = Utilities.FixEncoding(row["Title"].ToString());
                                 else if (eventsData.Columns.Contains("title") && row.Table.Columns.Contains("title") && row["title"] != DBNull.Value && row["title"] != null)
-                                    title = Connect.FixEncoding(row["title"].ToString());
+                                    title = Utilities.FixEncoding(row["title"].ToString());
                                 
                                 string userName = "";
                                 if (eventsData.Columns.Contains("UserName") && row.Table.Columns.Contains("UserName") && row["UserName"] != DBNull.Value && row["UserName"] != null)
-                                    userName = Connect.FixEncoding(row["UserName"].ToString());
+                                    userName = Utilities.FixEncoding(row["UserName"].ToString());
                                 
                                 string eventId = "";
                                 if (eventsData.Columns.Contains("Id") && row.Table.Columns.Contains("Id") && row["Id"] != DBNull.Value && row["Id"] != null)
@@ -666,9 +666,9 @@ public partial class allEvents : System.Web.UI.Page
                                 
                                 string eventTime = "";
                                 if (eventsData.Columns.Contains("EventTime") && row.Table.Columns.Contains("EventTime") && row["EventTime"] != DBNull.Value && row["EventTime"] != null)
-                                    eventTime = Connect.FixEncoding(row["EventTime"].ToString());
+                                    eventTime = Utilities.FixEncoding(row["EventTime"].ToString());
                                 else if (eventsData.Columns.Contains("time") && row.Table.Columns.Contains("time") && row["time"] != DBNull.Value && row["time"] != null)
-                                    eventTime = Connect.FixEncoding(row["time"].ToString());
+                                    eventTime = Utilities.FixEncoding(row["time"].ToString());
                                 
                                 if (string.IsNullOrEmpty(title))
                                     continue;

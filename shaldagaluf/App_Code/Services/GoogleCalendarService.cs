@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Data;
@@ -156,7 +156,7 @@ public class GoogleCalendarService
             foreach (DataRow row in dt.Rows)
             {
                 if (row[col] != null && row[col] != DBNull.Value)
-                    row[col] = Connect.FixEncoding(Convert.ToString(row[col]));
+                    row[col] = Utilities.FixEncoding(Convert.ToString(row[col]));
             }
         }
 

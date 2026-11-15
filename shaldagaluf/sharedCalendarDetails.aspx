@@ -14,6 +14,9 @@
                     </asp:HyperLink>
                     <asp:Label ID="calendarTitle" runat="server" CssClass="calendar-title"></asp:Label>
                     <asp:Label ID="calendarDescription" runat="server" CssClass="calendar-description"></asp:Label>
+                    <div class="calendar-header-actions" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+                        <asp:HyperLink ID="lnkManage" runat="server" Visible="false" CssClass="task-button" style="text-decoration:none;display:inline-block;">ניהול טבלה (מנהל)</asp:HyperLink>
+                    </div>
                     <asp:Panel ID="pnlInvite" runat="server" Visible="false" CssClass="invite-panel" style="margin-top:16px;padding:14px;border:1px solid rgba(255,255,255,0.12);border-radius:10px;">
                         <strong>הזמנת חברים בקישור</strong>
                         <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;">
@@ -25,6 +28,16 @@
                         </div>
                         <asp:TextBox ID="txtInviteLink" runat="server" CssClass="task-input" style="margin-top:10px;width:100%;" ReadOnly="true" />
                         <asp:Label ID="lblInviteMsg" runat="server" CssClass="form-message" />
+                    </asp:Panel>
+                    <asp:Panel ID="pnlEmailSchedule" runat="server" Visible="false" CssClass="invite-panel" style="margin-top:16px;padding:14px;border:1px solid rgba(255,255,255,0.12);border-radius:10px;">
+                        <strong>שליחת הלו&quot;ז במייל</strong>
+                        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;">
+                            <asp:TextBox ID="txtEmailTo" runat="server" CssClass="task-input" placeholder="כתובת אימייל" style="min-width:220px;flex:1;" />
+                            <asp:TextBox ID="txtEmailFrom" runat="server" TextMode="Date" CssClass="task-input" style="max-width:160px;" title="מתאריך" />
+                            <asp:TextBox ID="txtEmailToDate" runat="server" TextMode="Date" CssClass="task-input" style="max-width:160px;" title="עד תאריך" />
+                            <asp:Button ID="btnSendSchedule" runat="server" Text="שלח לו&quot;ז" CssClass="task-button" OnClick="btnSendSchedule_Click" />
+                        </div>
+                        <asp:Label ID="lblEmailMsg" runat="server" CssClass="form-message" />
                     </asp:Panel>
                 </div>
 
@@ -50,20 +63,20 @@
                     <asp:Panel ID="pnlEvents" runat="server">
                         <section class="calendar-board tasks-board selected-day-layout">
                             <div class="calendar-meta tasks-meta">
-                                <div class="calendar-meta-line">
+                                <asp:Panel ID="pnlFieldTitle" runat="server" CssClass="calendar-meta-line">
                                     <span class="meta-label">כותרת <span class="required">*</span></span>
                                     <asp:TextBox ID="txtEventTitle" runat="server" CssClass="task-input" placeholder="למשל: תרגיל לילה" />
-                                </div>
-                                <div class="calendar-meta-line">
+                                </asp:Panel>
+                                <asp:Panel ID="pnlFieldDate" runat="server" CssClass="calendar-meta-line">
                                     <span class="meta-label">תאריך <span class="required">*</span></span>
                                     <asp:TextBox ID="txtEventDate" runat="server" TextMode="Date" CssClass="task-input" />
-                                </div>
-                                <div class="calendar-meta-line">
-                                    <span class="meta-label">שעה</span>
+                                </asp:Panel>
+                                <asp:Panel ID="pnlFieldTime" runat="server" CssClass="calendar-meta-line">
+                                    <span class="meta-label">שעה <asp:Literal ID="litReqTime" runat="server" /></span>
                                     <asp:TextBox ID="txtEventTime" runat="server" CssClass="task-input" placeholder="לדוגמה 14:30" />
-                                </div>
-                                <div class="calendar-meta-line">
-                                    <span class="meta-label">קטגוריה</span>
+                                </asp:Panel>
+                                <asp:Panel ID="pnlFieldCategory" runat="server" CssClass="calendar-meta-line">
+                                    <span class="meta-label">קטגוריה <asp:Literal ID="litReqCategory" runat="server" /></span>
                                     <asp:DropDownList ID="ddlEventCategory" runat="server" CssClass="task-input">
                                         <asp:ListItem Text="אירוע" Value="אירוע" Selected="True"></asp:ListItem>
                                         <asp:ListItem Text="יום הולדת" Value="יום הולדת"></asp:ListItem>
@@ -71,32 +84,33 @@
                                         <asp:ListItem Text="מטלה" Value="מטלה"></asp:ListItem>
                                         <asp:ListItem Text="אחר" Value="אחר"></asp:ListItem>
                                     </asp:DropDownList>
-                                </div>
-                                <div class="calendar-meta-line">
-                                    <span class="meta-label">הערות</span>
+                                </asp:Panel>
+                                <asp:Panel ID="pnlFieldNotes" runat="server" CssClass="calendar-meta-line">
+                                    <span class="meta-label">הערות <asp:Literal ID="litReqNotes" runat="server" /></span>
                                     <asp:TextBox ID="txtEventNotes" runat="server" CssClass="task-input" TextMode="MultiLine" Rows="2" placeholder="פרטים נוספים" />
-                                </div>
-                                <div class="calendar-meta-line">
-                                    <span class="meta-label">תזכורת</span>
+                                </asp:Panel>
+                                <asp:Panel ID="pnlFieldReminder" runat="server" CssClass="calendar-meta-line">
+                                    <span class="meta-label">תזכורת <asp:Literal ID="litReqReminder" runat="server" /></span>
                                     <asp:DropDownList ID="ddlEventReminder" runat="server" CssClass="task-input">
                                         <asp:ListItem Text="ללא תזכורת" Value="0"></asp:ListItem>
                                         <asp:ListItem Text="15 דקות לפני" Value="15"></asp:ListItem>
                                         <asp:ListItem Text="שעה לפני" Value="60" Selected="True"></asp:ListItem>
                                         <asp:ListItem Text="יום לפני" Value="1440"></asp:ListItem>
                                     </asp:DropDownList>
-                                </div>
-                                <div class="calendar-meta-line">
-                                    <span class="meta-label">אחראי</span>
+                                </asp:Panel>
+                                <asp:Panel ID="pnlFieldAssignee" runat="server" CssClass="calendar-meta-line">
+                                    <span class="meta-label">אחראי <asp:Literal ID="litReqAssignee" runat="server" /></span>
                                     <asp:DropDownList ID="ddlAssignee" runat="server" CssClass="task-input" />
-                                </div>
-                                <div class="calendar-meta-line">
-                                    <span class="meta-label">סטטוס</span>
+                                </asp:Panel>
+                                <asp:Panel ID="pnlFieldStatus" runat="server" CssClass="calendar-meta-line">
+                                    <span class="meta-label">סטטוס <asp:Literal ID="litReqStatus" runat="server" /></span>
                                     <asp:DropDownList ID="ddlStatus" runat="server" CssClass="task-input">
                                         <asp:ListItem Text="ממתין" Value="Pending" Selected="True"></asp:ListItem>
                                         <asp:ListItem Text="בתהליך" Value="InProgress"></asp:ListItem>
                                         <asp:ListItem Text="בוצע" Value="Done"></asp:ListItem>
                                     </asp:DropDownList>
-                                </div>
+                                </asp:Panel>
+                                <asp:PlaceHolder ID="phCustomFields" runat="server" />
                                 <asp:Button ID="btnSaveEvent" runat="server" Text="שמור אירוע" CssClass="task-button" OnClick="btnSaveEvent_Click" />
                                 <asp:Label ID="lblSaveError" runat="server" CssClass="form-error" Visible="false" />
 
@@ -651,6 +665,20 @@
                 align-items: flex-start;
             }
         }
+        .custom-field-line { margin-top: 4px; }
+        .custom-field-button,
+        a.custom-field-btn-link {
+            display: inline-block;
+            margin-top: 4px;
+            text-decoration: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            background: var(--brand, #e50914);
+            color: #fff !important;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        a.custom-field-btn-link:hover { opacity: 0.9; }
     </style>
 
     <script>

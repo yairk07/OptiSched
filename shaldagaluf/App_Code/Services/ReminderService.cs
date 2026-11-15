@@ -61,12 +61,12 @@ public static class ReminderService
             {
                 if (!IsDue(row, now)) continue;
                 int eventId = Convert.ToInt32(row["Id"]);
-                string title = Connect.FixEncoding(Convert.ToString(row["Title"]));
+                string title = Utilities.FixEncoding(Convert.ToString(row["Title"]));
                 string dateText = row["EventDate"] != DBNull.Value
                     ? Convert.ToDateTime(row["EventDate"]).ToString("dd/MM/yyyy")
                     : "";
                 string timeText = row.Table.Columns.Contains("EventTime")
-                    ? Connect.FixEncoding(Convert.ToString(row["EventTime"]))
+                    ? Utilities.FixEncoding(Convert.ToString(row["EventTime"]))
                     : "";
                 FireReminder(conn, userId, eventId, title, dateText, timeText, "tasks.aspx", "CalendarEvents");
             }
@@ -99,14 +99,14 @@ public static class ReminderService
             {
                 if (!IsDue(row, now)) continue;
                 int eventId = Convert.ToInt32(row["Id"]);
-                string title = Connect.FixEncoding(Convert.ToString(row["Title"]));
+                string title = Utilities.FixEncoding(Convert.ToString(row["Title"]));
                 int calendarId = Convert.ToInt32(row["CalendarId"]);
                 string link = "sharedCalendarDetails.aspx?id=" + calendarId;
                 string dateText = row["EventDate"] != DBNull.Value
                     ? Convert.ToDateTime(row["EventDate"]).ToString("dd/MM/yyyy")
                     : "";
                 string timeText = row.Table.Columns.Contains("EventTime")
-                    ? Connect.FixEncoding(Convert.ToString(row["EventTime"]))
+                    ? Utilities.FixEncoding(Convert.ToString(row["EventTime"]))
                     : "";
 
                 // Mark once, notify all members (+ email best-effort)

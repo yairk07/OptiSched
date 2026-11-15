@@ -21,6 +21,9 @@
                     <a class="btn-pill primary" href="tasks.aspx">טופס משימות</a>
                     <a class="btn-pill ghost" href="allEvents.aspx">כל האירועים</a>
                     <a class="btn-pill ghost" href="exportGoogle.aspx">ייצוא ליומן Google</a>
+                    <asp:LinkButton ID="btnToggleTheme" runat="server" CssClass="btn-pill theme-toggle" OnClick="btnToggleTheme_Click" CausesValidation="false" ToolTip="החלף ערכת צבע" aria-label="החלפת ערכת צבע בהירה או כהה">
+                        ערכת צבע בהירה
+                    </asp:LinkButton>
                 </div>
             </div>
 

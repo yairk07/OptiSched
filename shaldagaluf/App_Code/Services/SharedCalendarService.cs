@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.OleDb;
+using System.Text;
 
 /// <summary>
 /// SharedCalendarService - DSD Schema: Static tables, INTEGER types, EventDate/EventTime columns
@@ -183,11 +185,11 @@ ORDER BY SC.CreatedDate DESC";
                 foreach (DataRow row in dt.Rows)
                 {
                     if (dt.Columns.Contains("CalendarName") && row["CalendarName"] != DBNull.Value && row["CalendarName"] != null)
-                        row["CalendarName"] = Connect.FixEncoding(row["CalendarName"].ToString());
+                        row["CalendarName"] = Utilities.FixEncoding(row["CalendarName"].ToString());
                     if (dt.Columns.Contains("Description") && row["Description"] != DBNull.Value && row["Description"] != null)
-                        row["Description"] = Connect.FixEncoding(row["Description"].ToString());
+                        row["Description"] = Utilities.FixEncoding(row["Description"].ToString());
                     if (dt.Columns.Contains("CreatorName") && row["CreatorName"] != DBNull.Value && row["CreatorName"] != null)
-                        row["CreatorName"] = Connect.FixEncoding(row["CreatorName"].ToString());
+                        row["CreatorName"] = Utilities.FixEncoding(row["CreatorName"].ToString());
                 }
             }
         }
@@ -455,17 +457,17 @@ WHERE JR.CalendarId = ? AND JR.Status = 'pending'";
                 foreach (DataRow row in dt.Rows)
                 {
                     if (dt.Columns.Contains("UserName") && row["UserName"] != DBNull.Value && row["UserName"] != null)
-                        row["UserName"] = Connect.FixEncoding(row["UserName"].ToString());
+                        row["UserName"] = Utilities.FixEncoding(row["UserName"].ToString());
                     if (dt.Columns.Contains("firstName") && row["firstName"] != DBNull.Value && row["firstName"] != null)
-                        row["firstName"] = Connect.FixEncoding(row["firstName"].ToString());
+                        row["firstName"] = Utilities.FixEncoding(row["firstName"].ToString());
                     if (dt.Columns.Contains("FirstName") && row["FirstName"] != DBNull.Value && row["FirstName"] != null)
-                        row["FirstName"] = Connect.FixEncoding(row["FirstName"].ToString());
+                        row["FirstName"] = Utilities.FixEncoding(row["FirstName"].ToString());
                     if (dt.Columns.Contains("lastName") && row["lastName"] != DBNull.Value && row["lastName"] != null)
-                        row["lastName"] = Connect.FixEncoding(row["lastName"].ToString());
+                        row["lastName"] = Utilities.FixEncoding(row["lastName"].ToString());
                     if (dt.Columns.Contains("LastName") && row["LastName"] != DBNull.Value && row["LastName"] != null)
-                        row["LastName"] = Connect.FixEncoding(row["LastName"].ToString());
+                        row["LastName"] = Utilities.FixEncoding(row["LastName"].ToString());
                     if (dt.Columns.Contains("Message") && row["Message"] != DBNull.Value && row["Message"] != null)
-                        row["Message"] = Connect.FixEncoding(row["Message"].ToString());
+                        row["Message"] = Utilities.FixEncoding(row["Message"].ToString());
                 }
             }
         }
@@ -594,6 +596,14 @@ WHERE JR.CalendarId = ? AND JR.Status = 'pending'";
                     orderBy = "ORDER BY SCE.[" + dateColumnName + "] DESC, SCE.[" + timeColumnName + "] DESC";
                 }
 
+                bool hasAssignee = ColumnExists(con, "SharedCalendarEvents", "AssigneeUserId");
+                bool hasStatus = ColumnExists(con, "SharedCalendarEvents", "Status");
+                bool hasReminder = ColumnExists(con, "SharedCalendarEvents", "ReminderMinutes");
+                string extrasSelect = "";
+                if (hasAssignee) extrasSelect += ", SCE.AssigneeUserId";
+                if (hasStatus) extrasSelect += ", SCE.Status";
+                if (hasReminder) extrasSelect += ", SCE.ReminderMinutes";
+
                 string sql = @"
 SELECT
     SCE.Id,
@@ -606,6 +616,7 @@ SELECT
     SCE.CreatedBy,
     U." + userNameCol + @" AS CreatedByName,
     SCE.CreatedDate
+    " + extrasSelect + @"
 FROM SharedCalendarEvents SCE
 LEFT JOIN Users U ON CInt(SCE.CreatedBy) = CInt(U.id)
 WHERE SCE.CalendarId = ?
@@ -638,15 +649,15 @@ WHERE SCE.CalendarId = ?
                     foreach (DataRow row in dt.Rows)
                     {
                         if (dt.Columns.Contains("Title") && row["Title"] != DBNull.Value && row["Title"] != null)
-                            row["Title"] = Connect.FixEncoding(row["Title"].ToString());
+                            row["Title"] = Utilities.FixEncoding(row["Title"].ToString());
                         if (dt.Columns.Contains("EventTime") && row["EventTime"] != DBNull.Value && row["EventTime"] != null)
-                            row["EventTime"] = Connect.FixEncoding(row["EventTime"].ToString());
+                            row["EventTime"] = Utilities.FixEncoding(row["EventTime"].ToString());
                         if (dt.Columns.Contains("Notes") && row["Notes"] != DBNull.Value && row["Notes"] != null)
-                            row["Notes"] = Connect.FixEncoding(row["Notes"].ToString());
+                            row["Notes"] = Utilities.FixEncoding(row["Notes"].ToString());
                         if (dt.Columns.Contains("Category") && row["Category"] != DBNull.Value && row["Category"] != null)
-                            row["Category"] = Connect.FixEncoding(row["Category"].ToString());
+                            row["Category"] = Utilities.FixEncoding(row["Category"].ToString());
                         if (dt.Columns.Contains("CreatedByName") && row["CreatedByName"] != DBNull.Value && row["CreatedByName"] != null)
-                            row["CreatedByName"] = Connect.FixEncoding(row["CreatedByName"].ToString());
+                            row["CreatedByName"] = Utilities.FixEncoding(row["CreatedByName"].ToString());
                     }
                 }
             }
@@ -668,8 +679,8 @@ WHERE SCE.CalendarId = ?
         return dt;
     }
 
-    // הוספת אירוע לטבלה משותפת
-    public void AddSharedCalendarEvent(int calendarId, string title, DateTime date, string time, string notes, string category, int createdBy, int reminderMinutes = 60, int? assigneeUserId = null, string status = "Pending")
+    // הוספת אירוע לטבלה משותפת — מחזיר Id של האירוע החדש (או 0)
+    public int AddSharedCalendarEvent(int calendarId, string title, DateTime date, string time, string notes, string category, int createdBy, int reminderMinutes = 60, int? assigneeUserId = null, string status = "Pending")
     {
         string conStr = Connect.GetConnectionString();
 
@@ -677,19 +688,19 @@ WHERE SCE.CalendarId = ?
         {
             try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
 
-            string cleanTitle = Connect.FixEncoding((title ?? "").Trim());
+            string cleanTitle = Utilities.FixEncoding((title ?? "").Trim());
             if (cleanTitle == "...." || cleanTitle == "...")
                 cleanTitle = "";
 
-            string cleanTime = Connect.FixEncoding((time ?? "").Trim());
+            string cleanTime = Utilities.FixEncoding((time ?? "").Trim());
             if (cleanTime == "...." || cleanTime == "...")
                 cleanTime = "";
 
-            string cleanNotes = Connect.FixEncoding((notes ?? "").Trim());
+            string cleanNotes = Utilities.FixEncoding((notes ?? "").Trim());
             if (cleanNotes == "...." || cleanNotes == "...")
                 cleanNotes = "";
 
-            string cleanCategory = Connect.FixEncoding((category ?? "אחר").Trim());
+            string cleanCategory = Utilities.FixEncoding((category ?? "אחר").Trim());
             if (cleanCategory == "...." || cleanCategory == "...")
                 cleanCategory = "אחר";
 
@@ -804,6 +815,8 @@ WHERE SCE.CalendarId = ?
                     ApplyEventExtras(con, newEventId, reminderMinutes, assigneeUserId, status);
                     NotifyAssignee(calendarId, newEventId, cleanTitle, assigneeUserId, createdBy);
                 }
+
+                return newEventId;
             }
         }
         catch
@@ -821,19 +834,19 @@ WHERE SCE.CalendarId = ?
         {
             try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
 
-            string cleanTitle = Connect.FixEncoding((title ?? "").Trim());
+            string cleanTitle = Utilities.FixEncoding((title ?? "").Trim());
             if (cleanTitle == "...." || cleanTitle == "...")
                 cleanTitle = "";
 
-            string cleanTime = Connect.FixEncoding((time ?? "").Trim());
+            string cleanTime = Utilities.FixEncoding((time ?? "").Trim());
             if (cleanTime == "...." || cleanTime == "...")
                 cleanTime = "";
 
-            string cleanNotes = Connect.FixEncoding((notes ?? "").Trim());
+            string cleanNotes = Utilities.FixEncoding((notes ?? "").Trim());
             if (cleanNotes == "...." || cleanNotes == "...")
                 cleanNotes = "";
 
-            string cleanCategory = Connect.FixEncoding((category ?? "אחר").Trim());
+            string cleanCategory = Utilities.FixEncoding((category ?? "אחר").Trim());
             if (cleanCategory == "...." || cleanCategory == "...")
                 cleanCategory = "אחר";
 
@@ -1024,16 +1037,22 @@ WHERE SCE.CalendarId = ?
         }
     }
 
-    // רשימת חברי טבלה משותפת (לבחירת אחראי)
+    // רשימת חברי טבלה משותפת (לבחירת אחראי + צבע + הרשאה)
     public DataTable GetCalendarMembers(int calendarId)
     {
         DataTable dt = new DataTable();
         dt.Columns.Add("UserId", typeof(int));
         dt.Columns.Add("UserName", typeof(string));
+        dt.Columns.Add("MemberColor", typeof(string));
+        dt.Columns.Add("Permission", typeof(string));
+        dt.Columns.Add("Role", typeof(string));
 
         string conStr = Connect.GetConnectionString();
         try
         {
+            try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+            EnsureMemberColors(calendarId);
+
             using (OleDbConnection con = new OleDbConnection(conStr))
             {
                 con.Open();
@@ -1042,18 +1061,35 @@ WHERE SCE.CalendarId = ?
                 else if (ColumnExists(con, "Users", "userName")) userCol = "userName";
 
                 string idCol = ColumnExists(con, "Users", "Id") ? "Id" : "id";
+                bool hasColor = ColumnExists(con, "SharedCalendarMembers", "MemberColor");
+                bool hasPerm = ColumnExists(con, "SharedCalendarMembers", "Permission");
+                bool hasRole = ColumnExists(con, "SharedCalendarMembers", "Role");
+
+                string colorSelect = hasColor ? ", M.MemberColor" : ", '' AS MemberColor";
+                string permSelect = hasPerm ? ", M.Permission" : ", 'Read' AS Permission";
+                string roleSelect = hasRole ? ", M.Role" : ", '' AS Role";
+
                 string sql = string.Format(@"
-                    SELECT U.[{0}] AS UserId, U.[{1}] AS UserName
+                    SELECT U.[{0}] AS UserId, U.[{1}] AS UserName{2}{3}{4}
                     FROM SharedCalendarMembers M
                     INNER JOIN Users U ON CInt(M.UserId)=CInt(U.[{0}])
                     WHERE M.CalendarId=?
-                    ORDER BY U.[{1}]", idCol, userCol);
+                    ORDER BY U.[{1}]", idCol, userCol, colorSelect, permSelect, roleSelect);
 
                 using (OleDbCommand cmd = new OleDbCommand(sql, con))
                 {
                     cmd.Parameters.AddWithValue("?", calendarId);
                     using (OleDbDataAdapter adp = new OleDbDataAdapter(cmd))
                         adp.Fill(dt);
+                }
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    if (row["UserName"] != DBNull.Value)
+                        row["UserName"] = Utilities.FixEncoding(Convert.ToString(row["UserName"]));
+                    string color = Convert.ToString(row["MemberColor"]);
+                    if (string.IsNullOrWhiteSpace(color))
+                        row["MemberColor"] = GetDefaultColorForUser(Convert.ToInt32(row["UserId"]));
                 }
             }
         }
@@ -1071,9 +1107,21 @@ WHERE SCE.CalendarId = ?
 
         try
         {
+            try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
             using (OleDbConnection con = new OleDbConnection(conStr))
             {
                 con.Open();
+
+                try
+                {
+                    using (OleDbCommand delVals = new OleDbCommand(
+                        "DELETE FROM SharedCalendarEventFieldValues WHERE EventId=?", con))
+                    {
+                        delVals.Parameters.AddWithValue("?", eventId);
+                        delVals.ExecuteNonQuery();
+                    }
+                }
+                catch { }
 
                 string sql = "DELETE FROM SharedCalendarEvents WHERE Id = ?";
                 using (OleDbCommand cmd = new OleDbCommand(sql, con))
@@ -1196,11 +1244,11 @@ ORDER BY SC.Id";
                 {
                     DataRow row = dt.Rows[0];
                     if (dt.Columns.Contains("CalendarName") && row["CalendarName"] != DBNull.Value && row["CalendarName"] != null)
-                        row["CalendarName"] = Connect.FixEncoding(row["CalendarName"].ToString());
+                        row["CalendarName"] = Utilities.FixEncoding(row["CalendarName"].ToString());
                     if (dt.Columns.Contains("Description") && row["Description"] != DBNull.Value && row["Description"] != null)
-                        row["Description"] = Connect.FixEncoding(row["Description"].ToString());
+                        row["Description"] = Utilities.FixEncoding(row["Description"].ToString());
                     if (dt.Columns.Contains("CreatorName") && row["CreatorName"] != DBNull.Value && row["CreatorName"] != null)
-                        row["CreatorName"] = Connect.FixEncoding(row["CreatorName"].ToString());
+                        row["CreatorName"] = Utilities.FixEncoding(row["CreatorName"].ToString());
                 }
             }
         }
@@ -1809,7 +1857,7 @@ ORDER BY JR.RequestDate DESC";
                 foreach (DataRow row in dt.Rows)
                 {
                     if (row.Table.Columns.Contains("CalendarName") && row["CalendarName"] != DBNull.Value && row["CalendarName"] != null)
-                        row["CalendarName"] = Connect.FixEncoding(row["CalendarName"].ToString());
+                        row["CalendarName"] = Utilities.FixEncoding(row["CalendarName"].ToString());
                 }
             }
         }
@@ -1818,5 +1866,826 @@ ORDER BY JR.RequestDate DESC";
         }
 
         return dt;
+    }
+
+    // פלטת צבעים קבועה — צבע שונה לכל משתמש לפי מזהה
+    private static readonly string[] MemberColorPalette = new string[]
+    {
+        "#E74C3C", "#3498DB", "#2ECC71", "#F39C12", "#9B59B6",
+        "#1ABC9C", "#E67E22", "#34495E", "#16A085", "#C0392B",
+        "#2980B9", "#27AE60", "#D35400", "#8E44AD", "#2C3E50"
+    };
+
+    public static string GetDefaultColorForUser(int userId)
+    {
+        int idx = Math.Abs(userId) % MemberColorPalette.Length;
+        return MemberColorPalette[idx];
+    }
+
+    public string GetMemberColor(int calendarId, int userId)
+    {
+        if (userId <= 0) return MemberColorPalette[0];
+        try
+        {
+            try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+            string conStr = Connect.GetConnectionString();
+            using (OleDbConnection con = new OleDbConnection(conStr))
+            {
+                con.Open();
+                if (!ColumnExists(con, "SharedCalendarMembers", "MemberColor"))
+                    return GetDefaultColorForUser(userId);
+
+                using (OleDbCommand cmd = new OleDbCommand(
+                    "SELECT MemberColor FROM SharedCalendarMembers WHERE CalendarId=? AND CInt(UserId)=?", con))
+                {
+                    cmd.Parameters.AddWithValue("?", calendarId);
+                    cmd.Parameters.AddWithValue("?", userId);
+                    object result = cmd.ExecuteScalar();
+                    string color = result != null && result != DBNull.Value ? Convert.ToString(result).Trim() : "";
+                    if (!string.IsNullOrEmpty(color)) return color;
+                }
+            }
+        }
+        catch { }
+        return GetDefaultColorForUser(userId);
+    }
+
+    public void EnsureMemberColors(int calendarId)
+    {
+        try
+        {
+            try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+            string conStr = Connect.GetConnectionString();
+            using (OleDbConnection con = new OleDbConnection(conStr))
+            {
+                con.Open();
+                if (!ColumnExists(con, "SharedCalendarMembers", "MemberColor")) return;
+
+                DataTable members = new DataTable();
+                using (OleDbCommand cmd = new OleDbCommand(
+                    "SELECT Id, UserId, MemberColor FROM SharedCalendarMembers WHERE CalendarId=?", con))
+                {
+                    cmd.Parameters.AddWithValue("?", calendarId);
+                    using (OleDbDataAdapter adp = new OleDbDataAdapter(cmd))
+                        adp.Fill(members);
+                }
+
+                foreach (DataRow row in members.Rows)
+                {
+                    string existing = row["MemberColor"] == DBNull.Value ? "" : Convert.ToString(row["MemberColor"]).Trim();
+                    if (!string.IsNullOrEmpty(existing)) continue;
+                    int uid = Convert.ToInt32(row["UserId"]);
+                    string color = GetDefaultColorForUser(uid);
+                    using (OleDbCommand upd = new OleDbCommand(
+                        "UPDATE SharedCalendarMembers SET MemberColor=? WHERE Id=?", con))
+                    {
+                        upd.Parameters.AddWithValue("?", color);
+                        upd.Parameters.AddWithValue("?", Convert.ToInt32(row["Id"]));
+                        upd.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("SharedCalendarService", "EnsureMemberColors failed", ex);
+        }
+    }
+
+    public void SetMemberColor(int calendarId, int userId, string color)
+    {
+        if (string.IsNullOrWhiteSpace(color)) color = GetDefaultColorForUser(userId);
+        color = color.Trim();
+        try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+        string conStr = Connect.GetConnectionString();
+        using (OleDbConnection con = new OleDbConnection(conStr))
+        {
+            con.Open();
+            if (!ColumnExists(con, "SharedCalendarMembers", "MemberColor")) return;
+            using (OleDbCommand cmd = new OleDbCommand(
+                "UPDATE SharedCalendarMembers SET MemberColor=? WHERE CalendarId=? AND CInt(UserId)=?", con))
+            {
+                cmd.Parameters.AddWithValue("?", color);
+                cmd.Parameters.AddWithValue("?", calendarId);
+                cmd.Parameters.AddWithValue("?", userId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    public void UpdateMemberPermission(int calendarId, int userId, string permission)
+    {
+        if (permission != "ReadWrite") permission = "Read";
+        try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+        string conStr = Connect.GetConnectionString();
+        using (OleDbConnection con = new OleDbConnection(conStr))
+        {
+            con.Open();
+            if (!ColumnExists(con, "SharedCalendarMembers", "Permission")) return;
+            using (OleDbCommand cmd = new OleDbCommand(
+                "UPDATE SharedCalendarMembers SET Permission=? WHERE CalendarId=? AND CInt(UserId)=?", con))
+            {
+                cmd.Parameters.AddWithValue("?", permission);
+                cmd.Parameters.AddWithValue("?", calendarId);
+                cmd.Parameters.AddWithValue("?", userId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    public void RemoveMember(int calendarId, int userId)
+    {
+        string conStr = Connect.GetConnectionString();
+        using (OleDbConnection con = new OleDbConnection(conStr))
+        {
+            con.Open();
+            using (OleDbCommand cmd = new OleDbCommand(
+                "DELETE FROM SharedCalendarMembers WHERE CalendarId=? AND CInt(UserId)=?", con))
+            {
+                cmd.Parameters.AddWithValue("?", calendarId);
+                cmd.Parameters.AddWithValue("?", userId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    public static readonly string DefaultVisibleFields = "Title,EventDate,EventTime,Category,Notes,Assignee,Status,Creator,Reminder";
+    public static readonly string DefaultRequiredFields = "Title,EventDate";
+    public static readonly string[] AlwaysRequiredBuiltinFields = new[] { "Title", "EventDate" };
+
+    private static HashSet<string> ParseFieldCsv(string csv, string fallbackCsv)
+    {
+        HashSet<string> set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        string source = string.IsNullOrWhiteSpace(csv) ? fallbackCsv : csv;
+        foreach (string part in source.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            string key = part.Trim();
+            if (!string.IsNullOrEmpty(key)) set.Add(key);
+        }
+        if (set.Count == 0 && !string.IsNullOrWhiteSpace(fallbackCsv))
+        {
+            foreach (string part in fallbackCsv.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string key = part.Trim();
+                if (!string.IsNullOrEmpty(key)) set.Add(key);
+            }
+        }
+        return set;
+    }
+
+    private static string NormalizeFieldCsv(string fieldsCsv, string fallbackCsv, IEnumerable<string> alwaysInclude)
+    {
+        HashSet<string> set = ParseFieldCsv(fieldsCsv, fallbackCsv);
+        if (alwaysInclude != null)
+        {
+            foreach (string key in alwaysInclude)
+            {
+                if (!string.IsNullOrWhiteSpace(key))
+                    set.Add(key.Trim());
+            }
+        }
+        return string.Join(",", new List<string>(set).ToArray());
+    }
+
+    public string GetVisibleFields(int calendarId)
+    {
+        try
+        {
+            try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+            string conStr = Connect.GetConnectionString();
+            using (OleDbConnection con = new OleDbConnection(conStr))
+            {
+                con.Open();
+                if (!ColumnExists(con, "SharedCalendars", "VisibleFields"))
+                    return DefaultVisibleFields;
+                using (OleDbCommand cmd = new OleDbCommand(
+                    "SELECT VisibleFields FROM SharedCalendars WHERE Id=?", con))
+                {
+                    cmd.Parameters.AddWithValue("?", calendarId);
+                    object result = cmd.ExecuteScalar();
+                    string fields = result != null && result != DBNull.Value ? Convert.ToString(result).Trim() : "";
+                    return string.IsNullOrEmpty(fields) ? DefaultVisibleFields : fields;
+                }
+            }
+        }
+        catch
+        {
+            return DefaultVisibleFields;
+        }
+    }
+
+    public HashSet<string> GetVisibleFieldSet(int calendarId)
+    {
+        HashSet<string> set = ParseFieldCsv(GetVisibleFields(calendarId), DefaultVisibleFields);
+        foreach (string key in AlwaysRequiredBuiltinFields)
+            set.Add(key);
+        return set;
+    }
+
+    public void SetVisibleFields(int calendarId, string fieldsCsv)
+    {
+        fieldsCsv = NormalizeFieldCsv(fieldsCsv, DefaultVisibleFields, AlwaysRequiredBuiltinFields);
+        try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+        string conStr = Connect.GetConnectionString();
+        using (OleDbConnection con = new OleDbConnection(conStr))
+        {
+            con.Open();
+            if (!ColumnExists(con, "SharedCalendars", "VisibleFields")) return;
+            using (OleDbCommand cmd = new OleDbCommand(
+                "UPDATE SharedCalendars SET VisibleFields=? WHERE Id=?", con))
+            {
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.LongVarWChar) { Value = fieldsCsv });
+                cmd.Parameters.AddWithValue("?", calendarId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    public string GetRequiredFields(int calendarId)
+    {
+        try
+        {
+            try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+            string conStr = Connect.GetConnectionString();
+            using (OleDbConnection con = new OleDbConnection(conStr))
+            {
+                con.Open();
+                if (!ColumnExists(con, "SharedCalendars", "RequiredFields"))
+                    return DefaultRequiredFields;
+                using (OleDbCommand cmd = new OleDbCommand(
+                    "SELECT RequiredFields FROM SharedCalendars WHERE Id=?", con))
+                {
+                    cmd.Parameters.AddWithValue("?", calendarId);
+                    object result = cmd.ExecuteScalar();
+                    string fields = result != null && result != DBNull.Value ? Convert.ToString(result).Trim() : "";
+                    return string.IsNullOrEmpty(fields) ? DefaultRequiredFields : fields;
+                }
+            }
+        }
+        catch
+        {
+            return DefaultRequiredFields;
+        }
+    }
+
+    public HashSet<string> GetRequiredFieldSet(int calendarId)
+    {
+        HashSet<string> set = ParseFieldCsv(GetRequiredFields(calendarId), DefaultRequiredFields);
+        foreach (string key in AlwaysRequiredBuiltinFields)
+            set.Add(key);
+        // Creator is system-filled — never treat as user-required on the form.
+        set.Remove("Creator");
+        return set;
+    }
+
+    public void SetRequiredFields(int calendarId, string fieldsCsv)
+    {
+        fieldsCsv = NormalizeFieldCsv(fieldsCsv, DefaultRequiredFields, AlwaysRequiredBuiltinFields);
+        HashSet<string> set = ParseFieldCsv(fieldsCsv, DefaultRequiredFields);
+        set.Remove("Creator");
+        fieldsCsv = string.Join(",", new List<string>(set).ToArray());
+        try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+        string conStr = Connect.GetConnectionString();
+        using (OleDbConnection con = new OleDbConnection(conStr))
+        {
+            con.Open();
+            if (!ColumnExists(con, "SharedCalendars", "RequiredFields")) return;
+            using (OleDbCommand cmd = new OleDbCommand(
+                "UPDATE SharedCalendars SET RequiredFields=? WHERE Id=?", con))
+            {
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.LongVarWChar) { Value = fieldsCsv });
+                cmd.Parameters.AddWithValue("?", calendarId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    public void SetBuiltinFieldSettings(int calendarId, string visibleCsv, string requiredCsv)
+    {
+        HashSet<string> visible = ParseFieldCsv(visibleCsv, DefaultVisibleFields);
+        HashSet<string> required = ParseFieldCsv(requiredCsv, DefaultRequiredFields);
+        foreach (string key in AlwaysRequiredBuiltinFields)
+        {
+            visible.Add(key);
+            required.Add(key);
+        }
+        required.Remove("Creator");
+        // Required fields must also be visible.
+        foreach (string key in new List<string>(required))
+            visible.Add(key);
+
+        SetVisibleFields(calendarId, string.Join(",", new List<string>(visible).ToArray()));
+        SetRequiredFields(calendarId, string.Join(",", new List<string>(required).ToArray()));
+    }
+
+    public void UpdateCalendarInfo(int calendarId, string name, string description)
+    {
+        string cleanName = Utilities.FixEncoding((name ?? "").Trim());
+        string cleanDesc = Utilities.FixEncoding((description ?? "").Trim());
+        if (string.IsNullOrWhiteSpace(cleanName))
+            throw new ArgumentException("שם הטבלה חובה");
+
+        string conStr = Connect.GetConnectionString();
+        using (OleDbConnection con = new OleDbConnection(conStr))
+        {
+            con.Open();
+            string nameCol = ColumnExists(con, "SharedCalendars", "Name") ? "Name"
+                : (ColumnExists(con, "SharedCalendars", "CalendarName") ? "CalendarName" : "Name");
+            using (OleDbCommand cmd = new OleDbCommand(
+                "UPDATE SharedCalendars SET [" + nameCol + "]=?, Description=? WHERE Id=?", con))
+            {
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = cleanName });
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.LongVarWChar) { Value = cleanDesc });
+                cmd.Parameters.AddWithValue("?", calendarId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    // בונה HTML של לוח זמנים לשליחה במייל
+    public string BuildScheduleEmailHtml(int calendarId, DateTime? fromDate = null, DateTime? toDate = null)
+    {
+        DataRow calendar = GetSharedCalendar(calendarId);
+        string calendarName = "טבלה משותפת";
+        if (calendar != null)
+        {
+            if (calendar.Table.Columns.Contains("CalendarName") && calendar["CalendarName"] != DBNull.Value)
+                calendarName = Utilities.FixEncoding(Convert.ToString(calendar["CalendarName"]));
+            else if (calendar.Table.Columns.Contains("Name") && calendar["Name"] != DBNull.Value)
+                calendarName = Utilities.FixEncoding(Convert.ToString(calendar["Name"]));
+        }
+
+        DataTable events = GetSharedCalendarEvents(calendarId);
+        DataTable members = GetCalendarMembers(calendarId);
+        Dictionary<string, string> memberNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (DataRow m in members.Rows)
+            memberNames[Convert.ToString(m["UserId"])] = Convert.ToString(m["UserName"]);
+
+        StringBuilder sb = new StringBuilder();
+        sb.Append("<div style='font-family:Arial,Helvetica,sans-serif;direction:rtl;text-align:right;'>");
+        sb.AppendFormat("<h2 style='margin:0 0 8px;'>{0}</h2>", System.Web.HttpUtility.HtmlEncode(calendarName));
+        sb.AppendFormat("<p style='color:#555;margin:0 0 16px;'>לו\"ז שנשלח מ-OptiSched · {0}</p>",
+            DateTime.Now.ToString("dd/MM/yyyy HH:mm"));
+
+        if (fromDate.HasValue || toDate.HasValue)
+        {
+            sb.Append("<p style='margin:0 0 12px;'>טווח: ");
+            if (fromDate.HasValue) sb.Append(fromDate.Value.ToString("dd/MM/yyyy"));
+            sb.Append(" – ");
+            if (toDate.HasValue) sb.Append(toDate.Value.ToString("dd/MM/yyyy"));
+            else sb.Append("הלאה");
+            sb.Append("</p>");
+        }
+
+        sb.Append("<table cellpadding='8' cellspacing='0' border='1' style='border-collapse:collapse;width:100%;font-size:14px;'>");
+        sb.Append("<thead><tr style='background:#f0f0f0;'>");
+        sb.Append("<th>תאריך</th><th>שעה</th><th>כותרת</th><th>קטגוריה</th><th>אחראי</th><th>סטטוס</th><th>נוצר ע\"י</th><th>הערות</th>");
+        sb.Append("</tr></thead><tbody>");
+
+        int count = 0;
+        List<DataRow> rows = new List<DataRow>();
+        foreach (DataRow row in events.Rows) rows.Add(row);
+        rows.Sort((a, b) =>
+        {
+            DateTime da = a["EventDate"] != DBNull.Value ? Convert.ToDateTime(a["EventDate"]) : DateTime.MaxValue;
+            DateTime db = b["EventDate"] != DBNull.Value ? Convert.ToDateTime(b["EventDate"]) : DateTime.MaxValue;
+            return da.CompareTo(db);
+        });
+
+        foreach (DataRow row in rows)
+        {
+            if (row["EventDate"] == DBNull.Value) continue;
+            DateTime ed = Convert.ToDateTime(row["EventDate"]).Date;
+            if (fromDate.HasValue && ed < fromDate.Value.Date) continue;
+            if (toDate.HasValue && ed > toDate.Value.Date) continue;
+
+            string title = row.Table.Columns.Contains("Title") ? Utilities.FixEncoding(Convert.ToString(row["Title"])) : "";
+            string time = row.Table.Columns.Contains("EventTime") ? Utilities.FixEncoding(Convert.ToString(row["EventTime"])) : "";
+            string category = row.Table.Columns.Contains("Category") ? Utilities.FixEncoding(Convert.ToString(row["Category"])) : "";
+            string notes = row.Table.Columns.Contains("Notes") ? Utilities.FixEncoding(Convert.ToString(row["Notes"])) : "";
+            string createdBy = row.Table.Columns.Contains("CreatedByName") ? Utilities.FixEncoding(Convert.ToString(row["CreatedByName"])) : "";
+            string assignee = "";
+            if (row.Table.Columns.Contains("AssigneeUserId") && row["AssigneeUserId"] != DBNull.Value)
+            {
+                string aid = Convert.ToString(row["AssigneeUserId"]);
+                if (!memberNames.TryGetValue(aid, out assignee)) assignee = aid;
+            }
+            string status = "";
+            if (row.Table.Columns.Contains("Status") && row["Status"] != DBNull.Value)
+            {
+                string st = Convert.ToString(row["Status"]);
+                if (st == "Done") status = "בוצע";
+                else if (st == "InProgress") status = "בתהליך";
+                else if (st == "Pending") status = "ממתין";
+                else status = st;
+            }
+
+            int createdById = 0;
+            if (row.Table.Columns.Contains("CreatedBy") && row["CreatedBy"] != DBNull.Value)
+                int.TryParse(Convert.ToString(row["CreatedBy"]), out createdById);
+            string color = GetMemberColor(calendarId, createdById);
+
+            sb.AppendFormat("<tr style='border-right:4px solid {0};'>", color);
+            sb.AppendFormat("<td>{0}</td>", ed.ToString("dd/MM/yyyy"));
+            sb.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(time));
+            sb.AppendFormat("<td><strong>{0}</strong></td>", System.Web.HttpUtility.HtmlEncode(title));
+            sb.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(category));
+            sb.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(assignee));
+            sb.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(status));
+            sb.AppendFormat("<td><span style='color:{0};font-weight:bold;'>{1}</span></td>", color, System.Web.HttpUtility.HtmlEncode(createdBy));
+            sb.AppendFormat("<td>{0}</td>", System.Web.HttpUtility.HtmlEncode(notes));
+            sb.Append("</tr>");
+            count++;
+        }
+
+        sb.Append("</tbody></table>");
+        if (count == 0)
+            sb.Append("<p>אין אירועים בטווח שנבחר.</p>");
+        sb.Append("</div>");
+        return sb.ToString();
+    }
+
+    // ===== Custom fields (text / list / button) =====
+
+    public static string NormalizeCustomFieldType(string fieldType)
+    {
+        string t = (fieldType ?? "").Trim().ToLowerInvariant();
+        if (t == "list" || t == "dropdown" || t == "select") return "list";
+        if (t == "button" || t == "link") return "button";
+        return "text";
+    }
+
+    public static string[] ParseCustomFieldOptions(string options)
+    {
+        if (string.IsNullOrWhiteSpace(options)) return new string[0];
+        string normalized = options.Replace("\r\n", "\n").Replace('\r', '\n');
+        List<string> parts = new List<string>();
+        foreach (string line in normalized.Split('\n'))
+        {
+            string trimmedLine = line.Trim();
+            if (string.IsNullOrEmpty(trimmedLine)) continue;
+            if (trimmedLine.IndexOf(',') >= 0 && trimmedLine.IndexOf('\n') < 0)
+            {
+                foreach (string piece in trimmedLine.Split(','))
+                {
+                    string p = Utilities.FixEncoding(piece.Trim());
+                    if (!string.IsNullOrEmpty(p)) parts.Add(p);
+                }
+            }
+            else
+            {
+                parts.Add(Utilities.FixEncoding(trimmedLine));
+            }
+        }
+        return parts.ToArray();
+    }
+
+    private static bool ReadYesNo(object value)
+    {
+        if (value == null || value == DBNull.Value) return false;
+        if (value is bool) return (bool)value;
+        string s = Convert.ToString(value).Trim();
+        if (string.Equals(s, "true", StringComparison.OrdinalIgnoreCase)) return true;
+        if (string.Equals(s, "yes", StringComparison.OrdinalIgnoreCase)) return true;
+        if (s == "1" || s == "-1") return true;
+        bool b;
+        if (bool.TryParse(s, out b)) return b;
+        int n;
+        if (int.TryParse(s, out n)) return n != 0;
+        return false;
+    }
+
+    public DataTable GetCustomFields(int calendarId, bool activeOnly = true)
+    {
+        DataTable dt = new DataTable();
+        dt.Columns.Add("Id", typeof(int));
+        dt.Columns.Add("CalendarId", typeof(int));
+        dt.Columns.Add("FieldKey", typeof(string));
+        dt.Columns.Add("FieldLabel", typeof(string));
+        dt.Columns.Add("FieldType", typeof(string));
+        dt.Columns.Add("FieldOptions", typeof(string));
+        dt.Columns.Add("SortOrder", typeof(int));
+        dt.Columns.Add("IsRequired", typeof(bool));
+        dt.Columns.Add("IsActive", typeof(bool));
+        dt.Columns.Add("TypeLabel", typeof(string));
+
+        try
+        {
+            try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+            string conStr = Connect.GetConnectionString();
+            using (OleDbConnection con = new OleDbConnection(conStr))
+            {
+                con.Open();
+                if (!TableExists(con, "SharedCalendarCustomFields"))
+                    return dt;
+
+                string sql = "SELECT Id, CalendarId, FieldKey, FieldLabel, FieldType, FieldOptions, SortOrder, IsRequired, IsActive FROM SharedCalendarCustomFields WHERE CalendarId=? ORDER BY SortOrder, Id";
+
+                using (OleDbCommand cmd = new OleDbCommand(sql, con))
+                {
+                    cmd.Parameters.AddWithValue("?", calendarId);
+                    using (OleDbDataAdapter adp = new OleDbDataAdapter(cmd))
+                    {
+                        DataTable raw = new DataTable();
+                        adp.Fill(raw);
+                        foreach (DataRow row in raw.Rows)
+                        {
+                            bool isActive = !row.Table.Columns.Contains("IsActive") || ReadYesNo(row["IsActive"]);
+                            if (activeOnly && !isActive) continue;
+
+                            DataRow nr = dt.NewRow();
+                            nr["Id"] = Convert.ToInt32(row["Id"]);
+                            nr["CalendarId"] = Convert.ToInt32(row["CalendarId"]);
+                            nr["FieldKey"] = Convert.ToString(row["FieldKey"] ?? "");
+                            nr["FieldLabel"] = Utilities.FixEncoding(Convert.ToString(row["FieldLabel"] ?? ""));
+                            string ftype = NormalizeCustomFieldType(Convert.ToString(row["FieldType"]));
+                            nr["FieldType"] = ftype;
+                            nr["FieldOptions"] = Utilities.FixEncoding(Convert.ToString(row["FieldOptions"] ?? ""));
+                            nr["SortOrder"] = row["SortOrder"] == DBNull.Value ? 0 : Convert.ToInt32(row["SortOrder"]);
+                            nr["IsRequired"] = ReadYesNo(row.Table.Columns.Contains("IsRequired") ? row["IsRequired"] : false);
+                            nr["IsActive"] = isActive;
+                            if (ftype == "list")
+                                nr["TypeLabel"] = "\u05E8\u05E9\u05D9\u05DE\u05D4";
+                            else if (ftype == "button")
+                                nr["TypeLabel"] = "\u05DB\u05E4\u05EA\u05D5\u05E8";
+                            else
+                                nr["TypeLabel"] = "\u05D8\u05E7\u05E1\u05D8";
+                            dt.Rows.Add(nr);
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("SharedCalendarService", "GetCustomFields failed", ex);
+        }
+        return dt;
+    }
+
+    public int AddCustomField(int calendarId, string label, string fieldType, string options, bool isRequired)
+    {
+        string cleanLabel = Utilities.FixEncoding((label ?? "").Trim());
+        if (string.IsNullOrWhiteSpace(cleanLabel))
+            throw new ArgumentException("\u05E9\u05DD \u05D4\u05E9\u05D3\u05D4 \u05D7\u05D5\u05D1\u05D4");
+
+        string type = NormalizeCustomFieldType(fieldType);
+        string cleanOptions = Utilities.FixEncoding((options ?? "").Trim());
+        if (type == "list" && string.IsNullOrWhiteSpace(cleanOptions))
+            throw new ArgumentException("\u05E8\u05E9\u05D9\u05DE\u05D4 \u05D3\u05D5\u05E8\u05E9\u05EA \u05D0\u05E4\u05E9\u05E8\u05D5\u05D9\u05D5\u05EA");
+        if (type == "button" && string.IsNullOrWhiteSpace(cleanOptions))
+            throw new ArgumentException("\u05DB\u05E4\u05EA\u05D5\u05E8 \u05D3\u05D5\u05E8\u05E9 \u05DB\u05EA\u05D5\u05D1\u05EA URL");
+        if (type == "text")
+            cleanOptions = "";
+
+        try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+        string conStr = Connect.GetConnectionString();
+        using (OleDbConnection con = new OleDbConnection(conStr))
+        {
+            con.Open();
+            if (!TableExists(con, "SharedCalendarCustomFields"))
+                throw new InvalidOperationException("Custom fields table missing");
+
+            int nextOrder = 1;
+            using (OleDbCommand maxCmd = new OleDbCommand(
+                "SELECT MAX(SortOrder) FROM SharedCalendarCustomFields WHERE CalendarId=?", con))
+            {
+                maxCmd.Parameters.AddWithValue("?", calendarId);
+                object maxObj = maxCmd.ExecuteScalar();
+                if (maxObj != null && maxObj != DBNull.Value)
+                    nextOrder = Convert.ToInt32(maxObj) + 1;
+            }
+
+            int nextKeyNum = 1;
+            using (OleDbCommand keyCmd = new OleDbCommand(
+                "SELECT COUNT(*) FROM SharedCalendarCustomFields WHERE CalendarId=?", con))
+            {
+                keyCmd.Parameters.AddWithValue("?", calendarId);
+                object cnt = keyCmd.ExecuteScalar();
+                if (cnt != null && cnt != DBNull.Value)
+                    nextKeyNum = Convert.ToInt32(cnt) + 1;
+            }
+            string fieldKey = "custom_" + nextKeyNum + "_" + DateTime.UtcNow.Ticks.ToString().Substring(10);
+
+            using (OleDbCommand cmd = new OleDbCommand(@"
+                INSERT INTO SharedCalendarCustomFields
+                (CalendarId, FieldKey, FieldLabel, FieldType, FieldOptions, SortOrder, IsRequired, IsActive)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)", con))
+            {
+                cmd.Parameters.AddWithValue("?", calendarId);
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = fieldKey });
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = cleanLabel });
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = type });
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.LongVarWChar) { Value = cleanOptions });
+                cmd.Parameters.AddWithValue("?", nextOrder);
+                cmd.Parameters.AddWithValue("?", isRequired);
+                cmd.Parameters.AddWithValue("?", true);
+                cmd.ExecuteNonQuery();
+            }
+
+            using (OleDbCommand idCmd = new OleDbCommand("SELECT @@IDENTITY", con))
+            {
+                object idObj = idCmd.ExecuteScalar();
+                return idObj != null && idObj != DBNull.Value ? Convert.ToInt32(idObj) : 0;
+            }
+        }
+    }
+
+    public void UpdateCustomField(int fieldId, string label, string fieldType, string options, bool isRequired)
+    {
+        string cleanLabel = Utilities.FixEncoding((label ?? "").Trim());
+        if (string.IsNullOrWhiteSpace(cleanLabel))
+            throw new ArgumentException("\u05E9\u05DD \u05D4\u05E9\u05D3\u05D4 \u05D7\u05D5\u05D1\u05D4");
+
+        string type = NormalizeCustomFieldType(fieldType);
+        string cleanOptions = Utilities.FixEncoding((options ?? "").Trim());
+        if (type == "list" && string.IsNullOrWhiteSpace(cleanOptions))
+            throw new ArgumentException("\u05E8\u05E9\u05D9\u05DE\u05D4 \u05D3\u05D5\u05E8\u05E9\u05EA \u05D0\u05E4\u05E9\u05E8\u05D5\u05D9\u05D5\u05EA");
+        if (type == "button" && string.IsNullOrWhiteSpace(cleanOptions))
+            throw new ArgumentException("\u05DB\u05E4\u05EA\u05D5\u05E8 \u05D3\u05D5\u05E8\u05E9 \u05DB\u05EA\u05D5\u05D1\u05EA URL");
+        if (type == "text")
+            cleanOptions = "";
+
+        try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+        string conStr = Connect.GetConnectionString();
+        using (OleDbConnection con = new OleDbConnection(conStr))
+        {
+            con.Open();
+            using (OleDbCommand cmd = new OleDbCommand(@"
+                UPDATE SharedCalendarCustomFields
+                SET FieldLabel=?, FieldType=?, FieldOptions=?, IsRequired=?
+                WHERE Id=?", con))
+            {
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = cleanLabel });
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = type });
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.LongVarWChar) { Value = cleanOptions });
+                cmd.Parameters.AddWithValue("?", isRequired);
+                cmd.Parameters.AddWithValue("?", fieldId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    public void DeleteCustomField(int fieldId)
+    {
+        try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+        string conStr = Connect.GetConnectionString();
+        using (OleDbConnection con = new OleDbConnection(conStr))
+        {
+            con.Open();
+            string fieldKey = null;
+            using (OleDbCommand getCmd = new OleDbCommand(
+                "SELECT FieldKey FROM SharedCalendarCustomFields WHERE Id=?", con))
+            {
+                getCmd.Parameters.AddWithValue("?", fieldId);
+                object keyObj = getCmd.ExecuteScalar();
+                if (keyObj != null && keyObj != DBNull.Value)
+                    fieldKey = Convert.ToString(keyObj);
+            }
+
+            using (OleDbCommand cmd = new OleDbCommand(
+                "UPDATE SharedCalendarCustomFields SET IsActive=? WHERE Id=?", con))
+            {
+                cmd.Parameters.AddWithValue("?", false);
+                cmd.Parameters.AddWithValue("?", fieldId);
+                cmd.ExecuteNonQuery();
+            }
+
+            if (!string.IsNullOrEmpty(fieldKey) && TableExists(con, "SharedCalendarEventFieldValues"))
+            {
+                try
+                {
+                    using (OleDbCommand del = new OleDbCommand(
+                        "DELETE FROM SharedCalendarEventFieldValues WHERE FieldKey=?", con))
+                    {
+                        del.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = fieldKey });
+                        del.ExecuteNonQuery();
+                    }
+                }
+                catch { }
+            }
+        }
+    }
+
+    public Dictionary<string, string> GetEventFieldValues(int eventId)
+    {
+        Dictionary<string, string> map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (eventId <= 0) return map;
+        try
+        {
+            try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+            string conStr = Connect.GetConnectionString();
+            using (OleDbConnection con = new OleDbConnection(conStr))
+            {
+                con.Open();
+                if (!TableExists(con, "SharedCalendarEventFieldValues"))
+                    return map;
+                using (OleDbCommand cmd = new OleDbCommand(
+                    "SELECT FieldKey, FieldValue FROM SharedCalendarEventFieldValues WHERE EventId=?", con))
+                {
+                    cmd.Parameters.AddWithValue("?", eventId);
+                    using (OleDbDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            string key = Convert.ToString(reader["FieldKey"] ?? "");
+                            string val = Utilities.FixEncoding(Convert.ToString(reader["FieldValue"] ?? ""));
+                            if (!string.IsNullOrEmpty(key))
+                                map[key] = val;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("SharedCalendarService", "GetEventFieldValues failed", ex);
+        }
+        return map;
+    }
+
+    public Dictionary<int, Dictionary<string, string>> GetEventFieldValuesForCalendar(int calendarId)
+    {
+        Dictionary<int, Dictionary<string, string>> result =
+            new Dictionary<int, Dictionary<string, string>>();
+        try
+        {
+            try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+            string conStr = Connect.GetConnectionString();
+            using (OleDbConnection con = new OleDbConnection(conStr))
+            {
+                con.Open();
+                if (!TableExists(con, "SharedCalendarEventFieldValues") || !TableExists(con, "SharedCalendarEvents"))
+                    return result;
+
+                string sql = @"
+                    SELECT V.EventId, V.FieldKey, V.FieldValue
+                    FROM SharedCalendarEventFieldValues V
+                    INNER JOIN SharedCalendarEvents E ON V.EventId = E.Id
+                    WHERE E.CalendarId=?";
+                using (OleDbCommand cmd = new OleDbCommand(sql, con))
+                {
+                    cmd.Parameters.AddWithValue("?", calendarId);
+                    using (OleDbDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            int eid = Convert.ToInt32(reader["EventId"]);
+                            string key = Convert.ToString(reader["FieldKey"] ?? "");
+                            string val = Utilities.FixEncoding(Convert.ToString(reader["FieldValue"] ?? ""));
+                            if (string.IsNullOrEmpty(key)) continue;
+                            Dictionary<string, string> map;
+                            if (!result.TryGetValue(eid, out map))
+                            {
+                                map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                                result[eid] = map;
+                            }
+                            map[key] = val;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Log("SharedCalendarService", "GetEventFieldValuesForCalendar failed", ex);
+        }
+        return result;
+    }
+
+    public void SetEventFieldValues(int eventId, Dictionary<string, string> values)
+    {
+        if (eventId <= 0) return;
+        if (values == null) values = new Dictionary<string, string>();
+
+        try { DatabaseMigration.EnsureCollaborationFeatures(); } catch { }
+        string conStr = Connect.GetConnectionString();
+        using (OleDbConnection con = new OleDbConnection(conStr))
+        {
+            con.Open();
+            if (!TableExists(con, "SharedCalendarEventFieldValues"))
+                return;
+
+            using (OleDbCommand del = new OleDbCommand(
+                "DELETE FROM SharedCalendarEventFieldValues WHERE EventId=?", con))
+            {
+                del.Parameters.AddWithValue("?", eventId);
+                del.ExecuteNonQuery();
+            }
+
+            foreach (KeyValuePair<string, string> kv in values)
+            {
+                if (string.IsNullOrWhiteSpace(kv.Key)) continue;
+                string val = Utilities.FixEncoding(kv.Value ?? "");
+                using (OleDbCommand ins = new OleDbCommand(
+                    "INSERT INTO SharedCalendarEventFieldValues (EventId, FieldKey, FieldValue) VALUES (?, ?, ?)", con))
+                {
+                    ins.Parameters.AddWithValue("?", eventId);
+                    ins.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = kv.Key.Trim() });
+                    ins.Parameters.Add(new OleDbParameter("?", OleDbType.LongVarWChar) { Value = val });
+                    ins.ExecuteNonQuery();
+                }
+            }
+        }
     }
 }

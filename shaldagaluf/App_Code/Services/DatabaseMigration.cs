@@ -67,6 +67,12 @@ public static class DatabaseMigration
         AddColumnIfMissing(conn, "SharedCalendarEvents", "AssigneeUserId", "INTEGER");
         AddColumnIfMissing(conn, "SharedCalendarEvents", "Status", "TEXT(50)");
 
+        // ניהול טבלה משותפת: שדות גלויים / חובה + צבע לחבר
+        AddColumnIfMissing(conn, "SharedCalendars", "VisibleFields", "MEMO");
+        AddColumnIfMissing(conn, "SharedCalendars", "RequiredFields", "MEMO");
+        AddColumnIfMissing(conn, "SharedCalendarMembers", "MemberColor", "TEXT(20)");
+        AddColumnIfMissing(conn, "SharedCalendarMembers", "Permission", "TEXT(50)");
+
         if (!TableExists(conn, "Notifications"))
         {
             ExecuteNonQuery(conn, @"
@@ -99,14 +105,56 @@ public static class DatabaseMigration
                 )");
         }
 
+        EnsureSharedCalendarCustomFields(conn);
+
         // One-time: repair mojibake already stored in Hebrew text columns
         RepairHebrewTextData(conn);
+    }
+
+    /// <summary>
+    /// Custom field definitions per shared calendar + per-event values.
+    /// </summary>
+    private static void EnsureSharedCalendarCustomFields(OleDbConnection conn)
+    {
+        if (!TableExists(conn, "SharedCalendarCustomFields"))
+        {
+            ExecuteNonQuery(conn, @"
+                CREATE TABLE SharedCalendarCustomFields (
+                    Id AUTOINCREMENT PRIMARY KEY,
+                    CalendarId INTEGER,
+                    FieldKey TEXT(100),
+                    FieldLabel TEXT(255),
+                    FieldType TEXT(20),
+                    FieldOptions MEMO,
+                    SortOrder INTEGER,
+                    IsRequired YESNO,
+                    IsActive YESNO
+                )");
+        }
+        else
+        {
+            AddColumnIfMissing(conn, "SharedCalendarCustomFields", "IsRequired", "YESNO");
+            AddColumnIfMissing(conn, "SharedCalendarCustomFields", "IsActive", "YESNO");
+            AddColumnIfMissing(conn, "SharedCalendarCustomFields", "FieldOptions", "MEMO");
+            AddColumnIfMissing(conn, "SharedCalendarCustomFields", "SortOrder", "INTEGER");
+        }
+
+        if (!TableExists(conn, "SharedCalendarEventFieldValues"))
+        {
+            ExecuteNonQuery(conn, @"
+                CREATE TABLE SharedCalendarEventFieldValues (
+                    Id AUTOINCREMENT PRIMARY KEY,
+                    EventId INTEGER,
+                    FieldKey TEXT(100),
+                    FieldValue MEMO
+                )");
+        }
     }
 
     private static bool _hebrewRepairDone;
 
     /// <summary>
-    /// Re-writes Hebrew fields through Connect.FixEncoding so garbled UTF-8/1255 text is cleaned in-place.
+    /// Re-writes Hebrew fields through Utilities.FixEncoding so garbled UTF-8/1255 text is cleaned in-place.
     /// </summary>
     private static void RepairHebrewTextData(OleDbConnection conn)
     {
@@ -159,7 +207,7 @@ public static class DatabaseMigration
             {
                 string original = row[col] == DBNull.Value ? "" : Convert.ToString(row[col]);
                 if (string.IsNullOrEmpty(original)) continue;
-                string fixedText = Connect.FixEncoding(original);
+                string fixedText = Utilities.FixEncoding(original);
                 if (!string.Equals(original, fixedText, StringComparison.Ordinal))
                 {
                     sets.Add("[" + col + "]=?");

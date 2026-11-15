@@ -1,7 +1,7 @@
 ﻿<%@ Master Language="C#" AutoEventWireup="true" CodeFile="danimaster.master.cs" Inherits="danimaster" %>
 
 <!DOCTYPE html>
-<html lang="he">
+<html lang="he" dir="rtl" id="htmlRoot" runat="server">
 <head runat="server">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,23 +13,46 @@
     <link href="https://fonts.googleapis.com/css2?family=Trocchi&display=swap" rel="stylesheet">
     
     <!-- External CSS -->
-    <link href="StyleSheet.css?v=20261102c" rel="stylesheet" />
+    <link href="StyleSheet.css?v=20261115a11y3" rel="stylesheet" />
+    <script>
+        (function () {
+            try {
+                var m = document.cookie.match(/(?:^|; )OptiSchedTheme=(light|dark)/);
+                if (m && m[1] === 'light') document.documentElement.setAttribute('data-theme', 'light');
+            } catch (e) { }
+            // העדפות נגישות — לפני ציור כדי למנוע הבהוב
+            try {
+                var raw = localStorage.getItem('OptiSchedA11y');
+                if (!raw) return;
+                var p = JSON.parse(raw);
+                var h = document.documentElement;
+                if (p.font && p.font !== 'normal') h.setAttribute('data-a11y-font', p.font);
+                if (p.contrast) h.setAttribute('data-a11y-contrast', 'high');
+                if (p.underline) h.setAttribute('data-a11y-underline', 'true');
+                if (p.reduceMotion) h.setAttribute('data-a11y-reduce-motion', 'true');
+            } catch (e2) { }
+        })();
+    </script>
     
     <!-- Placeholder for additional head content -->
     <asp:ContentPlaceHolder ID="head" runat="server"></asp:ContentPlaceHolder>
 </head>
 
-<body id="Body" runat="server" style="direction: rtl; text-align: right;">
+<body id="Body" runat="server" dir="rtl" style="direction: rtl; text-align: right;">
     <form id="form1" runat="server">
+        <a href="#mainContent" class="skip-link">דלג לתוכן הראשי</a>
+
         <!-- Header: מותג מימין, חשבון+התראות משמאל (כמו Google Calendar / LinkedIn) -->
-        <header id="headerMenu">
+        <header id="headerMenu" role="banner">
             <div class="header-inner header-shell">
                 <div class="logo-block">
-                    <img src="pics/optisched-logo.png" alt="OptiSched" class="logo"/>
-                    <div class="logo-text">
-                        <span class="logo-name">OptiSched</span>
-                        <span class="logo-tagline">Smart Scheduling</span>
-                    </div>
+                    <a href="home.aspx" class="logo-home-link" aria-label="OptiSched — מעבר לדף הבית">
+                        <img src="pics/optisched-logo.png" alt="לוגו OptiSched" class="logo"/>
+                        <div class="logo-text">
+                            <span class="logo-name">OptiSched</span>
+                            <span class="logo-tagline">Smart Scheduling</span>
+                        </div>
+                    </a>
                 </div>
 
                 <div class="header-account" id="headerAccount" runat="server">
@@ -40,7 +63,7 @@
                             </svg>
                             <asp:Label ID="lblNotifCount" runat="server" CssClass="notif-badge" Visible="false" />
                         </asp:LinkButton>
-                        <asp:Panel ID="pnlNotifDropdown" runat="server" CssClass="notif-panel" Visible="false">
+                        <asp:Panel ID="pnlNotifDropdown" runat="server" CssClass="notif-panel" Visible="false" role="region" aria-label="רשימת התראות">
                             <div class="notif-dropdown-header">
                                 <strong>התראות</strong>
                                 <asp:LinkButton ID="btnMarkAllRead" runat="server" OnClick="btnMarkAllRead_Click" CssClass="notif-mark-all" CausesValidation="false" Text="סמן הכל כנקרא" />
@@ -60,11 +83,11 @@
                         </asp:Panel>
                     </div>
 
-                    <asp:LinkButton ID="lnkUserName" runat="server" CssClass="account-logout" OnClick="lnkUserName_Click">התנתק</asp:LinkButton>
+                    <asp:LinkButton ID="lnkUserName" runat="server" CssClass="account-logout" OnClick="lnkUserName_Click" ToolTip="התנתקות מהמערכת" aria-label="התנתקות">התנתק</asp:LinkButton>
                 </div>
             </div>
 
-            <nav class="nav-bar">
+            <nav class="nav-bar" aria-label="ניווט ראשי">
                 <a href="home.aspx">בית</a>
                 <a href="register.aspx" runat="server" id="linkRegister">הרשמה</a>
                 <a href="tasks.aspx" runat="server" id="linkTasks">טופס משימות</a>
@@ -73,6 +96,7 @@
                 <a href="contant.aspx" runat="server" id="linkContent">תוכן</a>
                 <a href="login.aspx" runat="server" id="linkLogin">כניסה</a>
                 <a href="termofservice.aspx" runat="server" id="linkTerms">תנאי שירות</a>
+                <a href="accessibility.aspx" runat="server" id="linkAccessibility">נגישות</a>
 
                 <a href="exusers.aspx" id="linkUsers" runat="server">משתמשים</a>
                 <a href="allEvents.aspx" id="linkAllEvents" runat="server">כל האירועים</a>
@@ -186,26 +210,61 @@
             .notif-date { display: block; font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 6px; }
             .notif-empty { display: block; padding: 20px 16px; text-align: center; color: #888; }
             .nav-bar { margin-top: 16px; }
+            .logo-home-link {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                text-decoration: none;
+                color: inherit;
+            }
+            .logo-home-link:hover { text-decoration: none; color: inherit; }
         </style>
 
         <!-- Main Content Area -->
-        <main class="content-container">
+        <main id="mainContent" class="content-container" tabindex="-1">
             <asp:ContentPlaceHolder ID="ContentPlaceHolder1" runat="server"></asp:ContentPlaceHolder>
         </main>
 
         <!-- Footer -->
-        <footer class="footer">
+        <footer class="footer" role="contentinfo">
             <p>&copy; 2025 OptiSched. כל הזכויות שמורות.</p>
+            <p class="footer-a11y">
+                <a href="accessibility.aspx">הצהרת נגישות</a>
+                <span aria-hidden="true"> · </span>
+                <a href="contactus.aspx">צור קשר</a>
+            </p>
         </footer>
+
+        <!-- סרגל כלי נגישות (תקן ישראלי / WCAG) -->
+        <div id="a11yToolbar" class="a11y-toolbar" role="region" aria-label="כלי נגישות">
+            <button type="button" id="a11yToggle" class="a11y-toggle" aria-expanded="false" aria-controls="a11yPanel" title="פתיחת כלי נגישות" aria-haspopup="true">
+                נגישות
+            </button>
+            <div id="a11yPanel" class="a11y-panel" hidden>
+                <p class="a11y-panel-title" id="a11yPanelTitle">כלי נגישות</p>
+                <div class="a11y-actions" role="group" aria-labelledby="a11yPanelTitle">
+                    <button type="button" id="a11yFontUp" class="a11y-btn" title="הגדלת טקסט" aria-label="הגדלת טקסט">א+</button>
+                    <button type="button" id="a11yFontDown" class="a11y-btn" title="הקטנת טקסט" aria-label="הקטנת טקסט">א−</button>
+                    <button type="button" id="a11yFontReset" class="a11y-btn" title="איפוס גודל טקסט" aria-label="איפוס גודל טקסט">א</button>
+                    <button type="button" id="a11yContrast" class="a11y-btn a11y-btn-wide" aria-pressed="false" title="ניגודיות גבוהה">ניגודיות גבוהה</button>
+                    <button type="button" id="a11yUnderline" class="a11y-btn a11y-btn-wide" aria-pressed="false" title="הדגשת קישורים">הדגשת קישורים</button>
+                    <button type="button" id="a11yMotion" class="a11y-btn a11y-btn-wide" aria-pressed="false" title="השהיית אנימציות">השהיית אנימציה</button>
+                    <button type="button" id="a11yResetAll" class="a11y-btn a11y-btn-reset" title="איפוס כל הגדרות הנגישות">איפוס הכל</button>
+                </div>
+                <a class="a11y-statement-link" href="accessibility.aspx">הצהרת נגישות</a>
+            </div>
+            <div id="a11yLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+        </div>
         
         <!-- Scroll-to-top button -->
-<button id="scrollToTopBtn" onclick="scrollToTop()" style="position: fixed; bottom: 20px; right: 20px; padding: 5px 10px; background-color: #333; color: white; border: none; border-radius: 50%; cursor: pointer; display: none; font-size: 18px; width: 40px; height: 40px; text-align: center; line-height: 30px;">
-    ↑
-</button>
+        <button type="button" id="scrollToTopBtn" onclick="scrollToTop()" aria-label="חזרה לראש הדף" title="חזרה לראש הדף" style="position: fixed; bottom: 20px; right: 20px; padding: 5px 10px; background-color: #333; color: white; border: none; border-radius: 50%; cursor: pointer; display: none; font-size: 18px; width: 40px; height: 40px; text-align: center; line-height: 30px;">
+            ↑
+        </button>
 
     </form>
 
     <!-- Include JavaScript -->
     <script src="JavaScript.js" defer></script>
+    <script src="accessibility.js?v=20261115a11y2" defer></script>
 </body>
 </html>

@@ -15,7 +15,16 @@ public partial class danimaster : System.Web.UI.MasterPage
         Response.ContentEncoding = System.Text.Encoding.UTF8;
 
         string pageName = System.IO.Path.GetFileNameWithoutExtension(Request.Url.AbsolutePath);
-        Body.Attributes["class"] = "page-" + pageName.ToLower();
+        string theme = Utilities.GetTheme();
+        Body.Attributes["class"] = "page-" + pageName.ToLower() + " theme-" + theme;
+        Body.Attributes["data-theme"] = theme;
+        Body.Attributes["dir"] = "rtl";
+        if (htmlRoot != null)
+        {
+            htmlRoot.Attributes["data-theme"] = theme;
+            htmlRoot.Attributes["lang"] = "he";
+            htmlRoot.Attributes["dir"] = "rtl";
+        }
 
         bool isLoggedIn = Session["username"] != null;
         string role = Convert.ToString(Session["Role"]);
@@ -38,6 +47,9 @@ public partial class danimaster : System.Web.UI.MasterPage
 
         if (linkTerms != null)
             linkTerms.Visible = true;
+
+        if (linkAccessibility != null)
+            linkAccessibility.Visible = true;
 
         if (linkUsers != null)
             linkUsers.Visible = isOwner;

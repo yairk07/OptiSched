@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.OleDb;
@@ -102,7 +102,7 @@ public class UsersService
             string idCol = ColumnExists(myConnection, "Users", "id") ? "id" : "Id";
             int nextId = hasId ? GetNextUserId(myConnection) : -1;
 
-            string passwordCol = hasPasswordHash ? "PasswordHash" : (hasPassword ? "[password]" : "PasswordHash");
+            // שומרים את הגיבוב בשתי העמודות כששתיהן קיימות — כדי שהתחברות (שקוראת גם password וגם PasswordHash) תעבוד
             string userIdCol = hasUserIdNumber ? "UserIdNumber" : (hasUserId ? "userId" : "UserIdNumber");
             string phoneCol = hasPhoneNumber ? "PhoneNumber" : (hasPhonenum ? "phonenum" : "PhoneNumber");
             string cityCol = hasCityId ? "CityId" : (hasCity ? "city" : "CityId");
@@ -117,8 +117,27 @@ public class UsersService
                 values.Add("?");
             }
 
-            columns.AddRange(new string[] { "UserName", "FirstName", "LastName", "Email", passwordCol, "Gender", "YearOfBirth", userIdCol, phoneCol, cityCol });
-            values.AddRange(new string[] { "?", "?", "?", "?", "?", "?", "?", "?", "?", "?" });
+            columns.AddRange(new string[] { "UserName", "FirstName", "LastName", "Email" });
+            values.AddRange(new string[] { "?", "?", "?", "?" });
+
+            if (hasPasswordHash)
+            {
+                columns.Add("PasswordHash");
+                values.Add("?");
+            }
+            if (hasPassword)
+            {
+                columns.Add("[password]");
+                values.Add("?");
+            }
+            if (!hasPasswordHash && !hasPassword)
+            {
+                columns.Add("PasswordHash");
+                values.Add("?");
+            }
+
+            columns.AddRange(new string[] { "Gender", "YearOfBirth", userIdCol, phoneCol, cityCol });
+            values.AddRange(new string[] { "?", "?", "?", "?", "?" });
 
             if (hasRole)
             {
@@ -161,9 +180,17 @@ public class UsersService
                 emailParam.Value = email != null ? email.Trim() : "";
                 cmd.Parameters.Add(emailParam);
 
-                OleDbParameter passwordParam = new OleDbParameter("?", OleDbType.WChar);
-                passwordParam.Value = hashedPassword ?? "";
-                cmd.Parameters.Add(passwordParam);
+                // אם שתי עמודות הסיסמה קיימות — מוסיפים את הגיבוב פעמיים (ל-PasswordHash ול-[password])
+                int passwordParamCount = 0;
+                if (hasPasswordHash) passwordParamCount++;
+                if (hasPassword) passwordParamCount++;
+                if (passwordParamCount == 0) passwordParamCount = 1;
+                for (int i = 0; i < passwordParamCount; i++)
+                {
+                    OleDbParameter passwordParam = new OleDbParameter("?", OleDbType.WChar);
+                    passwordParam.Value = hashedPassword ?? "";
+                    cmd.Parameters.Add(passwordParam);
+                }
 
                 OleDbParameter genderParam = new OleDbParameter("?", OleDbType.Integer);
                 genderParam.Value = gender;
@@ -237,32 +264,32 @@ public class UsersService
                     if (row.Table.Columns.Contains("UserName") || row.Table.Columns.Contains("userName"))
                     {
                         string colName = row.Table.Columns.Contains("UserName") ? "UserName" : "userName";
-                        row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                        row[colName] = Utilities.FixEncoding(Convert.ToString(row[colName]));
                     }
                     if (row.Table.Columns.Contains("FirstName") || row.Table.Columns.Contains("firstName"))
                     {
                         string colName = row.Table.Columns.Contains("FirstName") ? "FirstName" : "firstName";
-                        row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                        row[colName] = Utilities.FixEncoding(Convert.ToString(row[colName]));
                     }
                     if (row.Table.Columns.Contains("LastName") || row.Table.Columns.Contains("lastName"))
                     {
                         string colName = row.Table.Columns.Contains("LastName") ? "LastName" : "lastName";
-                        row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                        row[colName] = Utilities.FixEncoding(Convert.ToString(row[colName]));
                     }
                     if (row.Table.Columns.Contains("Email") || row.Table.Columns.Contains("email"))
                     {
                         string colName = row.Table.Columns.Contains("Email") ? "Email" : "email";
-                        row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                        row[colName] = Utilities.FixEncoding(Convert.ToString(row[colName]));
                     }
                     if (row.Table.Columns.Contains("PhoneNumber") || row.Table.Columns.Contains("phonenum"))
                     {
                         string colName = row.Table.Columns.Contains("PhoneNumber") ? "PhoneNumber" : "phonenum";
-                        row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                        row[colName] = Utilities.FixEncoding(Convert.ToString(row[colName]));
                     }
                     if (row.Table.Columns.Contains("UserIdNumber") || row.Table.Columns.Contains("userId"))
                     {
                         string colName = row.Table.Columns.Contains("UserIdNumber") ? "UserIdNumber" : "userId";
-                        row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                        row[colName] = Utilities.FixEncoding(Convert.ToString(row[colName]));
                     }
                 }
 
@@ -289,7 +316,7 @@ public class UsersService
                         string nameCol = r.Table.Columns.Contains("CityName") ? "CityName" : "cityname";
                         int id;
                         if (int.TryParse(Convert.ToString(r[idCol]).Trim(), out id))
-                            dict[id] = Connect.FixEncoding(Convert.ToString(r[nameCol]));
+                            dict[id] = Utilities.FixEncoding(Convert.ToString(r[nameCol]));
                     }
 
                     if (!usersTable.Columns.Contains("CityName"))
@@ -646,35 +673,35 @@ public class UsersService
             if (row.Table.Columns.Contains("UserName") || row.Table.Columns.Contains("userName"))
             {
                 string colName = row.Table.Columns.Contains("UserName") ? "UserName" : "userName";
-                row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                row[colName] = Utilities.FixEncoding(Convert.ToString(row[colName]));
             }
             if (row.Table.Columns.Contains("FirstName") || row.Table.Columns.Contains("firstName"))
             {
                 string colName = row.Table.Columns.Contains("FirstName") ? "FirstName" : "firstName";
-                row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                row[colName] = Utilities.FixEncoding(Convert.ToString(row[colName]));
             }
             if (row.Table.Columns.Contains("LastName") || row.Table.Columns.Contains("lastName"))
             {
                 string colName = row.Table.Columns.Contains("LastName") ? "LastName" : "lastName";
-                row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                row[colName] = Utilities.FixEncoding(Convert.ToString(row[colName]));
             }
             if (row.Table.Columns.Contains("Email") || row.Table.Columns.Contains("email"))
             {
                 string colName = row.Table.Columns.Contains("Email") ? "Email" : "email";
-                row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                row[colName] = Utilities.FixEncoding(Convert.ToString(row[colName]));
             }
             if (row.Table.Columns.Contains("PhoneNumber") || row.Table.Columns.Contains("phonenum"))
             {
                 string colName = row.Table.Columns.Contains("PhoneNumber") ? "PhoneNumber" : "phonenum";
-                row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                row[colName] = Utilities.FixEncoding(Convert.ToString(row[colName]));
             }
             if (row.Table.Columns.Contains("UserIdNumber") || row.Table.Columns.Contains("userId"))
             {
                 string colName = row.Table.Columns.Contains("UserIdNumber") ? "UserIdNumber" : "userId";
-                row[colName] = Connect.FixEncoding(Convert.ToString(row[colName]));
+                row[colName] = Utilities.FixEncoding(Convert.ToString(row[colName]));
             }
             if (row.Table.Columns.Contains("GoogleId"))
-                row["GoogleId"] = Connect.FixEncoding(Convert.ToString(row["GoogleId"]));
+                row["GoogleId"] = Utilities.FixEncoding(Convert.ToString(row["GoogleId"]));
             return row;
         }
         return null;

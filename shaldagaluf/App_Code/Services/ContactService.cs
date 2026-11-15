@@ -31,10 +31,10 @@ public class ContactService
             string sql = "INSERT INTO ContactMessages (full_name, email, subject, message, created_at) VALUES (?, ?, ?, ?, ?)";
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {
-                cmd.Parameters.AddWithValue("?", Connect.FixEncoding(fullName));
+                cmd.Parameters.AddWithValue("?", Utilities.FixEncoding(fullName));
                 cmd.Parameters.AddWithValue("?", email.Trim().ToLower());
-                cmd.Parameters.AddWithValue("?", Connect.FixEncoding(subject ?? ""));
-                cmd.Parameters.AddWithValue("?", Connect.FixEncoding(message));
+                cmd.Parameters.AddWithValue("?", Utilities.FixEncoding(subject ?? ""));
+                cmd.Parameters.AddWithValue("?", Utilities.FixEncoding(message));
                 cmd.Parameters.AddWithValue("?", DateTime.Now);
                 cmd.ExecuteNonQuery();
             }

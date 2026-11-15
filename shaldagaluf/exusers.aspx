@@ -1,4 +1,4 @@
-﻿<%@ Page Title="רשימת משתמשים" Language="C#" MasterPageFile="~/danimaster.master"
+<%@ Page Title="רשימת משתמשים" Language="C#" MasterPageFile="~/danimaster.master"
     AutoEventWireup="true" CodeFile="exusers.aspx.cs" Inherits="exusers" ResponseEncoding="utf-8" ContentType="text/html; charset=utf-8" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
@@ -60,7 +60,7 @@
                         <ItemTemplate>
                             <asp:LinkButton ID="lnkUserName" runat="server" CommandName="Edit" CssClass="editable-cell"
                                 Enabled='<%# IsOwner() %>'
-                                Text='<%# Connect.FixEncoding(Eval("userName") != null ? Eval("userName").ToString() : "") %>' />
+                                Text='<%# Utilities.FixEncoding(Eval("userName") != null ? Eval("userName").ToString() : "") %>' />
                         </ItemTemplate>
                         <EditItemTemplate>
                             <asp:TextBox ID="txtEditUserName" runat="server" CssClass="grid-edit-input"
@@ -71,7 +71,7 @@
                         <ItemTemplate>
                             <asp:LinkButton ID="lnkFirstName" runat="server" CommandName="Edit" CssClass="editable-cell"
                                 Enabled='<%# IsOwner() %>'
-                                Text='<%# Connect.FixEncoding(Eval("firstName") != null ? Eval("firstName").ToString() : "") %>' />
+                                Text='<%# Utilities.FixEncoding(Eval("firstName") != null ? Eval("firstName").ToString() : "") %>' />
                         </ItemTemplate>
                         <EditItemTemplate>
                             <asp:TextBox ID="txtEditFirstName" runat="server" CssClass="grid-edit-input"
@@ -82,7 +82,7 @@
                         <ItemTemplate>
                             <asp:LinkButton ID="lnkLastName" runat="server" CommandName="Edit" CssClass="editable-cell"
                                 Enabled='<%# IsOwner() %>'
-                                Text='<%# Connect.FixEncoding(Eval("lastName") != null ? Eval("lastName").ToString() : "") %>' />
+                                Text='<%# Utilities.FixEncoding(Eval("lastName") != null ? Eval("lastName").ToString() : "") %>' />
                         </ItemTemplate>
                         <EditItemTemplate>
                             <asp:TextBox ID="txtEditLastName" runat="server" CssClass="grid-edit-input"
@@ -93,7 +93,7 @@
                         <ItemTemplate>
                             <asp:LinkButton ID="lnkEmail" runat="server" CommandName="Edit" CssClass="editable-cell"
                                 Enabled='<%# IsOwner() %>'
-                                Text='<%# Connect.FixEncoding(Eval("email") != null ? Eval("email").ToString() : "") %>' />
+                                Text='<%# Utilities.FixEncoding(Eval("email") != null ? Eval("email").ToString() : "") %>' />
                         </ItemTemplate>
                         <EditItemTemplate>
                             <asp:TextBox ID="txtEditEmail" runat="server" CssClass="grid-edit-input"
@@ -113,7 +113,7 @@
                         <ItemTemplate>
                             <asp:LinkButton ID="lnkPhone" runat="server" CommandName="Edit" CssClass="editable-cell"
                                 Enabled='<%# IsOwner() %>'
-                                Text='<%# Connect.FixEncoding(Eval("phonenum") != null ? Eval("phonenum").ToString() : "") %>' />
+                                Text='<%# Utilities.FixEncoding(Eval("phonenum") != null ? Eval("phonenum").ToString() : "") %>' />
                         </ItemTemplate>
                         <EditItemTemplate>
                             <asp:TextBox ID="txtEditPhone" runat="server" CssClass="grid-edit-input"

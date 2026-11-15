@@ -13,43 +13,44 @@
 
             <div class="contact-form-container">
                 <div class="form-group">
-                    <label class="form-label">נושא פנייה</label>
+                    <asp:Label runat="server" CssClass="form-label" AssociatedControlID="DropDownList1" Text="נושא פנייה" />
                     <asp:DropDownList ID="DropDownList1" runat="server" CssClass="form-input">
                         <asp:ListItem Text="בחר נושא" Value="" Selected="True"></asp:ListItem>
                         <asp:ListItem Text="בעיה באתר" Value="1"></asp:ListItem>
                         <asp:ListItem Text="פנייה ליוצר" Value="2"></asp:ListItem>
+                        <asp:ListItem Text="נגישות האתר" Value="4"></asp:ListItem>
                         <asp:ListItem Text="סתם לכיף" Value="3"></asp:ListItem>
                     </asp:DropDownList>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">שם פרטי</label>
-                        <asp:TextBox ID="txtFirstName" runat="server" CssClass="form-input" placeholder="הזן שם פרטי"></asp:TextBox>
+                        <asp:Label runat="server" CssClass="form-label" AssociatedControlID="txtFirstName" Text="שם פרטי" />
+                        <asp:TextBox ID="txtFirstName" runat="server" CssClass="form-input" placeholder="הזן שם פרטי" autocomplete="given-name"></asp:TextBox>
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">שם משפחה</label>
-                        <asp:TextBox ID="txtLastName" runat="server" CssClass="form-input" placeholder="הזן שם משפחה"></asp:TextBox>
+                        <asp:Label runat="server" CssClass="form-label" AssociatedControlID="txtLastName" Text="שם משפחה" />
+                        <asp:TextBox ID="txtLastName" runat="server" CssClass="form-input" placeholder="הזן שם משפחה" autocomplete="family-name"></asp:TextBox>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">אימייל</label>
-                    <asp:TextBox ID="txtEmail" runat="server" CssClass="form-input" TextMode="Email" placeholder="your.email@example.com"></asp:TextBox>
+                    <asp:Label runat="server" CssClass="form-label" AssociatedControlID="txtEmail" Text="אימייל" />
+                    <asp:TextBox ID="txtEmail" runat="server" CssClass="form-input" TextMode="Email" placeholder="your.email@example.com" autocomplete="email"></asp:TextBox>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">נושא</label>
+                    <asp:Label runat="server" CssClass="form-label" AssociatedControlID="txtSubject" Text="נושא" />
                     <asp:TextBox ID="txtSubject" runat="server" CssClass="form-input" placeholder="נושא הפנייה"></asp:TextBox>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">תוכן הפנייה</label>
+                    <asp:Label runat="server" CssClass="form-label" AssociatedControlID="txtMessage" Text="תוכן הפנייה" />
                     <asp:TextBox ID="txtMessage" runat="server" CssClass="form-input form-textarea" TextMode="MultiLine" Rows="8" placeholder="כתוב כאן את הודעתך..."></asp:TextBox>
                 </div>
 
-                <asp:Label ID="lblMessage" runat="server" CssClass="form-message"></asp:Label>
+                <asp:Label ID="lblMessage" runat="server" CssClass="form-message" role="alert" aria-live="polite"></asp:Label>
 
                 <div class="form-actions">
                     <asp:Button ID="btnSubmit" runat="server" Text="שלח הודעה" CssClass="btn-submit" OnClick="btnSubmit_Click" />

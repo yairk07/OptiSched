@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Data;
 using System.Data.OleDb;
 using System.Linq;
@@ -187,7 +187,7 @@ ORDER BY Id";
                             string idCol = userRow.Table.Columns.Contains("Id") ? "Id" : "id";
                             string nameCol = userRow.Table.Columns.Contains("UserName") ? "UserName" : "username";
                             int uid = Convert.ToInt32(userRow[idCol]);
-                            string uname = Connect.FixEncoding(userRow[nameCol] != null && userRow[nameCol] != DBNull.Value ? userRow[nameCol].ToString() : "");
+                            string uname = Utilities.FixEncoding(userRow[nameCol] != null && userRow[nameCol] != DBNull.Value ? userRow[nameCol].ToString() : "");
                             usersDict[uid] = uname;
                         }
                     }
@@ -207,13 +207,13 @@ ORDER BY Id";
                 foreach (DataRow row in dt.Rows)
                 {
                     if (row.Table.Columns.Contains("Title"))
-                        row["Title"] = Connect.FixEncoding(Convert.ToString(row["Title"]));
+                        row["Title"] = Utilities.FixEncoding(Convert.ToString(row["Title"]));
                     if (row.Table.Columns.Contains("EventTime"))
-                        row["EventTime"] = Connect.FixEncoding(Convert.ToString(row["EventTime"]));
+                        row["EventTime"] = Utilities.FixEncoding(Convert.ToString(row["EventTime"]));
                     if (row.Table.Columns.Contains("Notes"))
-                        row["Notes"] = Connect.FixEncoding(Convert.ToString(row["Notes"]));
+                        row["Notes"] = Utilities.FixEncoding(Convert.ToString(row["Notes"]));
                     if (row.Table.Columns.Contains("Category"))
-                        row["Category"] = Connect.FixEncoding(Convert.ToString(row["Category"]));
+                        row["Category"] = Utilities.FixEncoding(Convert.ToString(row["Category"]));
                 }
 
                 // Populate UserName column from dictionary and set default category if missing
@@ -391,13 +391,13 @@ ORDER BY Id";
                     {
                         // Fix Hebrew encoding for text fields
                         if (row.Table.Columns.Contains("Title"))
-                            row["Title"] = Connect.FixEncoding(Convert.ToString(row["Title"]));
+                            row["Title"] = Utilities.FixEncoding(Convert.ToString(row["Title"]));
                         if (row.Table.Columns.Contains("EventTime"))
-                            row["EventTime"] = Connect.FixEncoding(Convert.ToString(row["EventTime"]));
+                            row["EventTime"] = Utilities.FixEncoding(Convert.ToString(row["EventTime"]));
                         if (row.Table.Columns.Contains("Notes"))
-                            row["Notes"] = Connect.FixEncoding(Convert.ToString(row["Notes"]));
+                            row["Notes"] = Utilities.FixEncoding(Convert.ToString(row["Notes"]));
                         if (row.Table.Columns.Contains("Category"))
-                            row["Category"] = Connect.FixEncoding(Convert.ToString(row["Category"]));
+                            row["Category"] = Utilities.FixEncoding(Convert.ToString(row["Category"]));
 
                         // Extract user ID from UserId or CreatedBy column
                         int uid = -1;

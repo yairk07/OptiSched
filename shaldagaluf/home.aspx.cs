@@ -83,12 +83,28 @@ public partial class home : System.Web.UI.Page
             e.Cell.Text = text;
     }
 
+    protected void btnToggleTheme_Click(object sender, EventArgs e)
+    {
+        Utilities.ToggleTheme();
+        Response.Redirect(Request.RawUrl, false);
+        Context.ApplicationInstance.CompleteRequest();
+    }
+
+    private void BindThemeToggleLabel()
+    {
+        if (btnToggleTheme == null) return;
+        bool isLight = Utilities.GetTheme() == Utilities.ThemeLight;
+        btnToggleTheme.Text = isLight ? "ערכת צבע כהה" : "ערכת צבע בהירה";
+        btnToggleTheme.ToolTip = isLight ? "עבור לערכת צבע כהה" : "עבור לערכת צבע בהירה";
+    }
+
     // טעינת הדף והפעלת לוגיקה ראשונית
     protected void Page_Load(object sender, EventArgs e)
     {
         try
         {
             LoggingService.Log("HOME", string.Format("Page_Load called, IsPostBack={0}", IsPostBack));
+            BindThemeToggleLabel();
             
             if (!IsPostBack)
             {

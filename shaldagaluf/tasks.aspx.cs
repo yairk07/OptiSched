@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Data;
 using System.Text;
 using System.Web;
@@ -345,13 +345,13 @@ public partial class tasks : System.Web.UI.Page
                     string categoryColumn = row.Table.Columns.Contains("Category") ? "Category" : (row.Table.Columns.Contains("category") ? "category" : "Category");
                     
                     string title = row.Table.Columns.Contains(titleColumn) && row[titleColumn] != DBNull.Value && row[titleColumn] != null 
-                        ? HttpUtility.HtmlEncode(Connect.FixEncoding(row[titleColumn].ToString())) : "";
+                        ? HttpUtility.HtmlEncode(Utilities.FixEncoding(row[titleColumn].ToString())) : "";
                     string time = row.Table.Columns.Contains(timeColumn) && row[timeColumn] != DBNull.Value && row[timeColumn] != null 
-                        ? HttpUtility.HtmlEncode(Connect.FixEncoding(row[timeColumn].ToString())) : "";
+                        ? HttpUtility.HtmlEncode(Utilities.FixEncoding(row[timeColumn].ToString())) : "";
                     string note = row.Table.Columns.Contains(notesColumn) && row[notesColumn] != DBNull.Value && row[notesColumn] != null 
-                        ? HttpUtility.HtmlEncode(Connect.FixEncoding(row[notesColumn].ToString())) : "";
+                        ? HttpUtility.HtmlEncode(Utilities.FixEncoding(row[notesColumn].ToString())) : "";
                     string category = row.Table.Columns.Contains(categoryColumn) && row[categoryColumn] != DBNull.Value && row[categoryColumn] != null 
-                        ? HttpUtility.HtmlEncode(Connect.FixEncoding(row[categoryColumn].ToString())) : "אחר";
+                        ? HttpUtility.HtmlEncode(Utilities.FixEncoding(row[categoryColumn].ToString())) : "אחר";
                     string eventType = table.TableName == "SharedEvents" ? "טבלה משותפת" : "אישי";
 
                     string eventId = row["Id"] != null && row["Id"] != DBNull.Value ? row["Id"].ToString() : "";

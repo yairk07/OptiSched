@@ -36,19 +36,19 @@
 
                 <asp:Panel ID="pnlLogin" runat="server" DefaultButton="btnLogin">
                 <div class="form-field">
-                    <label for="txtUserName">שם משתמש</label>
-                    <asp:TextBox ID="txtUserName" runat="server" CssClass="textbox" placeholder="לדוגמה: yair.k" />
+                    <asp:Label ID="lblUserName" runat="server" AssociatedControlID="txtUserName" Text="שם משתמש" />
+                    <asp:TextBox ID="txtUserName" runat="server" CssClass="textbox" placeholder="לדוגמה: yair.k" autocomplete="username" />
                 </div>
 
                 <div class="form-field">
-                    <label for="txtPassword">סיסמה</label>
-                    <asp:TextBox ID="txtPassword" runat="server" TextMode="Password" CssClass="textbox" placeholder="••••••••" />
+                    <asp:Label ID="lblPassword" runat="server" AssociatedControlID="txtPassword" Text="סיסמה" />
+                    <asp:TextBox ID="txtPassword" runat="server" TextMode="Password" CssClass="textbox" placeholder="••••••••" autocomplete="current-password" />
                 </div>
 
                 <asp:Button ID="btnLogin" runat="server" Text="כניסה למערכת" OnClick="btnLogin_Click" CssClass="button" />
                 </asp:Panel>
 
-                <div style="margin: 24px 0; text-align: center; position: relative;">
+                <div style="margin: 24px 0; text-align: center; position: relative;" aria-hidden="true">
                     <div style="position: relative; text-align: center;">
                         <span style="background: var(--surface); padding: 0 16px; color: var(--text); font-size: 14px; position: relative; z-index: 1;">או</span>
                         <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--border); z-index: 0;"></div>
@@ -57,10 +57,10 @@
 
                 <div class="form-field">
                     <asp:Button ID="btnGoogleLogin" runat="server" Text="התחבר עם Google" OnClick="btnGoogleLogin_Click" 
-                        CssClass="google-button" />
+                        CssClass="google-button" ToolTip="התחברות באמצעות חשבון Google" />
                 </div>
 
-                <asp:Label ID="lblError" runat="server" CssClass="auth-error" />
+                <asp:Label ID="lblError" runat="server" CssClass="auth-error" role="alert" aria-live="assertive" />
 
                 <div class="auth-support">
                     <a href="forgotPassword.aspx" style="display: block; margin-bottom: 12px; color: var(--brand); text-decoration: none;">שכחת סיסמה?</a>

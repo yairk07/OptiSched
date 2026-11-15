@@ -19,26 +19,26 @@
 
                 <asp:Panel ID="pnlRequestCode" runat="server" DefaultButton="btnSendCode">
                     <div class="form-field">
-                        <label for="txtEmail">כתובת אימייל</label>
-                        <asp:TextBox ID="txtEmail" runat="server" TextMode="Email" CssClass="textbox" placeholder="your.email@example.com" />
+                        <asp:Label runat="server" AssociatedControlID="txtEmail" Text="כתובת אימייל" />
+                        <asp:TextBox ID="txtEmail" runat="server" TextMode="Email" CssClass="textbox" placeholder="your.email@example.com" autocomplete="email" />
                     </div>
 
                     <asp:Button ID="btnSendCode" runat="server" Text="שלח קוד" OnClick="btnSendCode_Click" CssClass="button" />
 
-                    <asp:Label ID="lblMessage" runat="server" CssClass="auth-error" />
+                    <asp:Label ID="lblMessage" runat="server" CssClass="auth-error" role="alert" aria-live="assertive" />
                 </asp:Panel>
 
                 <asp:Panel ID="pnlVerifyCode" runat="server" Visible="false" DefaultButton="btnVerifyCode">
                     <div class="form-field">
-                        <label for="txtCode">קוד אימות</label>
-                        <asp:TextBox ID="txtCode" runat="server" CssClass="textbox verification-code-input" placeholder="000000" MaxLength="6" style="text-align: center; font-size: 24px; letter-spacing: 8px;" />
-                        <asp:Label ID="lblCodeHint" runat="server" CssClass="code-hint"
+                        <asp:Label runat="server" AssociatedControlID="txtCode" Text="קוד אימות" />
+                        <asp:TextBox ID="txtCode" runat="server" CssClass="textbox verification-code-input" placeholder="000000" MaxLength="6" style="text-align: center; font-size: 24px; letter-spacing: 8px;" inputmode="numeric" autocomplete="one-time-code" aria-describedby="lblCodeHint" />
+                        <asp:Label ID="lblCodeHint" runat="server" CssClass="code-hint" ClientIDMode="Static"
                             Text="הזן את הקוד בן 6 הספרות שנשלח לאימייל שלך" />
                     </div>
 
                     <asp:Button ID="btnVerifyCode" runat="server" Text="אמת קוד" OnClick="btnVerifyCode_Click" CssClass="button" />
 
-                    <asp:Label ID="lblCodeMessage" runat="server" CssClass="auth-error" />
+                    <asp:Label ID="lblCodeMessage" runat="server" CssClass="auth-error" role="alert" aria-live="assertive" />
 
                     <div style="text-align: center; margin-top: 20px;">
                         <asp:LinkButton ID="lnkResendCode" runat="server" OnClick="lnkResendCode_Click" CssClass="auth-link" Text="שלח קוד חדש"></asp:LinkButton>

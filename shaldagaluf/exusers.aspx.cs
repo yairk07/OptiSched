@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Data;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -265,7 +265,7 @@ public partial class exusers : System.Web.UI.Page
                             LiteralControl lit = ctrl as LiteralControl;
                             if (!string.IsNullOrWhiteSpace(lit.Text))
                             {
-                                lit.Text = Connect.FixEncoding(lit.Text);
+                                lit.Text = Utilities.FixEncoding(lit.Text);
                             }
                         }
                         else if (ctrl is System.Web.UI.WebControls.Label)
@@ -273,7 +273,7 @@ public partial class exusers : System.Web.UI.Page
                             System.Web.UI.WebControls.Label lbl = ctrl as System.Web.UI.WebControls.Label;
                             if (!string.IsNullOrWhiteSpace(lbl.Text))
                             {
-                                lbl.Text = Connect.FixEncoding(lbl.Text);
+                                lbl.Text = Utilities.FixEncoding(lbl.Text);
                             }
                         }
                     }
@@ -303,11 +303,11 @@ public partial class exusers : System.Web.UI.Page
         string firstNameCol = drv.DataView.Table.Columns.Contains("firstName") ? "firstName" : (drv.DataView.Table.Columns.Contains("FirstName") ? "FirstName" : "firstName");
         
         string userName = drv.DataView.Table.Columns.Contains(userNameCol) && drv[userNameCol] != DBNull.Value && drv[userNameCol] != null 
-            ? Connect.FixEncoding(Convert.ToString(drv[userNameCol])) : "";
+            ? Utilities.FixEncoding(Convert.ToString(drv[userNameCol])) : "";
         if (string.IsNullOrWhiteSpace(userName))
         {
             string firstName = drv.DataView.Table.Columns.Contains(firstNameCol) && drv[firstNameCol] != DBNull.Value && drv[firstNameCol] != null 
-                ? Connect.FixEncoding(Convert.ToString(drv[firstNameCol])) : "";
+                ? Utilities.FixEncoding(Convert.ToString(drv[firstNameCol])) : "";
             if (!string.IsNullOrWhiteSpace(firstName))
                 return firstName.Substring(0, 1).ToUpper();
             return "?";
@@ -341,7 +341,7 @@ public partial class exusers : System.Web.UI.Page
         foreach (var name in names)
         {
             if (table.Columns.Contains(name) && drv[name] != DBNull.Value && drv[name] != null)
-                return Connect.FixEncoding(Convert.ToString(drv[name]));
+                return Utilities.FixEncoding(Convert.ToString(drv[name]));
         }
         return string.Empty;
     }

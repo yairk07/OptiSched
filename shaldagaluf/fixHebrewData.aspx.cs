@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Data;
 using System.Data.OleDb;
 using System.Text;
@@ -102,7 +102,7 @@ public partial class fixHebrewData : System.Web.UI.Page
                         if (value != null && value != DBNull.Value)
                         {
                             string originalValue = value.ToString();
-                            string fixedValue = Connect.FixEncoding(originalValue);
+                            string fixedValue = Utilities.FixEncoding(originalValue);
 
                             if (originalValue != fixedValue && !string.IsNullOrEmpty(fixedValue))
                             {

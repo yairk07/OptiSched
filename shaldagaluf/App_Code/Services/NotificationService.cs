@@ -22,8 +22,8 @@ public static class NotificationService
             using (OleDbCommand cmd = new OleDbCommand(sql, conn))
             {
                 cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Integer) { Value = userId });
-                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = Connect.FixEncoding(title ?? "") });
-                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = Connect.FixEncoding(message ?? "") });
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = Utilities.FixEncoding(title ?? "") });
+                cmd.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = Utilities.FixEncoding(message ?? "") });
                 cmd.Parameters.Add(new OleDbParameter("?", OleDbType.WChar) { Value = linkUrl ?? "" });
                 cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Date) { Value = DateTime.Now });
                 cmd.Parameters.Add(new OleDbParameter("?", OleDbType.Boolean) { Value = false });
@@ -51,9 +51,9 @@ public static class NotificationService
         foreach (DataRow row in dt.Rows)
         {
             if (dt.Columns.Contains("Title"))
-                row["Title"] = Connect.FixEncoding(Convert.ToString(row["Title"]));
+                row["Title"] = Utilities.FixEncoding(Convert.ToString(row["Title"]));
             if (dt.Columns.Contains("Message"))
-                row["Message"] = Connect.FixEncoding(Convert.ToString(row["Message"]));
+                row["Message"] = Utilities.FixEncoding(Convert.ToString(row["Message"]));
         }
         return dt;
     }
